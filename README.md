@@ -81,13 +81,3 @@ Trường Đại học Tài nguyên và Môi trường
 9. Ghi chú
 Dự án phục vụ mục đích học tập và nghiên cứu, không sử dụng cho môi trường production.
 
-
-👉 **Bước tiếp theo nên làm ngay**:  
-- `git add README.md`  
-- `git commit -m "Add README for WebGIS Parking project"`  
-- `git push`
-
-Nếu cần:  
-- Chuẩn hóa lại README theo **đồ án tốt nghiệp**  
-- Viết **mục phân công nhiệm vụ**  
-- Vẽ **sơ đồ luồng WebGIS Parking**
