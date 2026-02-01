@@ -1,0 +1,38 @@
+{% extends 'parking/base.html' %}
+
+{% block content %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-dark"><i class="fas fa-globe-asia text-primary me-2"></i>Bản đồ số Việt Nam</h3>
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Quay lại Dashboard
+        </a>
+    </div>
+
+    <div class="card card-custom p-2 bg-white shadow-sm">
+        <div id="map" style="height: 75vh; width: 100%; border-radius: 8px;"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // 1. Khởi tạo bản đồ: Tọa độ trung tâm Việt Nam [16.0, 106.0], Zoom level 6
+        var map = L.map('map').setView([16.047079, 108.206230], 6);
+
+        // 2. Thêm lớp nền OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3. Ví dụ: Thêm Marker tại Hà Nội
+        L.marker([21.0285, 105.8542]).addTo(map)
+            .bindPopup("<b>Thủ đô Hà Nội</b><br>Khu vực quản lý miền Bắc.");
+
+        // 4. Ví dụ: Thêm Marker tại TP.HCM
+        L.marker([10.7769, 106.7009]).addTo(map)
+            .bindPopup("<b>TP. Hồ Chí Minh</b><br>Trung tâm dữ liệu chính.")
+            .openPopup(); // Mặc định mở popup này
+    </script>
+{% endblock %}

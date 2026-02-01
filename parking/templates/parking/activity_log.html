@@ -1,0 +1,91 @@
+{% extends 'parking/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold text-dark"><i class="fas fa-history text-secondary me-2"></i>Lịch sử hoạt động hệ thống</h3>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Quay lại Dashboard
+    </a>
+</div>
+
+<div class="card card-custom bg-white p-4 shadow-sm">
+    <div class="d-flex gap-2 mb-4">
+        <a href="?filter=all" 
+           class="btn btn-sm {% if current_filter == 'all' %}btn-primary{% else %}btn-light border{% endif %}">
+           Tất cả
+        </a>
+
+        <a href="?filter=vehicle" 
+           class="btn btn-sm {% if current_filter == 'vehicle' %}btn-primary{% else %}btn-light border{% endif %}">
+           Xe ra/vào
+        </a>
+
+        <a href="?filter=system" 
+           class="btn btn-sm {% if current_filter == 'system' %}btn-primary{% else %}btn-light border{% endif %}">
+           Hệ thống
+        </a>
+
+        <a href="?filter=alert" 
+           class="btn btn-sm {% if current_filter == 'alert' %}btn-primary{% else %}btn-light border{% endif %}">
+           Cảnh báo
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Thời gian</th>
+                    <th>Người thực hiện</th>
+                    <th>Hành động</th>
+                    <th>Chi tiết</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="text-muted" style="font-size: 14px;">{{ log.time }}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-light rounded-circle p-2 me-2 text-center" style="width: 35px; height: 35px;">
+                                <i class="fas fa-user text-secondary"></i>
+                            </div>
+                            <span class="fw-bold">{{ log.user }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        {% if log.type == 'vehicle' %}
+                            {% if 'ra' in log.action %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">Check-out</span>
+                            {% else %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Check-in</span>
+                            {% endif %}
+                        {% elif log.type == 'alert' %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Cảnh báo</span>
+                        {% else %}
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border">Hệ thống</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ log.action }}</td>
+                    <td><i class="fas fa-check-circle text-success"></i> Thành công</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">Không tìm thấy hoạt động nào phù hợp.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <nav class="mt-4">
+        <ul class="pagination justify-content-end">
+            <li class="page-item disabled"><a class="page-link" href="#">Trước</a></li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">Sau</a></li>
+        </ul>
+    </nav>
+</div>
+{% endblock %}

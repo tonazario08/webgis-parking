@@ -1,0 +1,66 @@
+{% extends 'parking/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold text-warning"><i class="fas fa-chart-line me-2"></i>Báo cáo doanh thu</h3>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Quay lại Dashboard
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card card-custom bg-warning bg-opacity-10 border-0 p-4">
+            <div class="d-flex align-items-center">
+                <div class="bg-warning text-white p-3 rounded-circle me-3">
+                    <i class="fas fa-money-bill-wave fa-2x"></i>
+                </div>
+                <div>
+                    <p class="text-muted mb-0 fw-bold">TỔNG DOANH THU THÁNG 1/2026</p>
+                    <h1 class="fw-bold text-dark mb-0">24.500.000 VNĐ</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-custom bg-white p-4 shadow-sm">
+    <h5 class="fw-bold mb-4">Chi tiết theo từng bãi xe</h5>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Bãi đỗ xe</th>
+                    <th>Tháng/Năm</th>
+                    <th>Doanh thu (VNĐ)</th>
+                    <th>Tăng trưởng</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="fw-bold">Vincom Đồng Khởi</td>
+                    <td>01/2026</td>
+                    <td class="fw-bold text-primary">12.500.000</td>
+                    <td class="text-success"><i class="fas fa-arrow-up"></i> 5.2%</td>
+                    <td><span class="badge bg-success bg-opacity-10 text-success">Đã quyết toán</span></td>
+                </tr>
+                <tr>
+                    <td class="fw-bold">Bãi xe Bến Thành</td>
+                    <td>01/2026</td>
+                    <td class="fw-bold text-primary">8.200.000</td>
+                    <td class="text-danger"><i class="fas fa-arrow-down"></i> 1.5%</td>
+                    <td><span class="badge bg-success bg-opacity-10 text-success">Đã quyết toán</span></td>
+                </tr>
+                <tr>
+                    <td class="fw-bold">Bãi xe Công viên 23/9</td>
+                    <td>01/2026</td>
+                    <td class="fw-bold text-primary">3.800.000</td>
+                    <td class="text-success"><i class="fas fa-arrow-up"></i> 8.0%</td>
+                    <td><span class="badge bg-warning bg-opacity-10 text-warning">Chưa đối soát</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'parking/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold text-success"><i class="fas fa-check-circle me-2"></i>Bãi đỗ đang còn trống</h3>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Quay lại Dashboard
+    </a>
+</div>
+
+<div class="card card-custom bg-white p-4 shadow-sm border-top border-success border-4">
+    <p class="text-muted mb-4">Hiển thị danh sách các bãi đỗ xe có thể tiếp nhận xe ngay lập tức.</p>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Tên bãi đỗ</th>
+                    <th>Địa chỉ</th>
+                    <th>Trạng thái</th>
+                    <th>Chỗ trống</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in "1234" %} 
+                <tr>
+                    <td>
+                        <div class="fw-bold text-dark">Bãi xe Vincom Center {{ i }}</div>
+                        <small class="text-success"><i class="fas fa-parking"></i> Khu vực ưu tiên</small>
+                    </td>
+                    <td>72 Lê Thánh Tôn, Quận 1, TP.HCM</td>
+                    <td>
+                        <span class="badge bg-success text-white px-3 py-2 rounded-pill">Đang mở</span>
+                    </td>
+                    <td style="width: 25%;">
+                        <h5 class="fw-bold text-success mb-0">45 / 100</h5>
+                        <small class="text-muted">Còn trống nhiều</small>
+                    </td>
+                    <td>
+                        <a href="{% url 'map_view' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-location-arrow"></i> Chỉ đường
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

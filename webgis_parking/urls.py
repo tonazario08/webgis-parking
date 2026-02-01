@@ -1,22 +1,17 @@
-"""
-URL configuration for webgis_parking project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import path
 
+from parking.views import home, map_view, parking_list, parking_available, revenue_view, areas_view, parking_detail, activity_log_view
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', home, name='home'),
+    path('map/', map_view, name='map_view'),
+    path('list/', parking_list, name='parking_list'),
+    path('available/', parking_available, name='parking_available'),
+    path('revenue/', revenue_view, name='revenue_view'),
+    path('areas/', areas_view, name='areas_view'),
+    path('parking/<int:id>/', parking_detail, name='parking_detail'),
+
+    path('activity/', activity_log_view, name='activity_log_view'),
 ]
