@@ -37,8 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    'parking',  # <--- THÊM DÒNG NÀY VÀO (Nhớ có dấu phẩy cuối cùng)
+
+    'parking.apps.ParkingConfig',
+
 ]
 
 MIDDLEWARE = [

@@ -1,109 +1,162 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from .models import ParkingLot, Area, ActivityLog, ParkingUser
 
+
+# ================== DASHBOARD ==================
 def home(request):
-    # Dữ liệu giả lập để hiển thị giao diện (Mock Data)
+    parkings = ParkingLot.objects.all()
+
+    parking_data = []
+    total_available = 0
+    total_revenue = 0
+
+    for p in parkings:
+        available = p.available_slots()          # GỌI HÀM
+        used = p.capacity - available if p.capacity else 0
+        percent = int((used / p.capacity) * 100) if p.capacity > 0 else 0
+
+        total_available += available
+
+        vehicle_count = ParkingUser.objects.filter(
+            parking_lot=p,
+            is_active=True
+        ).count()
+        total_revenue += vehicle_count * p.price_per_hour * 2
+
+        parking_data.append({
+            'obj': p,
+            'available': available,
+            'used': used,
+            'percent': percent,
+            'is_full': available == 0
+        })
+
     context = {
-        'total_parking': 12,
-        'total_available': 450,
-        'revenue': '24.5M',
-        'active_areas': 3,
-        # Danh sách bãi xe giả (ĐÃ THÊM ID VÀO ĐÂY)
-        'parking_list': [
-            {
-                'id': 1,  # <--- Quan trọng: ID để link hoạt động
-                'name': 'Vincom Đồng Khởi', 
-                'address': 'Quận 1, TP.HCM', 
-                'status': 'open', 
-                'slots': 70, 
-                'capacity': 100, 
-                'percent': 70
-            },
-            {
-                'id': 2,  # <--- Quan trọng: ID để link hoạt động
-                'name': 'Bãi xe Bến Thành', 
-                'address': 'Quận 1, TP.HCM', 
-                'status': 'full', 
-                'slots': 50, 
-                'capacity': 50, 
-                'percent': 100
-            },
-        ],
-        # Lịch sử giả
-        'activities': [
-            {'action': 'Xe ra khỏi Vincom', 'time': 'Vừa xong', 'user': 'Admin'},
-            {'action': 'Thêm bãi xe mới', 'time': '2 giờ trước', 'user': 'Quản lý'},
-        ]
+        'total_parking': parkings.count(),
+        'total_available': total_available,
+        'revenue': total_revenue,
+        'active_areas': Area.objects.count(),
+        'parking_data': parking_data,   # 👈 DỮ LIỆU ĐÚNG
+        'activities': ActivityLog.objects.all()[:5]
     }
+
     return render(request, 'parking/home.html', context)
 
+
+
+# ================== MAP ==================
 def map_view(request):
-    return render(request, 'parking/map.html')
+    areas = Area.objects.all()
+    return render(request, 'parking/map.html', {
+        'areas': areas
+    })
 
+
+# ================== PARKING LIST ==================
 def parking_list(request):
-    return render(request, 'parking/parking_list.html')
+    parkings = ParkingLot.objects.all()
+    parking_list = []
 
-def parking_available(request):
-    return render(request, 'parking/parking_available.html')
+    for p in parkings:
+        available = p.available_slots()
+        used = p.capacity - available
+        percent_used = int((used / p.capacity) * 100) if p.capacity > 0 else 0
 
-def revenue_view(request):
-    return render(request, 'parking/revenue.html')
+        parking_list.append({
+            'id': p.id,
+            'name': p.name,
+            'address': p.address,
+            'area': p.area,
+            'is_active': p.is_active,
+            'capacity': p.capacity,
+            'available': available,
+            'percent_used': percent_used
+        })
 
-def areas_view(request):
-    return render(request, 'parking/areas.html')
+    return render(request, 'parking/parking_list.html', {
+        'parking_list': parking_list
+    })
 
-# Hàm chi tiết bãi xe
-def parking_detail(request, id):
-    # Mock data chi tiết cho 1 bãi xe dựa trên ID
-    context = {
-        'parking': {
-            'id': id,
-            # Logic giả: Nếu id=1 thì hiện Vincom, còn lại hiện Bến Thành
-            'name': 'Vincom Đồng Khởi' if id == 1 else 'Bãi xe Bến Thành',
-            'address': '72 Lê Thánh Tôn, Quận 1, TP.HCM',
-            'status': 'open' if id == 1 else 'full',
-            'slots': 70 if id == 1 else 0,
-            'capacity': 100 if id == 1 else 50,
-            'price_per_hour': 20000,
-        }
-    }
-    return render(request, 'parking/parking_detail.html', context)
 
-def activity_log_view(request):
-    # Mock data cho trang lịch sử
-    context = {
-        'logs': [
-            {'time': '10:30 01/02/2026', 'user': 'Admin', 'action': 'Xe 51A-123.45 ra khỏi Vincom'},
-            {'time': '10:15 01/02/2026', 'user': 'Bảo vệ', 'action': 'Xe 30E-999.99 vào Vincom'},
-            {'time': '09:00 01/02/2026', 'user': 'Quản lý', 'action': 'Cập nhật giá vé ngày Tết'},
-            {'time': '08:45 01/02/2026', 'user': 'System', 'action': 'Sao lưu dữ liệu tự động'},
-            {'time': '18:30 31/01/2026', 'user': 'Bảo vệ', 'action': 'Xe 59C-567.89 vào Bến Thành'},
-        ]
-    }
-    return render(request, 'parking/activity_log.html', context)
-def activity_log_view(request):
-    # 1. Lấy loại bộ lọc từ thanh địa chỉ (mặc định là 'all')
-    filter_type = request.GET.get('filter', 'all')
-
-    # 2. Dữ liệu gốc đầy đủ (Tôi đã thêm trường 'type' để phân loại)
-    all_logs = [
-        {'time': '10:30 01/02/2026', 'user': 'Admin', 'action': 'Xe 51A-123.45 ra khỏi Vincom', 'type': 'vehicle'},
-        {'time': '10:15 01/02/2026', 'user': 'Bảo vệ', 'action': 'Xe 30E-999.99 vào Vincom', 'type': 'vehicle'},
-        {'time': '09:00 01/02/2026', 'user': 'Quản lý', 'action': 'Cập nhật giá vé ngày Tết', 'type': 'system'},
-        {'time': '08:45 01/02/2026', 'user': 'System', 'action': 'Sao lưu dữ liệu tự động', 'type': 'system'},
-        {'time': '18:30 31/01/2026', 'user': 'Bảo vệ', 'action': 'Xe 59C-567.89 vào Bến Thành', 'type': 'vehicle'},
-        {'time': '18:00 31/01/2026', 'user': 'System', 'action': 'Cảnh báo: Bãi xe Vincom sắp đầy (95%)', 'type': 'alert'},
+# ================== AVAILABLE PARKING ==================
+def available_parking(request):
+    parking_lots = [
+        p for p in ParkingLot.objects.filter(is_active=True)
+        if p.available_slots() > 0
     ]
 
-    # 3. Logic lọc dữ liệu
-    if filter_type == 'all':
-        logs = all_logs
-    else:
-        # Giữ lại những dòng có 'type' trùng với bộ lọc
-        logs = [log for log in all_logs if log['type'] == filter_type]
+    return render(request, 'parking/available.html', {
+        'parking_lots': parking_lots
+    })
 
-    # 4. Gửi dữ liệu và trạng thái lọc hiện tại ra ngoài template
+
+# ================== REVENUE ==================
+def revenue_view(request):
+    total_revenue = 0
+    parking_data = []
+
+    parking_lots = ParkingLot.objects.all()
+
+    for p in parking_lots:
+        vehicle_count = ParkingUser.objects.filter(
+            parking_lot=p
+        ).count()
+
+        revenue = vehicle_count * p.price_per_hour * 2
+        total_revenue += revenue
+
+        parking_data.append({
+            'name': p.name,
+            'month': '01/2026',
+            'revenue': revenue,
+            'status': 'Đã quyết toán' if revenue > 0 else 'Chưa đối soát'
+        })
+
     context = {
-        'logs': logs,
-        'current_filter': filter_type 
+        'total_revenue': total_revenue,
+        'parking_data': parking_data
     }
-    return render(request, 'parking/activity_log.html', context)
+    return render(request, 'parking/revenue.html', context)
+
+
+
+# ================== AREAS ==================
+def areas_view(request):
+    areas = Area.objects.all()
+    data = []
+
+    for a in areas:
+        parkings = ParkingLot.objects.filter(area=a)
+
+        parking_count = parkings.count()
+
+        # Khu vực hoạt động nếu có ít nhất 1 bãi xe đang active
+        is_active = parkings.filter(is_active=True).exists()
+
+        data.append({
+            'obj': a,
+            'parking_count': parking_count,
+            'is_active': is_active
+        })
+
+    return render(request, 'parking/areas.html', {
+        'areas_data': data
+    })
+
+
+
+
+# ================== PARKING DETAIL ==================
+def parking_detail(request, id):
+    parking = get_object_or_404(ParkingLot, id=id)
+    return render(request, 'parking/parking_detail.html', {
+        'parking': parking
+    })
+
+
+# ================== ACTIVITY LOG ==================
+def activity_log_view(request):
+    logs = ActivityLog.objects.order_by('-time')
+    return render(request, 'parking/activity_log.html', {
+        'logs': logs
+    })

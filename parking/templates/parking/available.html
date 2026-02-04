@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Bãi đỗ xe còn chỗ</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+        }
+
+        body {
+            background: #f4f6f9;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            transition: 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card.ok {
+            border-left: 6px solid #2ecc71;
+        }
+
+        .address, .area {
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .slots {
+            margin: 12px 0;
+            font-size: 16px;
+        }
+
+        .price {
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 14px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: #217dbb;
+        }
+
+        .empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-size: 18px;
+            color: #999;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            padding: 15px;
+            color: #777;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    <h1>🚗 Bãi đỗ xe còn chỗ</h1>
+    <p>Danh sách các bãi đang hoạt động</p>
+</div>
+
+<div class="container">
+    {% if parking_lots %}
+        {% for p in parking_lots %}
+            <div class="card ok">
+                <h3>{{ p.name }}</h3>
+                <div class="address">📍 {{ p.address }}</div>
+                <div class="area">🏢 Khu vực: {{ p.area.name }}</div>
+                <div class="slots">🅿️ Còn trống: {{ p.available_slots }}</div>
+                <div class="price">💰 Giá: {{ p.price_per_hour }} VNĐ/giờ</div>
+                <a href="{% url 'parking_detail' p.id %}" class="btn">Xem chi tiết</a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty">Không có bãi đỗ nào còn chỗ 😢</div>
+    {% endif %}
+</div>
+
+<div class="footer">
+    WebGIS Parking © 2026
+</div>
+
+</body>
+</html>
