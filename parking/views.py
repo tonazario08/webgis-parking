@@ -1,7 +1,9 @@
 from django.shortcuts import render, get_object_or_404
 from .models import ParkingLot, Area, ActivityLog, ParkingUser
-
-
+from .utils.gis import haversine_distance
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+from .utils.gis import find_nearest_parking
 # ================== DASHBOARD ==================
 def home(request):
     parkings = ParkingLot.objects.all()
@@ -160,3 +162,70 @@ def activity_log_view(request):
     return render(request, 'parking/activity_log.html', {
         'logs': logs
     })
+def find_nearest_parking(request):
+    user_lat = float(request.GET.get('lat'))
+    user_lon = float(request.GET.get('lon'))
+
+    parkings = ParkingLot.objects.filter(is_active=True)
+
+    results = []
+
+    for p in parkings:
+        distance = haversine_distance(
+            user_lat, user_lon,
+            p.latitude, p.longitude
+        )
+
+        results.append({
+            'parking': p,
+            'distance': round(distance, 2)
+        })
+
+    results.sort(key=lambda x: x['distance'])
+
+    return render(request, 'parking/available.html', {
+        'results': results
+    })
+@require_GET
+def api_find_nearest_parking(request):
+    try:
+        lat = float(request.GET.get("lat"))
+        lon = float(request.GET.get("lon"))
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "Thiếu lat/lon"}, status=400)
+
+    nearest = find_nearest_parking(
+        ParkingLot.objects.all(),
+        lat, lon,
+        only_available=True
+    )
+
+    if not nearest:
+        return JsonResponse({"message": "Không có bãi đỗ phù hợp"})
+
+    return JsonResponse(nearest)
+
+
+@require_GET
+def api_route(request):
+    try:
+        start_lat = request.GET.get("start_lat")
+        start_lon = request.GET.get("start_lon")
+        end_lat = request.GET.get("end_lat")
+        end_lon = request.GET.get("end_lon")
+    except:
+        return JsonResponse({"error": "Thiếu tọa độ"}, status=400)
+
+    url = (
+        f"http://router.project-osrm.org/route/v1/driving/"
+        f"{start_lon},{start_lat};{end_lon},{end_lat}"
+        f"?overview=full&geometries=geojson"
+    )
+
+    res = requests.get(url)
+    data = res.json()
+
+    if "routes" not in data:
+        return JsonResponse({"error": "Không tìm được đường đi"}, status=400)
+
+    return JsonResponse(data["routes"][0]["geometry"])

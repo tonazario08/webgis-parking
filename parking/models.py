@@ -143,3 +143,32 @@ class ParkingUser(models.Model):
 
     def __str__(self):
         return f"{self.full_name} - {self.license_plate}"
+class ParkingPrice(models.Model):
+    VEHICLE_CHOICES = [
+        ('car', 'Ô tô'),
+        ('motorbike', 'Xe máy'),
+        ('bicycle', 'Xe đạp'),
+    ]
+
+    parking_lot = models.ForeignKey(
+        ParkingLot,
+        on_delete=models.CASCADE,
+        related_name='prices',
+        verbose_name="Bãi đỗ xe"
+    )
+
+    vehicle_type = models.CharField(
+        "Loại xe",
+        max_length=20,
+        choices=VEHICLE_CHOICES
+    )
+
+    price_per_hour = models.PositiveIntegerField("Giá / giờ (VNĐ)")
+
+    class Meta:
+        unique_together = ('parking_lot', 'vehicle_type')
+        verbose_name = "Giá gửi xe"
+        verbose_name_plural = "Bảng giá gửi xe"
+
+    def __str__(self):
+        return f"{self.parking_lot} - {self.get_vehicle_type_display()}"
