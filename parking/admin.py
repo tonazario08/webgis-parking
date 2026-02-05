@@ -1,7 +1,5 @@
 from django.contrib import admin
 from .models import Area, ParkingLot, ParkingUser
-# ⛔ TẠM THỜI KHÔNG IMPORT ActivityLog
-
 
 @admin.register(Area)
 class AreaAdmin(admin.ModelAdmin):
