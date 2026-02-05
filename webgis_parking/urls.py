@@ -1,19 +1,11 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from parking.views import home, map_view, parking_list, available_parking, revenue_view, areas_view, parking_detail, activity_log_view
-from parking.views import (
-    home,
-    map_view,
-    parking_list,
-    available_parking,   # ✅ ĐÚNG TÊN
-    revenue_view,
-    areas_view,
-    parking_detail,
-    activity_log_view
-)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # GIS API endpoints
+    path('api/gis/', include('parking.api.urls')),
     path('', home, name='home'),
     path('map/', map_view, name='map_view'),
     path('list/', parking_list, name='parking_list'),

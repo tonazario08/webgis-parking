@@ -29,6 +29,10 @@ class ParkingLot(models.Model):
     address = models.CharField("Địa chỉ", max_length=255)
     area = models.ForeignKey(Area, verbose_name="Khu vực", on_delete=models.CASCADE)
 
+    # GPS coordinates (for GIS features)
+    latitude = models.FloatField("Vĩ độ", null=True, blank=True)
+    longitude = models.FloatField("Kinh độ", null=True, blank=True)
+
     capacity = models.IntegerField("Sức chứa")
     price_per_hour = models.IntegerField("Giá/giờ")
     is_active = models.BooleanField("Đang hoạt động", default=True)
@@ -40,17 +44,35 @@ class ParkingLot(models.Model):
     def used_slots(self):
         return self.parkinguser_set.filter(is_active=True).count()
 
+    @property
     def available_slots(self):
+        """Số chỗ trống hiện tại (property để tương thích với utils)."""
         return self.capacity - self.used_slots()
 
-    def __str__(self):
-        return self.name
-    
-    def usage_percent(self):
+    @property
+    def total_slots(self):
+        return self.capacity
+
+    def is_full(self):
+        return self.available_slots <= 0
+
+    def is_nearly_full(self):
+        if self.capacity == 0:
+            return False
+        return (self.available_slots / self.capacity) < 0.15
+
+    def get_capacity_percent(self):
         if self.capacity == 0:
             return 0
         used = self.capacity - self.available_slots
         return int((used / self.capacity) * 100)
+
+    def get_status(self):
+        # Placeholder: can be extended to return an object/dict with name/color
+        return None
+
+    def __str__(self):
+        return self.name
 
 
 # ========================
@@ -121,7 +143,7 @@ class ParkingUser(models.Model):
 
     def save(self, *args, **kwargs):
         if self.pk is None:
-            if self.parking_lot.available_slots() <= 0:
+            if self.parking_lot.available_slots <= 0:
                 raise ValueError("Bãi xe đã hết chỗ")
 
             ActivityLog.objects.create(

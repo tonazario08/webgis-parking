@@ -9,7 +9,7 @@ class AreaAdmin(admin.ModelAdmin):
 
 @admin.register(ParkingLot)
 class ParkingLotAdmin(admin.ModelAdmin):
-    list_display = ('name', 'capacity', 'used_slots', 'available_slots', 'is_active')
+    list_display = ('name', 'capacity', 'used_slots', 'available_slots', 'is_active', 'latitude', 'longitude')
 
 
 @admin.register(ParkingUser)

@@ -12,9 +12,9 @@ Date: 2026-02-04
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from parking.models import Parking
-from parking.utils import gis
+from parking.models import ParkingLot as Parking
 import json
+# Note: import `parking.utils.gis` lazily inside views to avoid import-time errors on startup (sanitization required in utils)
 
 
 # =============================================================================
@@ -61,6 +61,7 @@ def nearby_parkings(request):
         - only_active, only_available, min_slots, sort_by_distance (optional)
     """
     try:
+        from parking.utils import gis
         data = request.GET if request.method == 'GET' else json.loads(request.body)
         
         # Validate
@@ -120,6 +121,7 @@ def nearest_parking(request):
         - max_radius, only_active, only_available (optional)
     """
     try:
+        from parking.utils import gis
         data = request.GET if request.method == 'GET' else json.loads(request.body)
         
         is_valid, missing = validate_required_params(data, ['latitude', 'longitude'])
@@ -170,6 +172,7 @@ def calculate_route(request):
         - profile, use_osrm (optional)
     """
     try:
+        from parking.utils import gis
         data = request.GET if request.method == 'GET' else json.loads(request.body)
         
         is_valid, missing = validate_required_params(data, ['start_lat', 'start_lon', 'end_lat', 'end_lon'])
@@ -233,6 +236,7 @@ def route_to_parking(request):
         - profile, use_osrm (optional)
     """
     try:
+        from parking.utils import gis
         data = request.GET if request.method == 'GET' else json.loads(request.body)
         
         is_valid, missing = validate_required_params(data, ['start_lat', 'start_lon', 'parking_id'])
@@ -313,6 +317,7 @@ def export_geojson(request):
         - only_active, only_available
     """
     try:
+        from parking.utils import gis
         queryset = Parking.objects.all()
         
         khu_vuc_id = request.GET.get('khu_vuc_id')
@@ -346,6 +351,7 @@ def gis_health(request):
     Endpoint: /api/gis/health/
     """
     try:
+        from parking.utils import gis
         total_parkings = Parking.objects.count()
         active_parkings = Parking.objects.filter(is_active=True).count()
         

@@ -19,7 +19,10 @@ import math
 import json
 from typing import List, Dict, Tuple, Optional, Any
 from decimal import Decimal
-import requests
+try:
+    import requests
+except Exception:
+    requests = None  # requests optional; functions should handle when unavailable
 from django.db.models import QuerySet
 
 
@@ -42,13 +45,13 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     
     Công thức Haversine:
     --------------------
-    a = sin²(Δφ/2) + cos(φ1) × cos(φ2) × sin²(Δλ/2)
-    c = 2 × atan2(√a, √(1−a))
-    d = R × c
+    a = sin^2(Delta_phi/2) + cos(phi1) x cos(phi2) x sin^2(Delta_lambda/2)
+    c = 2 x atan2(sqrt(a), sqrt(1 - a))
+    d = R x c
     
     Trong đó:
-    - φ (phi): latitude (vĩ độ)
-    - λ (lambda): longitude (kinh độ)
+    - phi: latitude (vĩ độ)
+    - lambda_: longitude (kinh độ)
     - R: bán kính trái đất (6371 km)
     - d: khoảng cách (km)
     
@@ -88,8 +91,8 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     lon2_rad = lon2 * DEGREES_TO_RADIANS
     
     # Tính delta (hiệu số) giữa 2 điểm
-    dlat = lat2_rad - lat1_rad  # Δφ
-    dlon = lon2_rad - lon1_rad  # Δλ
+    dlat = lat2_rad - lat1_rad  # Delta_phi
+    dlon = lon2_rad - lon1_rad  # Delta_lambda
     
     # Áp dụng công thức Haversine
     # Bước 1: Tính a = sin²(Δφ/2) + cos(φ1) × cos(φ2) × sin²(Δλ/2)
@@ -98,7 +101,7 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
         math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2.0) ** 2
     )
     
-    # Bước 2: Tính c = 2 × atan2(√a, √(1−a))
+    # Bước 2: Tính c = 2 x atan2(sqrt(a), sqrt(1 - a))
     # atan2 xử lý tốt hơn atan trong trường hợp biên
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     
@@ -154,8 +157,8 @@ def calculate_bounding_box(lat: float, lon: float, radius_km: float) -> Dict[str
     Lưu ý:
     ------
     - Công thức này là xấp xỉ, chính xác cho khoảng cách nhỏ
-    - Ở gần cực (lat > 80°), cos(lat) → 0 → Δlon rất lớn
-    - Trong ứng dụng đô thị (lat ~10-20°), sai số < 1%
+    - Ở gần cực (lat > 80 degrees), cos(lat) → 0 → Δlon rất lớn
+    - Trong ứng dụng đô thị (lat ~10-20 degrees), sai số < 1%
     
     Args:
         lat (float): Vĩ độ điểm trung tâm
@@ -300,14 +303,17 @@ def find_nearby_parkings(
     if only_available:
         filtered_qs = filtered_qs.filter(available_slots__gt=min_slots)
     
-    # Tối ưu queries với select_related
-    filtered_qs = filtered_qs.select_related('parking_type', 'khu_vuc')
+    # Tối ưu queries với select_related (use 'area' from models)
+    filtered_qs = filtered_qs.select_related('area')
     
     # PHASE 2: Haversine Distance Filter (Precise)
     # ---------------------------------------------
     results = []
     
     for parking in filtered_qs:
+        # Guard missing coordinates
+        if parking.latitude is None or parking.longitude is None:
+            continue
         # Chuyển Decimal sang float để tính toán
         p_lat = float(parking.latitude)
         p_lon = float(parking.longitude)
@@ -318,10 +324,11 @@ def find_nearby_parkings(
         # Chỉ giữ lại bãi trong bán kính
         if distance_km <= radius_km:
             # Tính các thông tin bổ sung
-            capacity_percent = parking.get_capacity_percent()
-            status = parking.get_status()
+            capacity_percent = parking.get_capacity_percent() if hasattr(parking, 'get_capacity_percent') else 0
+            status = parking.get_status() if hasattr(parking, 'get_status') else None
             
-            # Build result object
+            # Build result object with safe attribute access (getattr fallback)
+            area_obj = getattr(parking, 'area', None)
             result = {
                 'id': parking.id,
                 'name': parking.name,
@@ -329,36 +336,36 @@ def find_nearby_parkings(
                 'longitude': p_lon,
                 'distance_km': distance_km,
                 'distance_meters': round(distance_km * METERS_PER_KM, 1),
-                'available_slots': parking.available_slots,
-                'total_slots': parking.total_slots,
+                'available_slots': getattr(parking, 'available_slots', None),
+                'total_slots': getattr(parking, 'total_slots', None),
                 'capacity_percent': capacity_percent,
-                'is_full': parking.is_full(),
-                'is_nearly_full': parking.is_nearly_full(),
+                'is_full': parking.is_full() if hasattr(parking, 'is_full') else False,
+                'is_nearly_full': parking.is_nearly_full() if hasattr(parking, 'is_nearly_full') else False,
                 
-                # Thông tin chi tiết
+                # Thông tin chi tiết (parking_type may not exist in current models)
                 'parking_type': {
-                    'id': parking.parking_type.id,
-                    'name': parking.parking_type.name,
-                    'ownership': parking.parking_type.ownership,
-                    'icon': parking.parking_type.map_icon
+                    'id': None,
+                    'name': None,
+                    'ownership': None,
+                    'icon': None
                 },
                 'khu_vuc': {
-                    'id': parking.khu_vuc.id,
-                    'name': parking.khu_vuc.name,
-                    'code': parking.khu_vuc.code
+                    'id': area_obj.id if area_obj else None,
+                    'name': area_obj.name if area_obj else None,
+                    'code': getattr(area_obj, 'code', None)
                 },
                 'address': parking.address or '',
-                'phone': parking.phone or '',
+                'phone': getattr(parking, 'phone', '') or '',
                 
-                # Giờ hoạt động
-                'is_24h': parking.is_24h,
-                'opening_time': parking.opening_time.strftime('%H:%M') if parking.opening_time else None,
-                'closing_time': parking.closing_time.strftime('%H:%M') if parking.closing_time else None,
+                # Giờ hoạt động (optional)
+                'is_24h': getattr(parking, 'is_24h', False),
+                'opening_time': getattr(parking, 'opening_time', None).strftime('%H:%M') if getattr(parking, 'opening_time', None) else None,
+                'closing_time': getattr(parking, 'closing_time', None).strftime('%H:%M') if getattr(parking, 'closing_time', None) else None,
                 
                 # Tiện ích
-                'has_security': parking.has_security,
-                'has_camera': parking.has_camera,
-                'has_ev_charging': parking.has_ev_charging,
+                'has_security': getattr(parking, 'has_security', False),
+                'has_camera': getattr(parking, 'has_camera', False),
+                'has_ev_charging': getattr(parking, 'has_ev_charging', False),
                 
                 # Trạng thái
                 'status': {
@@ -367,7 +374,7 @@ def find_nearby_parkings(
                 } if status else None,
                 
                 # Metadata
-                'created_at': parking.created_at.isoformat(),
+                'created_at': getattr(parking, 'created_at', None).isoformat() if getattr(parking, 'created_at', None) else None,
             }
             
             results.append(result)
@@ -398,6 +405,16 @@ def calculate_route_osrm(
     --------------
     - Open-source routing engine
     - Dữ liệu từ OpenStreetMap
+
+    Note:
+    -----
+    - If `requests` is not installed or OSRM URL not configured, this function
+      returns None and caller should handle fallback.
+    """
+    # If requests lib unavailable, can't call OSRM
+    if requests is None:
+        return None
+
     - API miễn phí (có giới hạn rate)
     - Hỗ trợ: driving, cycling, walking
     
@@ -621,14 +638,14 @@ def get_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     
     Bearing:
     --------
-    - 0°: Bắc (North)
-    - 90°: Đông (East)
-    - 180°: Nam (South)
-    - 270°: Tây (West)
+    - 0 deg: Bắc (North)
+    - 90 deg: Đông (East)
+    - 180 deg: Nam (South)
+    - 270 deg: Tây (West)
     
     Công thức:
     ----------
-    θ = atan2(sin(Δλ) × cos(φ2), cos(φ1) × sin(φ2) − sin(φ1) × cos(φ2) × cos(Δλ))
+    theta = atan2(sin(Delta_lambda) x cos(phi2), cos(phi1) x sin(phi2) - sin(phi1) x cos(phi2) x cos(Delta_lambda))
     
     Args:
         lat1, lon1, lat2, lon2: Tọa độ 2 điểm
@@ -638,7 +655,7 @@ def get_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     
     Example:
         >>> bearing = get_bearing(10.762622, 106.660172, 10.850002, 106.771482)
-        >>> print(f"Hướng: {bearing:.1f}°")  # Output: ~48.3° (Đông Bắc)
+        >>> print(f"Hướng: {bearing:.1f} deg")  # Output: ~48.3 deg (Đông Bắc)
     """
     lat1_rad = lat1 * DEGREES_TO_RADIANS
     lat2_rad = lat2 * DEGREES_TO_RADIANS
@@ -711,26 +728,16 @@ def find_nearest_parking(
     max_radius_km: float = 50.0,
     **kwargs
 ) -> Optional[Dict[str, Any]]:
-    """
-    Tìm bãi đỗ xe GẦN NHẤT từ điểm trung tâm.
-    
+    """Find the nearest parking from a center point.
+
     Args:
-        parking_queryset: Django QuerySet
-        center_lat, center_lon: Tọa độ trung tâm
-        max_radius_km: Bán kính tìm kiếm tối đa (default: 50km)
-        **kwargs: Các tham số bổ sung cho find_nearby_parkings()
-    
+        parking_queryset (QuerySet): Django queryset of parkings.
+        center_lat (float): center latitude.
+        center_lon (float): center longitude.
+        max_radius_km (float): max search radius in km (default 50.0).
+
     Returns:
-        dict hoặc None: Thông tin bãi đỗ gần nhất, hoặc None nếu không tìm thấy
-    
-    Example:
-        >>> nearest = find_nearest_parking(
-        ...     Parking.objects.all(),
-        ...     10.762622, 106.660172,
-        ...     only_available=True
-        ... )
-        >>> if nearest:
-        ...     print(f"Gần nhất: {nearest['name']} - {nearest['distance_km']}km")
+        Optional[dict]: nearest parking dict or None.
     """
     parkings = find_nearby_parkings(
         parking_queryset,
@@ -740,7 +747,7 @@ def find_nearest_parking(
         sort_by_distance=True,
         **kwargs
     )
-    
+
     return parkings[0] if parkings else None
 
 
@@ -824,9 +831,10 @@ def export_parkings_geojson(parking_queryset: QuerySet) -> Dict[str, Any]:
     """
     features = []
     
-    for parking in parking_queryset.select_related('parking_type', 'khu_vuc'):
-        status = parking.get_status()
+    for parking in parking_queryset.select_related('area'):
+        status = parking.get_status() if hasattr(parking, 'get_status') else None
         
+        area_obj = getattr(parking, 'area', None)
         feature = {
             "type": "Feature",
             "geometry": {
@@ -836,19 +844,19 @@ def export_parkings_geojson(parking_queryset: QuerySet) -> Dict[str, Any]:
             "properties": {
                 "id": parking.id,
                 "name": parking.name,
-                "parking_type": parking.parking_type.name,
-                "khu_vuc": parking.khu_vuc.name,
-                "available_slots": parking.available_slots,
-                "total_slots": parking.total_slots,
-                "capacity_percent": parking.get_capacity_percent(),
+                "parking_type": None,
+                "khu_vuc": area_obj.name if area_obj else None,
+                "available_slots": getattr(parking, 'available_slots', None),
+                "total_slots": getattr(parking, 'total_slots', None),
+                "capacity_percent": getattr(parking, 'get_capacity_percent', lambda: None)(),
                 "status": status.name if status else None,
                 "status_color": status.color_code if status else None,
                 "address": parking.address or '',
                 "is_active": parking.is_active,
-                "is_24h": parking.is_24h,
-                "has_security": parking.has_security,
-                "has_camera": parking.has_camera,
-                "has_ev_charging": parking.has_ev_charging,
+                "is_24h": getattr(parking, 'is_24h', False),
+                "has_security": getattr(parking, 'has_security', False),
+                "has_camera": getattr(parking, 'has_camera', False),
+                "has_ev_charging": getattr(parking, 'has_ev_charging', False),
             }
         }
         features.append(feature)

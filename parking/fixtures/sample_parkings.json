@@ -1,0 +1,103 @@
+[
+  {
+    "model": "parking.area",
+    "pk": 1,
+    "fields": {
+      "name": "Quận 1",
+      "description": "Trung tâm TP.HCM",
+      "latitude": 10.776889,
+      "longitude": 106.700806
+    }
+  },
+  {
+    "model": "parking.area",
+    "pk": 2,
+    "fields": {
+      "name": "Quận 3",
+      "description": "Khu vực trung tâm",
+      "latitude": 10.7729,
+      "longitude": 106.6860
+    }
+  },
+  {
+    "model": "parking.area",
+    "pk": 3,
+    "fields": {
+      "name": "Bình Thạnh",
+      "description": "Khu vực ven trung tâm",
+      "latitude": 10.7950,
+      "longitude": 106.7014
+    }
+  },
+
+  {
+    "model": "parking.parkinglot",
+    "pk": 1,
+    "fields": {
+      "name": "Bãi xe Bến Thành",
+      "address": "Bến Thành, Quận 1",
+      "area": 1,
+      "latitude": 10.7720,
+      "longitude": 106.6996,
+      "capacity": 200,
+      "price_per_hour": 15000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "parking.parkinglot",
+    "pk": 2,
+    "fields": {
+      "name": "Bãi xe Nguyễn Huệ",
+      "address": "Nguyễn Huệ, Quận 1",
+      "area": 1,
+      "latitude": 10.7745,
+      "longitude": 106.6990,
+      "capacity": 120,
+      "price_per_hour": 12000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "parking.parkinglot",
+    "pk": 3,
+    "fields": {
+      "name": "Bãi xe Cao Thắng",
+      "address": "Cao Thắng, Quận 3",
+      "area": 2,
+      "latitude": 10.7729,
+      "longitude": 106.6885,
+      "capacity": 80,
+      "price_per_hour": 10000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "parking.parkinglot",
+    "pk": 4,
+    "fields": {
+      "name": "Bãi xe Đinh Tiên Hoàng",
+      "address": "Đinh Tiên Hoàng, Bình Thạnh",
+      "area": 3,
+      "latitude": 10.7955,
+      "longitude": 106.7060,
+      "capacity": 60,
+      "price_per_hour": 8000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "parking.parkinglot",
+    "pk": 5,
+    "fields": {
+      "name": "Bãi xe Võ Thị Sáu",
+      "address": "Võ Thị Sáu, Quận 3",
+      "area": 2,
+      "latitude": 10.7710,
+      "longitude": 106.6920,
+      "capacity": 50,
+      "price_per_hour": 7000,
+      "is_active": true
+    }
+  }
+]

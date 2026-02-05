@@ -11,7 +11,7 @@ def home(request):
     total_revenue = 0
 
     for p in parkings:
-        available = p.available_slots()          # GỌI HÀM
+        available = p.available_slots          # SỬ DỤNG PROPERTY
         used = p.capacity - available if p.capacity else 0
         percent = int((used / p.capacity) * 100) if p.capacity > 0 else 0
 
@@ -58,7 +58,7 @@ def parking_list(request):
     parking_list = []
 
     for p in parkings:
-        available = p.available_slots()
+        available = p.available_slots
         used = p.capacity - available
         percent_used = int((used / p.capacity) * 100) if p.capacity > 0 else 0
 
@@ -82,7 +82,7 @@ def parking_list(request):
 def available_parking(request):
     parking_lots = [
         p for p in ParkingLot.objects.filter(is_active=True)
-        if p.available_slots() > 0
+        if p.available_slots > 0
     ]
 
     return render(request, 'parking/available.html', {
