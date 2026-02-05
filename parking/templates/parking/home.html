@@ -20,7 +20,9 @@
                         <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">TỔNG BÃI ĐỖ</p>
                         <h2 class="fw-bold text-dark mb-0">{{ total_parking }}</h2>
                     </div>
-                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary"><i class="fas fa-parking"></i></div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
+                        <i class="fas fa-parking"></i>
+                    </div>
                 </div>
             </div>
         </a>
@@ -34,7 +36,9 @@
                         <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">CHỖ TRỐNG KHẢ DỤNG</p>
                         <h2 class="fw-bold text-success mb-0">{{ total_available }}</h2>
                     </div>
-                    <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success"><i class="fas fa-check"></i></div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
+                        <i class="fas fa-check"></i>
+                    </div>
                 </div>
             </div>
         </a>
@@ -48,7 +52,9 @@
                         <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">DOANH THU THÁNG</p>
                         <h2 class="fw-bold text-warning mb-0">{{ revenue }}</h2>
                     </div>
-                    <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning"><i class="fas fa-wallet"></i></div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
+                        <i class="fas fa-wallet"></i>
+                    </div>
                 </div>
             </div>
         </a>
@@ -62,7 +68,9 @@
                         <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">KHU VỰC HOẠT ĐỘNG</p>
                         <h2 class="fw-bold text-info mb-0">{{ active_areas }}</h2>
                     </div>
-                    <div class="bg-info bg-opacity-10 p-3 rounded-circle text-info"><i class="fas fa-city"></i></div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded-circle text-info">
+                        <i class="fas fa-city"></i>
+                    </div>
                 </div>
             </div>
         </a>
@@ -73,10 +81,15 @@
     <div class="col-lg-8">
         <div class="card card-custom bg-white p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold mb-0"><i class="fas fa-map-pin text-danger me-2"></i>Danh sách bãi đỗ xe gần đây</h5>
-                <a href="{% url 'parking_list' %}" class="btn btn-sm btn-light text-primary">Xem tất cả</a>
+                <h5 class="fw-bold mb-0">
+                    <i class="fas fa-map-pin text-danger me-2"></i>
+                    Danh sách bãi đỗ xe gần đây
+                </h5>
+                <a href="{% url 'parking_list' %}" class="btn btn-sm btn-light text-primary">
+                    Xem tất cả
+                </a>
             </div>
-            
+
             <table class="table align-middle">
                 <thead>
                     <tr class="text-secondary" style="font-size: 13px;">
@@ -87,31 +100,45 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for p in parking_list %}
+                    {% for item in parking_data %}
+                    {% with p=item.obj %}
                     <tr>
                         <td class="py-3">
                             <div class="fw-bold text-dark">{{ p.name }}</div>
                             <small class="text-muted">{{ p.address }}</small>
                         </td>
+
                         <td>
-                            {% if p.status == 'open' %}
-                                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">Đang mở</span>
+                            {% if item.is_full %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">
+                                    Đã đầy
+                                </span>
                             {% else %}
-                                <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">Đã đầy</span>
+                                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
+                                    Còn chỗ
+                                </span>
                             {% endif %}
                         </td>
+
                         <td style="width: 30%;">
                             <div class="progress mb-1" style="height: 6px;">
-                                <div class="progress-bar {% if p.status == 'full' %}bg-danger{% else %}bg-primary{% endif %}" style="width: {{ p.percent }}%"></div>
+                                <div class="progress-bar {% if item.is_full %}bg-danger{% else %}bg-primary{% endif %}"
+                                     style="width: {{ item.percent }}%">
+                                </div>
                             </div>
-                            <small class="text-muted">{{ p.slots }}/{{ p.capacity }}</small>
+                            <small class="text-muted">
+                                {{ item.used }}/{{ p.capacity }}
+                            </small>
                         </td>
+
                         <td>
-                            <a href="{% url 'parking_detail' p.id %}" class="btn btn-outline-primary btn-sm">
+                            <a href="{% url 'parking_detail' p.id %}"
+                               class="btn btn-outline-primary btn-sm">
                                 Chi tiết
                             </a>
                         </td>
                     </tr>
+                    {% endwith %}
                     {% endfor %}
                 </tbody>
             </table>
@@ -120,7 +147,11 @@
 
     <div class="col-lg-4">
         <div class="card card-custom bg-white p-4 h-100">
-            <h5 class="fw-bold mb-4"><i class="fas fa-history text-secondary me-2"></i>Hoạt động gần đây</h5>
+            <h5 class="fw-bold mb-4">
+                <i class="fas fa-history text-secondary me-2"></i>
+                Hoạt động gần đây
+            </h5>
+
             <div class="vstack gap-4">
                 {% for act in activities %}
                 <div class="d-flex">
@@ -139,8 +170,10 @@
                 <hr class="my-0 text-muted opacity-25">
                 {% endfor %}
             </div>
+
             <div class="mt-auto pt-4 text-center">
-                <a href="{% url 'activity_log_view' %}" class="text-decoration-none fw-bold text-primary">
+                <a href="{% url 'activity_log_view' %}"
+                   class="text-decoration-none fw-bold text-primary">
                     Xem tất cả lịch sử
                 </a>
             </div>

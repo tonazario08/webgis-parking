@@ -2,13 +2,15 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold text-dark"><i class="fas fa-list text-primary me-2"></i>Danh sách bãi đỗ xe</h3>
+    <h3 class="fw-bold text-dark">
+        <i class="fas fa-list text-primary me-2"></i>Danh sách bãi đỗ xe
+    </h3>
     <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
         <i class="fas fa-arrow-left me-1"></i> Quay lại Dashboard
     </a>
 </div>
 
-<div class="card card-custom bg-white p-4 shadow-sm">
+<div class="card bg-white p-4 shadow-sm">
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead class="table-light">
@@ -20,42 +22,70 @@
                     <th>Hành động</th>
                 </tr>
             </thead>
+
             <tbody>
-                {% for i in "123456" %} <tr>
+            {% for p in parking_list %}
+                <tr>
+                    <!-- TÊN -->
                     <td>
-                        <div class="fw-bold text-dark">Bãi xe Vincom Center {{ i }}</div>
-                        <small class="text-muted">Mã bãi: P00{{ i }}</small>
+                        <div class="fw-bold text-dark">{{ p.name }}</div>
+                        <small class="text-muted">Khu vực: {{ p.area.name }}</small>
                     </td>
-                    <td>72 Lê Thánh Tôn, Quận 1, TP.HCM</td>
+
+                    <!-- ĐỊA CHỈ -->
+                    <td>{{ p.address }}</td>
+
+                    <!-- TRẠNG THÁI -->
                     <td>
-                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">Đang mở</span>
+                        {% if p.is_active %}
+                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
+                                Đang mở
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">
+                                Đóng
+                            </span>
+                        {% endif %}
                     </td>
+
+                    <!-- SỨC CHỨA -->
                     <td style="width: 25%;">
                         <div class="d-flex align-items-center">
                             <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                <div class="progress-bar bg-primary" style="width: 65%"></div>
+                                <div class="progress-bar bg-primary"
+                                     style="width: {{ p.percent_used }}%">
+                                </div>
                             </div>
-                            <span class="text-muted small">65/100</span>
+                            <span class="text-muted small">
+                                {{ p.available }}/{{ p.capacity }}
+                            </span>
                         </div>
                     </td>
+
+                    <!-- HÀNH ĐỘNG -->
                     <td>
-                        <a href="#" class="btn btn-sm btn-outline-primary"><i class="fas fa-info-circle"></i> Chi tiết</a>
-                        <a href="{% url 'map_view' %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-map-marker-alt"></i> Vị trí</a>
+                        <a href="{% url 'parking_detail' p.id %}"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-info-circle"></i> Chi tiết
+                        </a>
+                        <a href="{% url 'map_view' %}"
+                           class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-map-marker-alt"></i> Vị trí
+                        </a>
                     </td>
                 </tr>
-                {% endfor %}
+            {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        Không có bãi đỗ xe nào 😢
+                    </td>
+                </tr>
+            {% endfor %}
             </tbody>
         </table>
     </div>
-    
-    <nav class="mt-4">
-        <ul class="pagination justify-content-center">
-            <li class="page-item disabled"><a class="page-link" href="#">Trước</a></li>
-            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-            <li class="page-item"><a class="page-link" href="#">2</a></li>
-            <li class="page-item"><a class="page-link" href="#">3</a></li>
-            <li class="page-item"><a class="page-link" href="#">Sau</a></li>
-        </ul>
-    </nav>
+
+    <!-- Pagination demo -->
+   
 </div>
 {% endblock %}
