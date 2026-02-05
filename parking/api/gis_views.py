@@ -14,7 +14,14 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from parking.models import ParkingLot as Parking
 import json
-# Note: import `parking.utils.gis` lazily inside views to avoid import-time errors on startup (sanitization required in utils)
+import traceback
+
+
+# Lazy helper to avoid import-time issues when gis utils has heavy deps
+def _get_gis():
+    from parking.utils import gis
+    return gis
+
 
 
 # =============================================================================
@@ -61,7 +68,6 @@ def nearby_parkings(request):
         - only_active, only_available, min_slots, sort_by_distance (optional)
     """
     try:
-        from parking.utils import gis
         data = request.GET if request.method == 'GET' else json.loads(request.body)
         
         # Validate
@@ -74,6 +80,8 @@ def nearby_parkings(request):
         center_lon = float(data.get('longitude'))
         radius_km = float(data.get('radius'))
         
+        # Lazy import gis utilities
+        gis = _get_gis()
         if not gis.validate_coordinates(center_lat, center_lon):
             return error_response('Invalid coordinates')
         
@@ -105,6 +113,8 @@ def nearby_parkings(request):
     except json.JSONDecodeError:
         return error_response('Invalid JSON format')
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return error_response(f'Internal server error: {str(e)}', status=500)
 
 
@@ -121,7 +131,6 @@ def nearest_parking(request):
         - max_radius, only_active, only_available (optional)
     """
     try:
-        from parking.utils import gis
         data = request.GET if request.method == 'GET' else json.loads(request.body)
         
         is_valid, missing = validate_required_params(data, ['latitude', 'longitude'])
@@ -132,6 +141,8 @@ def nearest_parking(request):
         center_lon = float(data.get('longitude'))
         max_radius_km = float(data.get('max_radius', 50.0))
         
+        # Lazy import gis utilities
+        gis = _get_gis()
         if not gis.validate_coordinates(center_lat, center_lon):
             return error_response('Invalid coordinates')
         
@@ -156,6 +167,8 @@ def nearest_parking(request):
     except json.JSONDecodeError:
         return error_response('Invalid JSON format')
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return error_response(f'Internal server error: {str(e)}', status=500)
 
 
@@ -172,7 +185,6 @@ def calculate_route(request):
         - profile, use_osrm (optional)
     """
     try:
-        from parking.utils import gis
         data = request.GET if request.method == 'GET' else json.loads(request.body)
         
         is_valid, missing = validate_required_params(data, ['start_lat', 'start_lon', 'end_lat', 'end_lon'])
@@ -184,6 +196,8 @@ def calculate_route(request):
         end_lat = float(data.get('end_lat'))
         end_lon = float(data.get('end_lon'))
         
+        # Lazy import gis utilities
+        gis = _get_gis()
         if not (gis.validate_coordinates(start_lat, start_lon) and gis.validate_coordinates(end_lat, end_lon)):
             return error_response('Invalid coordinates')
         
@@ -236,7 +250,6 @@ def route_to_parking(request):
         - profile, use_osrm (optional)
     """
     try:
-        from parking.utils import gis
         data = request.GET if request.method == 'GET' else json.loads(request.body)
         
         is_valid, missing = validate_required_params(data, ['start_lat', 'start_lon', 'parking_id'])
@@ -247,20 +260,26 @@ def route_to_parking(request):
         start_lon = float(data.get('start_lon'))
         parking_id = int(data.get('parking_id'))
         
+        # Lazy import gis utilities
+        gis = _get_gis()
         if not gis.validate_coordinates(start_lat, start_lon):
             return error_response('Invalid start coordinates')
         
         try:
-            parking = Parking.objects.select_related('parking_type', 'khu_vuc').get(id=parking_id)
+            parking = Parking.objects.select_related('area').get(id=parking_id)
         except Parking.DoesNotExist:
             return error_response(f'Parking with ID {parking_id} not found', status=404)
         
         profile = data.get('profile', 'driving')
         use_osrm = data.get('use_osrm', 'true').lower() in ['true', '1', 'yes']
         
+        if parking.latitude is None or parking.longitude is None:
+            return error_response('Parking does not have coordinates', status=400)
+
         end_lat = float(parking.latitude)
         end_lon = float(parking.longitude)
-        
+
+        gis = _get_gis()
         if use_osrm:
             route = gis.calculate_route_osrm(start_lat, start_lon, end_lat, end_lon, profile)
             if route is None:
@@ -272,18 +291,18 @@ def route_to_parking(request):
             route = gis.calculate_route_simple(start_lat, start_lon, end_lat, end_lon)
             message = f'Route to {parking.name} simulated'
         
-        status = parking.get_status()
+        status = parking.get_status() if hasattr(parking, 'get_status') else None
         parking_info = {
             'id': parking.id,
             'name': parking.name,
             'latitude': end_lat,
             'longitude': end_lon,
             'address': parking.address or '',
-            'available_slots': parking.available_slots,
-            'total_slots': parking.total_slots,
-            'capacity_percent': parking.get_capacity_percent(),
-            'parking_type': parking.parking_type.name,
-            'khu_vuc': parking.khu_vuc.name,
+            'available_slots': getattr(parking, 'available_slots', None),
+            'total_slots': getattr(parking, 'total_slots', None),
+            'capacity_percent': getattr(parking, 'get_capacity_percent', lambda: None)(),
+            'parking_type': getattr(getattr(parking, 'parking_type', None), 'name', None),
+            'khu_vuc': getattr(getattr(parking, 'area', None), 'name', None),
             'status': {
                 'name': status.name if status else 'Unknown',
                 'color': status.color_code if status else '#999'
@@ -317,7 +336,6 @@ def export_geojson(request):
         - only_active, only_available
     """
     try:
-        from parking.utils import gis
         queryset = Parking.objects.all()
         
         khu_vuc_id = request.GET.get('khu_vuc_id')
@@ -334,8 +352,10 @@ def export_geojson(request):
         
         only_available = request.GET.get('only_available', 'false').lower() in ['true', '1', 'yes']
         if only_available:
-            queryset = queryset.filter(available_slots__gt=0)
-        
+            # available_slots is a Python property, not a DB column; filter in Python
+            queryset = [p for p in queryset if getattr(p, 'available_slots', 0) > 0]
+
+        gis = _get_gis()
         geojson = gis.export_parkings_geojson(queryset)
         return JsonResponse(geojson, safe=False)
         
@@ -351,10 +371,10 @@ def gis_health(request):
     Endpoint: /api/gis/health/
     """
     try:
-        from parking.utils import gis
         total_parkings = Parking.objects.count()
         active_parkings = Parking.objects.filter(is_active=True).count()
         
+        gis = _get_gis()
         osrm_available = False
         try:
             test_route = gis.calculate_route_osrm(10.762622, 106.660172, 10.763, 106.661)

@@ -8,7 +8,7 @@ from . import gis_views
 app_name = 'parking_api'
 
 urlpatterns = [
-    # GIS APIs (mounted at /api/gis/)
+    # GIS APIs (mounted under /api/gis/)
     path('nearby-parkings/', gis_views.nearby_parkings, name='nearby_parkings'),
     path('nearest-parking/', gis_views.nearest_parking, name='nearest_parking'),
     path('route/', gis_views.calculate_route, name='calculate_route'),

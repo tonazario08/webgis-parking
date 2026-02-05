@@ -410,7 +410,6 @@ def calculate_route_osrm(
     -----
     - If `requests` is not installed or OSRM URL not configured, this function
       returns None and caller should handle fallback.
-    """
     # If requests lib unavailable, can't call OSRM
     if requests is None:
         return None

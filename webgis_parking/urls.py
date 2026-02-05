@@ -4,8 +4,10 @@ from parking.views import home, map_view, parking_list, available_parking, reven
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # GIS API endpoints
+
+    # GIS API mounted at /api/gis/
     path('api/gis/', include('parking.api.urls')),
+
     path('', home, name='home'),
     path('map/', map_view, name='map_view'),
     path('list/', parking_list, name='parking_list'),
