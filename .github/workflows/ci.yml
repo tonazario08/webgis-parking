@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  pull_request:
+    branches: [ main, master, dev ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      - name: Run flake8 (lint)
+        run: |
+          # don't fail the workflow if flake8 missing config; keep it optional
+          flake8 || true
+
+      - name: Run migrations
+        env:
+          DJANGO_SETTINGS_MODULE: webgis_parking.settings
+        run: |
+          python manage.py migrate --noinput
+
+      - name: Run tests
+        env:
+          DJANGO_SETTINGS_MODULE: webgis_parking.settings
+        run: |
+          python manage.py test --verbosity=2
