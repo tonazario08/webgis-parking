@@ -1,0 +1,116 @@
+{% extends "parking/base.html" %}
+
+{% block content %}
+<div class="container my-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">
+                {{ user.full_name }}
+            </h3>
+            <p class="text-muted mb-0">
+                Biển số xe: <strong>{{ user.license_plate }}</strong>
+            </p>
+        </div>
+
+        {% if user.is_active %}
+            <span class="badge bg-success fs-6 px-3 py-2">
+                🟢 Đang đỗ xe
+            </span>
+        {% else %}
+            <span class="badge bg-danger fs-6 px-3 py-2">
+                🔴 Đã rời bãi
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        <!-- Thông tin khách hàng -->
+        <div class="col-md-7">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">📋 Thông tin khách hàng</h5>
+
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="35%">Số điện thoại</th>
+                            <td>{{ user.phone }}</td>
+                        </tr>
+                        <tr>
+                            <th>Email</th>
+                            <td>{{ user.email|default:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Địa chỉ</th>
+                            <td>{{ user.address|default:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Loại xe</th>
+                            <td>{{ user.get_vehicle_type_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Thời gian vào bãi</th>
+                            <td>{{ user.created_at|date:"H:i d/m/Y" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thông tin bãi đỗ -->
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">🅿️ Bãi đỗ xe</h5>
+
+                    <div class="mb-3">
+                        <h6 class="fw-bold mb-1">
+                            {{ user.parking_lot.name }}
+                        </h6>
+                        <p class="text-muted mb-0">
+                            {{ user.parking_lot.address }}
+                        </p>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Sức chứa</span>
+                        <strong>{{ user.parking_lot.capacity }}</strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Chỗ trống</span>
+                        <strong class="text-success">
+                            {{ user.parking_lot.available_slots }}
+                        </strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <span>Giá/giờ</span>
+                        <strong class="text-warning">
+                            {{ user.parking_lot.price_per_hour }} đ
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action -->
+    <div class="mt-4 d-flex gap-3">
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+            ⬅ Quay lại Dashboard
+        </a>
+
+        {% if user.is_active %}
+            <a href="{% url 'checkout_vehicle' user.id %}"
+               class="btn btn-danger">
+                🚗 Check-out xe
+            </a>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

@@ -1,13 +1,17 @@
 {% extends 'parking/base.html' %}
+{% load humanize %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold text-warning"><i class="fas fa-chart-line me-2"></i>Báo cáo doanh thu</h3>
+    <h3 class="fw-bold text-warning">
+        <i class="fas fa-chart-line me-2"></i>Báo cáo doanh thu
+    </h3>
     <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
         <i class="fas fa-arrow-left me-1"></i> Quay lại Dashboard
     </a>
 </div>
 
+<!-- ================= TỔNG DOANH THU ================= -->
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="card card-custom bg-warning bg-opacity-10 border-0 p-4">
@@ -16,16 +20,22 @@
                     <i class="fas fa-money-bill-wave fa-2x"></i>
                 </div>
                 <div>
-                    <p class="text-muted mb-0 fw-bold">TỔNG DOANH THU THÁNG 1/2026</p>
-                    <h1 class="fw-bold text-dark mb-0">24.500.000 VNĐ</h1>
+                    <p class="text-muted mb-0 fw-bold">
+                        TỔNG DOANH THU THÁNG 1/2026
+                    </p>
+                    <h1 class="fw-bold text-dark mb-0">
+                        {{ total_revenue|intcomma }} VNĐ
+                    </h1>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- ================= CHI TIẾT THEO BÃI XE ================= -->
 <div class="card card-custom bg-white p-4 shadow-sm">
     <h5 class="fw-bold mb-4">Chi tiết theo từng bãi xe</h5>
+
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead class="table-light">
@@ -38,27 +48,33 @@
                 </tr>
             </thead>
             <tbody>
+                {% for p in parking_data %}
                 <tr>
-                    <td class="fw-bold">Vincom Đồng Khởi</td>
-                    <td>01/2026</td>
-                    <td class="fw-bold text-primary">12.500.000</td>
-                    <td class="text-success"><i class="fas fa-arrow-up"></i> 5.2%</td>
-                    <td><span class="badge bg-success bg-opacity-10 text-success">Đã quyết toán</span></td>
+                    <td class="fw-bold">{{ p.name }}</td>
+                    <td>{{ p.month }}</td>
+                    <td class="fw-bold text-primary">
+                        {{ p.revenue|intcomma }}
+                    </td>
+                    <td class="text-muted">—</td>
+                    <td>
+                        {% if p.status == 'Đã quyết toán' %}
+                            <span class="badge bg-success bg-opacity-10 text-success">
+                                {{ p.status }}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-warning bg-opacity-10 text-warning">
+                                {{ p.status }}
+                            </span>
+                        {% endif %}
+                    </td>
                 </tr>
+                {% empty %}
                 <tr>
-                    <td class="fw-bold">Bãi xe Bến Thành</td>
-                    <td>01/2026</td>
-                    <td class="fw-bold text-primary">8.200.000</td>
-                    <td class="text-danger"><i class="fas fa-arrow-down"></i> 1.5%</td>
-                    <td><span class="badge bg-success bg-opacity-10 text-success">Đã quyết toán</span></td>
+                    <td colspan="5" class="text-center text-muted">
+                        Chưa có dữ liệu doanh thu
+                    </td>
                 </tr>
-                <tr>
-                    <td class="fw-bold">Bãi xe Công viên 23/9</td>
-                    <td>01/2026</td>
-                    <td class="fw-bold text-primary">3.800.000</td>
-                    <td class="text-success"><i class="fas fa-arrow-up"></i> 8.0%</td>
-                    <td><span class="badge bg-warning bg-opacity-10 text-warning">Chưa đối soát</span></td>
-                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>

@@ -16,6 +16,9 @@ from parking.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/parkings/', views.parking_map_data, name='parking_map_data'),
+    path('search/', views.search_by_phone, name='search_by_phone'),
+    path('customer/<int:id>/', views.parking_user_detail, name='parking_user_detail'),
     path("api/nearest-parking/", views.api_find_nearest_parking),
     path("api/route/", views.api_route),
     path('', include('parking.urls')),

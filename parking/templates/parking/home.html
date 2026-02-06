@@ -1,13 +1,29 @@
 {% extends 'parking/base.html' %}
 
 {% block content %}
+<form method="get" action="{% url 'search_by_phone' %}" class="mb-4">
+    <div class="input-group input-group-lg">
+        <span class="input-group-text bg-white">
+            <i class="fas fa-search text-primary"></i>
+        </span>
+        <input
+            type="text"
+            name="phone"
+            class="form-control"
+            placeholder="Nhập số điện thoại khách hàng..."
+            required
+        >
+        <button class="btn btn-primary" type="submit">
+            Tìm kiếm
+        </button>
+    </div>
+</form>
 <div class="d-flex justify-content-between align-items-center mb-5">
     <div>
         <h2 class="fw-bold text-dark mb-1" style="font-size: 32px;">Ứng dụng quản lý bãi đỗ xe thông minh</h2>
         <p class="text-muted">Cập nhật trạng thái bãi đỗ xe theo thời gian thực.</p>
     </div>
-    <a href="{% url 'map_view' %}" class="btn btn-primary btn-primary-custom text-white">
-        <i class="fas fa-location-arrow me-2"></i>Xem bản đồ trực tiếp
+        
     </a>
 </div>
 
@@ -174,7 +190,7 @@
             <div class="mt-auto pt-4 text-center">
                 <a href="{% url 'activity_log_view' %}"
                    class="text-decoration-none fw-bold text-primary">
-                    Xem tất cả lịch sử
+                   
                 </a>
             </div>
         </div>

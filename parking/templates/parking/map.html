@@ -12,108 +12,576 @@
     </a>
 </div>
 
+<!-- THÔNG TIN BÃI XE GẦN NHẤT -->
+<div id="nearest-info" class="alert alert-success mb-3" style="display:none;">
+    <strong>🚗 Bãi xe gần nhất:</strong>
+    <div id="nearest-details"></div>
+</div>
+
+<!-- NHẬP TỌA ĐỘ THỦ CÔNG -->
+<div class="card mb-3 p-3 shadow-sm">
+    <h6 class="mb-2"><i class="fas fa-map-marker-alt text-danger me-2"></i>Xác định vị trí của bạn</h6>
+    <div class="row g-2">
+        <div class="col-md-3">
+            <input id="lat" class="form-control" placeholder="Vĩ độ (VD: 10.762622)">
+        </div>
+        <div class="col-md-3">
+            <input id="lng" class="form-control" placeholder="Kinh độ (VD: 106.660172)">
+        </div>
+        <div class="col-md-3">
+            <button id="btn-manual-locate" class="btn btn-outline-danger w-100">
+                📌 Đặt vị trí thủ công
+            </button>
+        </div>
+        <div class="col-md-3">
+            <button id="btn-location" class="btn btn-danger w-100">
+                📍 Dùng GPS tự động
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- NÚT CHỨC NĂNG -->
 <div class="mb-2">
-    <button id="btn-find" class="btn btn-primary me-2">
+    <button id="btn-find" class="btn btn-primary me-2" disabled>
         🔍 Tìm bãi đỗ gần nhất
     </button>
 
-    <button id="btn-route" class="btn btn-success" disabled>
-        🧭 Chỉ đường
+    <button id="btn-route" class="btn btn-success me-2" disabled>
+        🧭 Chỉ đường (theo lộ trình thực tế)
+    </button>
+
+    <button id="btn-clear" class="btn btn-secondary">
+        🗑️ Xóa lộ trình
     </button>
 </div>
 
 <!-- BẢN ĐỒ -->
-<div class="card card-custom p-2 bg-white shadow-sm">
-    <div id="map" style="height: 75vh; width: 100%; border-radius: 8px;"></div>
+<div class="card p-2 shadow-sm">
+    <div id="map" style="height: 70vh; border-radius: 8px;"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // ===== 1. Khởi tạo bản đồ =====
-    var map = L.map('map').setView([16.0, 106.0], 6);
+/* ===================================
+   1. KHỞI TẠO BẢN ĐỒ
+=================================== */
+const map = L.map("map").setView([10.78, 106.69], 12);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "© OpenStreetMap contributors"
+}).addTo(map);
 
-    // ===== 2. Group marker để fitBounds =====
-    var markers = L.featureGroup().addTo(map);
+/* ===================================
+   2. ICON TÙY CHỈNH
+=================================== */
+const parkingIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
 
-    // ===== 3. Marker khu vực (render từ Django) =====
-    {% for area in areas %}
-        {% if area.latitude and area.longitude %}
-            L.marker([{{ area.latitude }}, {{ area.longitude }}])
-                .addTo(markers)
-                .bindPopup(`
-                    <b>{{ area.name }}</b><br>
-                    {{ area.description|default:"Không có mô tả" }}
-                `);
-        {% endif %}
-    {% endfor %}
+const userIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
 
-    if (markers.getLayers().length > 0) {
-        map.fitBounds(markers.getBounds(), { padding: [50, 50] });
+const nearestIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+/* ===================================
+   3. LOAD BÃI ĐỖ TỪ API
+=================================== */
+let parkings = [];
+let parkingMarkers = [];
+
+fetch("/api/parkings/")
+    .then(res => {
+        if (!res.ok) {
+            throw new Error('Không thể tải dữ liệu bãi đỗ xe');
+        }
+        return res.json();
+    })
+    .then(data => {
+        console.log("✅ Đã load được", data.length, "bãi đỗ xe");
+        parkings = data;
+
+        // Hiển thị marker cho từng bãi đỗ
+        data.forEach(p => {
+            if (p.lat && p.lng) {
+                const popupContent = `
+                    <div style="min-width: 200px;">
+                        <h6 style="margin-bottom: 8px; color: #0066cc;">
+                            <strong>🅿️ ${p.name}</strong>
+                        </h6>
+                        <p style="margin: 4px 0; font-size: 13px;">
+                            📍 <strong>Quận:</strong> ${p.district}<br>
+                            ${p.address ? `📮 <strong>Địa chỉ:</strong> ${p.address}<br>` : ''}
+                            🚗 <strong>Sức chứa:</strong> ${p.capacity || 'Chưa rõ'} xe
+                        </p>
+                    </div>
+                `;
+
+                const marker = L.marker([p.lat, p.lng], { icon: parkingIcon })
+                    .addTo(map)
+                    .bindPopup(popupContent);
+
+                parkingMarkers.push({ marker: marker, data: p });
+            } else {
+                console.warn(`⚠️ Bãi đỗ "${p.name}" thiếu tọa độ`);
+            }
+        });
+
+        // Auto-zoom để hiển thị tất cả bãi đỗ
+        if (parkingMarkers.length > 0) {
+            const group = L.featureGroup(parkingMarkers.map(pm => pm.marker));
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+
+        console.log("📍 Đã hiển thị", parkingMarkers.length, "marker trên bản đồ");
+    })
+    .catch(error => {
+        console.error("❌ Lỗi khi load bãi đỗ:", error);
+        alert("⚠️ Không thể tải dữ liệu bãi đỗ xe. Vui lòng kiểm tra kết nối API.");
+    });
+
+/* ===================================
+   4. VỊ TRÍ NGƯỜI DÙNG
+=================================== */
+let userLocation = null;
+let userMarker = null;
+
+// 4A. NHẬP TỌA ĐỘ THỦ CÔNG
+document.getElementById("btn-manual-locate").onclick = () => {
+    const latInput = document.getElementById("lat").value.trim();
+    const lngInput = document.getElementById("lng").value.trim();
+    
+    const lat = parseFloat(latInput);
+    const lng = parseFloat(lngInput);
+
+    if (isNaN(lat) || isNaN(lng)) {
+        alert("⚠️ Vui lòng nhập tọa độ hợp lệ!\n\nVí dụ:\nVĩ độ: 10.762622\nKinh độ: 106.660172");
+        return;
     }
 
-    // ===== 4. Vị trí người dùng (tạm thời) =====
-    let userLat = 10.7769;
-    let userLon = 106.7009;
+    // Kiểm tra tọa độ có hợp lý không (khu vực TP.HCM rộng)
+    if (lat < 10.0 || lat > 11.5 || lng < 106.0 || lng > 107.5) {
+        if (!confirm("⚠️ Tọa độ có vẻ nằm xa TP.HCM. Bạn có chắc chắn muốn tiếp tục?")) {
+            return;
+        }
+    }
 
-    L.marker([userLat, userLon])
+    userLocation = [lat, lng];
+
+    // Xóa marker cũ nếu có
+    if (userMarker) map.removeLayer(userMarker);
+
+    // Tạo marker mới
+    userMarker = L.marker(userLocation, { icon: userIcon })
         .addTo(map)
-        .bindPopup("📍 Vị trí của bạn")
+        .bindPopup(`
+            <div style="text-align: center;">
+                <strong>📍 Vị trí của bạn</strong><br>
+                <small>(Nhập thủ công)</small><br>
+                <small>Lat: ${userLocation[0].toFixed(6)}<br>
+                Lng: ${userLocation[1].toFixed(6)}</small>
+            </div>
+        `)
         .openPopup();
 
-    let nearestParking = null;
-    let routeLine = null;
+    map.setView(userLocation, 14);
 
-    // ===== 5. Tìm bãi đỗ gần nhất =====
-    document.getElementById("btn-find").onclick = function () {
-        fetch(`/api/nearest-parking/?lat=${userLat}&lon=${userLon}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.error || data.message) {
-                    alert(data.message || data.error);
-                    return;
-                }
+    // Kích hoạt nút tìm kiếm
+    document.getElementById("btn-find").disabled = false;
 
-                nearestParking = data;
+    // Reset thông tin bãi xe gần nhất
+    document.getElementById("nearest-info").style.display = "none";
+    document.getElementById("btn-route").disabled = true;
 
-                L.marker([data.latitude, data.longitude])
-                    .addTo(map)
-                    .bindPopup(
-                        `<b>${data.name}</b><br>
-                         Khoảng cách: ${data.distance_km} km<br>
-                         Còn trống: ${data.available_slots}`
-                    )
-                    .openPopup();
+    console.log("📌 Đã đặt vị trí thủ công:", userLocation);
+};
 
-                document.getElementById("btn-route").disabled = false;
-            });
-    };
+// 4B. DÙNG GPS TỰ ĐỘNG
+document.getElementById("btn-location").onclick = () => {
+    if (!navigator.geolocation) {
+        alert("⚠️ Trình duyệt không hỗ trợ GPS");
+        return;
+    }
 
-    // ===== 6. Chỉ đường =====
-    document.getElementById("btn-route").onclick = function () {
-        if (!nearestParking) return;
+    const btn = document.getElementById("btn-location");
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Đang lấy vị trí...';
 
-        fetch(
-            `/api/route/?start_lat=${userLat}&start_lon=${userLon}` +
-            `&end_lat=${nearestParking.latitude}&end_lon=${nearestParking.longitude}`
-        )
-        .then(res => res.json())
-        .then(geojson => {
-            if (routeLine) map.removeLayer(routeLine);
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            userLocation = [pos.coords.latitude, pos.coords.longitude];
 
-            routeLine = L.geoJSON(geojson, {
-                style: { color: "blue", weight: 5 }
-            }).addTo(map);
+            // Tự động điền vào ô input
+            document.getElementById("lat").value = userLocation[0].toFixed(6);
+            document.getElementById("lng").value = userLocation[1].toFixed(6);
 
-            map.fitBounds(routeLine.getBounds());
-        });
-    };
+            console.log("📍 Vị trí GPS:", userLocation);
+
+            // Xóa marker cũ nếu có
+            if (userMarker) map.removeLayer(userMarker);
+
+            // Tạo marker mới
+            userMarker = L.marker(userLocation, { icon: userIcon })
+                .addTo(map)
+                .bindPopup(`
+                    <div style="text-align: center;">
+                        <strong>📍 Vị trí của bạn</strong><br>
+                        <small>(GPS tự động)</small><br>
+                        <small>Lat: ${userLocation[0].toFixed(6)}<br>
+                        Lng: ${userLocation[1].toFixed(6)}</small>
+                    </div>
+                `)
+                .openPopup();
+
+            map.setView(userLocation, 14);
+
+            // Kích hoạt nút tìm kiếm
+            document.getElementById("btn-find").disabled = false;
+
+            // Reset thông tin bãi xe gần nhất
+            document.getElementById("nearest-info").style.display = "none";
+            document.getElementById("btn-route").disabled = true;
+
+            btn.disabled = false;
+            btn.innerHTML = '📍 Dùng GPS tự động';
+        },
+        error => {
+            console.error("❌ Lỗi GPS:", error);
+            alert("⚠️ Không thể lấy vị trí GPS!\n\n" + error.message);
+            btn.disabled = false;
+            btn.innerHTML = '📍 Dùng GPS tự động';
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+};
+
+/* ===================================
+   5. HÀM TÍNH KHOẢNG CÁCH (Haversine)
+=================================== */
+function distance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Bán kính Trái Đất (km)
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+
+    const a =
+        Math.sin(dLat/2)**2 +
+        Math.cos(lat1*Math.PI/180) *
+        Math.cos(lat2*Math.PI/180) *
+        Math.sin(dLon/2)**2;
+
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/* ===================================
+   6. TÌM BÃI ĐỖ GẦN NHẤT
+=================================== */
+let nearestParking = null;
+let nearestMarker = null;
+
+document.getElementById("btn-find").onclick = () => {
+    if (!userLocation) {
+        alert("⚠️ Hãy chọn vị trí của bạn trước!");
+        return;
+    }
+
+    if (parkings.length === 0) {
+        alert("⚠️ Chưa có dữ liệu bãi đỗ xe. Vui lòng đợi tải xong!");
+        return;
+    }
+
+    let minDist = Infinity;
+    let nearestParkingData = null;
+
+    // Tìm bãi đỗ gần nhất
+    parkings.forEach(p => {
+        if (!p.lat || !p.lng) return;
+
+        const d = distance(
+            userLocation[0], userLocation[1],
+            p.lat, p.lng
+        );
+
+        if (d < minDist) {
+            minDist = d;
+            nearestParkingData = { ...p, distance: d };
+        }
+    });
+
+    if (!nearestParkingData) {
+        alert("⚠️ Không tìm thấy bãi đỗ xe nào!");
+        return;
+    }
+
+    nearestParking = nearestParkingData;
+
+    console.log("🎯 Bãi đỗ gần nhất:", nearestParking.name, "-", nearestParking.distance.toFixed(2), "km");
+
+    // Đổi màu icon của các marker
+    parkingMarkers.forEach(pm => {
+        if (pm.data.name === nearestParking.name) {
+            pm.marker.setIcon(nearestIcon);
+            nearestMarker = pm.marker;
+        } else {
+            pm.marker.setIcon(parkingIcon);
+        }
+    });
+
+    // Hiển thị popup trên bản đồ
+    if (nearestMarker) {
+        nearestMarker.openPopup();
+        
+        // Cập nhật nội dung popup
+        nearestMarker.setPopupContent(`
+            <div style="min-width: 220px;">
+                <h6 style="color: #28a745; margin-bottom: 8px;">
+                    <strong>✅ BÃI XE GẦN NHẤT</strong>
+                </h6>
+                <p style="margin: 4px 0; font-size: 13px;">
+                    🅿️ <strong>${nearestParking.name}</strong><br>
+                    📍 ${nearestParking.district}<br>
+                    ${nearestParking.address ? `📮 ${nearestParking.address}<br>` : ''}
+                    🚗 Sức chứa: ${nearestParking.capacity || 'Chưa rõ'} xe<br>
+                    📏 <strong>Khoảng cách: ${nearestParking.distance.toFixed(2)} km</strong>
+                </p>
+            </div>
+        `);
+    }
+
+    // Hiển thị thông tin trong alert box
+    document.getElementById("nearest-details").innerHTML = `
+        <strong>${nearestParking.name}</strong> - ${nearestParking.district}<br>
+        📏 Khoảng cách đường chim bay: <strong>${nearestParking.distance.toFixed(2)} km</strong>
+    `;
+    document.getElementById("nearest-info").style.display = "block";
+
+    // Kích hoạt nút chỉ đường
+    document.getElementById("btn-route").disabled = false;
+
+    // Zoom đến vùng chứa cả user và bãi xe
+    const bounds = L.latLngBounds([
+        userLocation,
+        [nearestParking.lat, nearestParking.lng]
+    ]);
+    map.fitBounds(bounds.pad(0.2));
+};
+
+/* ===================================
+   7. CHỈ ĐƯỜNG THEO LỘ TRÌNH THỰC TẾ
+=================================== */
+let routeLine = null;
+let routeDistance = null;
+let routeDuration = null;
+
+document.getElementById("btn-route").onclick = async () => {
+    if (!userLocation || !nearestParking) {
+        alert("⚠️ Vui lòng tìm bãi xe gần nhất trước!");
+        return;
+    }
+
+    // Xóa lộ trình cũ nếu có
+    if (routeLine) map.removeLayer(routeLine);
+
+    // Hiển thị loading
+    const btnRoute = document.getElementById("btn-route");
+    btnRoute.disabled = true;
+    btnRoute.innerHTML = '⏳ Đang tính toán lộ trình...';
+
+    try {
+        // Gọi API OSRM để lấy lộ trình thực tế
+        const start = `${userLocation[1]},${userLocation[0]}`; // lng,lat
+        const end = `${nearestParking.lng},${nearestParking.lat}`; // lng,lat
+        
+        const url = `https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson&steps=true`;
+        
+        console.log("🌐 Đang gọi OSRM API:", url);
+        
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+            throw new Error('Không tìm thấy lộ trình');
+        }
+
+        const route = data.routes[0];
+        const coordinates = route.geometry.coordinates;
+        
+        // Chuyển đổi từ [lng, lat] sang [lat, lng] cho Leaflet
+        const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
+
+        // Vẽ đường đi
+        routeLine = L.polyline(latLngs, {
+            color: '#0066cc',
+            weight: 6,
+            opacity: 0.8,
+            lineJoin: 'round',
+            lineCap: 'round'
+        }).addTo(map);
+
+        // Lấy thông tin khoảng cách và thời gian
+        routeDistance = (route.distance / 1000).toFixed(2); // km
+        routeDuration = Math.round(route.duration / 60); // phút
+
+        console.log("✅ Lộ trình:", routeDistance, "km -", routeDuration, "phút");
+
+        // Cập nhật thông tin
+        document.getElementById("nearest-details").innerHTML = `
+            <strong>${nearestParking.name}</strong> - ${nearestParking.district}<br>
+            📏 Khoảng cách theo đường: <strong>${routeDistance} km</strong><br>
+            ⏱️ Thời gian ước tính: <strong>${routeDuration} phút</strong> (lái xe)
+        `;
+
+        // Zoom vừa khớp lộ trình
+        map.fitBounds(routeLine.getBounds().pad(0.1));
+
+        // Thông báo thành công
+        alert(`🧭 Đã tính lộ trình đến:\n\n${nearestParking.name}\n📏 ${routeDistance} km\n⏱️ ${routeDuration} phút`);
+
+        btnRoute.disabled = false;
+        btnRoute.innerHTML = '🧭 Chỉ đường (theo lộ trình thực tế)';
+
+    } catch (error) {
+        console.error("❌ Lỗi khi tính lộ trình:", error);
+        
+        // Fallback: vẽ đường thẳng nếu API lỗi
+        routeLine = L.polyline(
+            [
+                userLocation,
+                [nearestParking.lat, nearestParking.lng]
+            ],
+            { 
+                color: '#ff6b6b',
+                weight: 5,
+                opacity: 0.7,
+                dashArray: '10, 5'
+            }
+        ).addTo(map);
+
+        map.fitBounds(routeLine.getBounds().pad(0.1));
+
+        alert("⚠️ Không thể tính lộ trình thực tế (OSRM API lỗi).\nĐã vẽ đường thẳng tạm thời.");
+        
+        btnRoute.disabled = false;
+        btnRoute.innerHTML = '🧭 Chỉ đường (theo lộ trình thực tế)';
+    }
+};
+
+/* ===================================
+   8. XÓA LỘ TRÌNH
+=================================== */
+document.getElementById("btn-clear").onclick = () => {
+    // Xóa đường đi
+    if (routeLine) {
+        map.removeLayer(routeLine);
+        routeLine = null;
+        routeDistance = null;
+        routeDuration = null;
+    }
+
+    // Reset icon về màu xanh dương
+    parkingMarkers.forEach(pm => {
+        pm.marker.setIcon(parkingIcon);
+    });
+
+    // Ẩn thông tin
+    document.getElementById("nearest-info").style.display = "none";
+    document.getElementById("btn-route").disabled = true;
+    nearestParking = null;
+    nearestMarker = null;
+
+    // Zoom lại để hiện tất cả bãi xe
+    if (parkingMarkers.length > 0) {
+        const group = L.featureGroup(parkingMarkers.map(pm => pm.marker));
+        map.fitBounds(group.getBounds().pad(0.1));
+    }
+
+    console.log("🗑️ Đã xóa lộ trình");
+};
+
+/* ===================================
+   9. XỬ LÝ RESPONSIVE
+=================================== */
+window.addEventListener('resize', () => {
+    map.invalidateSize();
+});
+
+// Allow Enter key to submit manual location
+document.getElementById("lng").addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById("btn-manual-locate").click();
+    }
+});
+
 </script>
+
+<style>
+/* Tùy chỉnh giao diện */
+.leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 3px 14px rgba(0,0,0,0.2);
+}
+
+.leaflet-popup-content {
+    margin: 12px;
+}
+
+#nearest-info {
+    border-left: 4px solid #28a745;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.card {
+    border: none;
+}
+
+#map {
+    border: 2px solid #e0e0e0;
+}
+
+.form-control:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+</style>
 
 {% endblock %}
