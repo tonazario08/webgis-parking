@@ -14,5 +14,6 @@ urlpatterns = [
     path('route/', gis_views.calculate_route, name='calculate_route'),
     path('route-to-parking/', gis_views.route_to_parking, name='route_to_parking'),
     path('export-geojson/', gis_views.export_geojson, name='export_geojson'),
+    path("filter-status/", gis_views.filter_by_status, name="filter_status"),
     path('health/', gis_views.gis_health, name='gis_health'),
 ]

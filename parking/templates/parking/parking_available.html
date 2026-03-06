@@ -37,3 +37,15 @@
 </tr>
 {% endfor %}
 </tbody>
+<h2>Bãi đỗ xe gần bạn</h2>
+
+<ul>
+  {% for item in results %}
+    <li>
+      <strong>{{ item.parking.name }}</strong><br>
+      Khoảng cách: {{ item.distance }} km
+    </li>
+  {% empty %}
+    <li>Không tìm thấy bãi đỗ phù hợp</li>
+  {% endfor %}
+</ul>

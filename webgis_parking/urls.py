@@ -1,5 +1,11 @@
 from django.contrib import admin
+
 from django.urls import path, include
+
+from django.urls import path,include
+from parking import views
+from parking.views import api_find_nearest_parking
+
 from parking.views import home, map_view, parking_list, available_parking, revenue_view, areas_view, parking_detail, activity_log_view
 
 urlpatterns = [
@@ -7,6 +13,12 @@ urlpatterns = [
 
     # GIS API mounted at /api/gis/
     path('api/gis/', include('parking.api.urls')),
+
+
+    path("api/nearest-parking/", views.api_find_nearest_parking),
+    path("api/route/", views.api_route),
+    path('', include('parking.urls')),
+    path("api/nearest-parking/", api_find_nearest_parking),
 
     path('', home, name='home'),
     path('map/', map_view, name='map_view'),

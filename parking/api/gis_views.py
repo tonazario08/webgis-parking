@@ -1,27 +1,27 @@
+# parking/api/gis_views.py
+
 """
 GIS API Views cho Hệ thống Quản lý Bãi đỗ xe Đô thị
 ===================================================
 
-Module này chứa các API endpoints để xử lý yêu cầu GIS từ frontend/client.
-Views này CHỈ xử lý request/response, logic GIS nằm trong utils/gis.py
-
-Author: GIS Backend Team
-Date: 2026-02-04
+Views chỉ xử lý request/response.
+Logic GIS nằm trong parking.utils.gis
 """
 
 from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_GET
 from django.views.decorators.csrf import csrf_exempt
-from parking.models import ParkingLot as Parking
+from parking.models import ParkingLot, ParkingStatus
 import json
-import traceback
 
 
-# Lazy helper to avoid import-time issues when gis utils has heavy deps
+# =============================================================================
+# LAZY GIS IMPORT
+# =============================================================================
+
 def _get_gis():
     from parking.utils import gis
     return gis
-
 
 
 # =============================================================================
@@ -29,25 +29,21 @@ def _get_gis():
 # =============================================================================
 
 def success_response(data, message="Success", status=200):
-    """Tạo JSON response thành công."""
-    return JsonResponse({
-        'status': 'success',
-        'message': message,
-        'data': data
-    }, status=status)
+    return JsonResponse(
+        {"status": "success", "message": message, "data": data},
+        status=status
+    )
 
 
 def error_response(message, errors=None, status=400):
-    """Tạo JSON response lỗi."""
-    response_data = {'status': 'error', 'message': message}
+    payload = {"status": "error", "message": message}
     if errors:
-        response_data['errors'] = errors
-    return JsonResponse(response_data, status=status)
+        payload["errors"] = errors
+    return JsonResponse(payload, status=status)
 
 
-def validate_required_params(request_data, required_params):
-    """Kiểm tra các tham số bắt buộc."""
-    missing = [p for p in required_params if p not in request_data]
+def validate_required_params(data, required):
+    missing = [p for p in required if p not in data]
     return len(missing) == 0, missing
 
 
@@ -58,336 +54,179 @@ def validate_required_params(request_data, required_params):
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def nearby_parkings(request):
-    """
-    API: Tìm bãi đỗ xe trong bán kính.
-    
-    Endpoint: /api/gis/nearby-parkings/
-    
-    Parameters:
-        - latitude, longitude, radius (required)
-        - only_active, only_available, min_slots, sort_by_distance (optional)
-    """
     try:
-        data = request.GET if request.method == 'GET' else json.loads(request.body)
-        
-        # Validate
-        is_valid, missing = validate_required_params(data, ['latitude', 'longitude', 'radius'])
-        if not is_valid:
-            return error_response('Missing required parameters', errors=missing)
-        
-        # Parse
-        center_lat = float(data.get('latitude'))
-        center_lon = float(data.get('longitude'))
-        radius_km = float(data.get('radius'))
-        
-        # Lazy import gis utilities
+        data = request.GET if request.method == "GET" else json.loads(request.body)
+
+        ok, missing = validate_required_params(data, ["latitude", "longitude", "radius"])
+        if not ok:
+            return error_response("Missing required parameters", missing)
+
+        lat = float(data["latitude"])
+        lon = float(data["longitude"])
+        radius = float(data["radius"])
+
         gis = _get_gis()
-        if not gis.validate_coordinates(center_lat, center_lon):
-            return error_response('Invalid coordinates')
-        
-        if radius_km <= 0 or radius_km > 100:
-            return error_response('Radius must be between 0 and 100 km')
-        
-        # Optional params
-        only_active = data.get('only_active', 'true').lower() in ['true', '1', 'yes']
-        only_available = data.get('only_available', 'false').lower() in ['true', '1', 'yes']
-        min_slots = int(data.get('min_slots', 0))
-        sort_by_distance = data.get('sort_by_distance', 'true').lower() in ['true', '1', 'yes']
-        
-        # Find parkings
+        if not gis.validate_coordinates(lat, lon):
+            return error_response("Invalid coordinates")
+
         parkings = gis.find_nearby_parkings(
-            Parking.objects.all(), center_lat, center_lon, radius_km,
-            only_active=only_active, only_available=only_available,
-            min_slots=min_slots, sort_by_distance=sort_by_distance
+            ParkingLot.objects.filter(is_active=True),
+            lat, lon, radius
         )
-        
+
         return success_response({
-            'center': {'latitude': center_lat, 'longitude': center_lon},
-            'radius_km': radius_km,
-            'total_found': len(parkings),
-            'parkings': parkings
-        }, message=f'Found {len(parkings)} parking(s) within {radius_km}km')
-        
-    except (ValueError, TypeError):
-        return error_response('Invalid parameter types')
-    except json.JSONDecodeError:
-        return error_response('Invalid JSON format')
+            "center": {"latitude": lat, "longitude": lon},
+            "radius_km": radius,
+            "total_found": len(parkings),
+            "parkings": parkings
+        })
+
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return error_response(f'Internal server error: {str(e)}', status=500)
+        return error_response(str(e), status=500)
 
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def nearest_parking(request):
-    """
-    API: Tìm bãi đỗ xe GẦN NHẤT.
-    
-    Endpoint: /api/gis/nearest-parking/
-    
-    Parameters:
-        - latitude, longitude (required)
-        - max_radius, only_active, only_available (optional)
-    """
     try:
-        data = request.GET if request.method == 'GET' else json.loads(request.body)
-        
-        is_valid, missing = validate_required_params(data, ['latitude', 'longitude'])
-        if not is_valid:
-            return error_response('Missing required parameters', errors=missing)
-        
-        center_lat = float(data.get('latitude'))
-        center_lon = float(data.get('longitude'))
-        max_radius_km = float(data.get('max_radius', 50.0))
-        
-        # Lazy import gis utilities
+        data = request.GET if request.method == "GET" else json.loads(request.body)
+
+        ok, missing = validate_required_params(data, ["latitude", "longitude"])
+        if not ok:
+            return error_response("Missing required parameters", missing)
+
+        lat = float(data["latitude"])
+        lon = float(data["longitude"])
+        max_radius = float(data.get("max_radius", 50))
+
         gis = _get_gis()
-        if not gis.validate_coordinates(center_lat, center_lon):
-            return error_response('Invalid coordinates')
-        
-        only_active = data.get('only_active', 'true').lower() in ['true', '1', 'yes']
-        only_available = data.get('only_available', 'false').lower() in ['true', '1', 'yes']
-        
         nearest = gis.find_nearest_parking(
-            Parking.objects.all(), center_lat, center_lon, max_radius_km,
-            only_active=only_active, only_available=only_available
+            ParkingLot.objects.filter(is_active=True),
+            lat, lon, max_radius
         )
-        
-        message = f"Found nearest parking: {nearest['name']}" if nearest else f"No parking found within {max_radius_km}km"
-        
-        return success_response({
-            'center': {'latitude': center_lat, 'longitude': center_lon},
-            'max_radius_km': max_radius_km,
-            'nearest_parking': nearest
-        }, message=message)
-        
-    except (ValueError, TypeError):
-        return error_response('Invalid parameter types')
-    except json.JSONDecodeError:
-        return error_response('Invalid JSON format')
+
+        return success_response({"nearest_parking": nearest})
+
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return error_response(f'Internal server error: {str(e)}', status=500)
+        return error_response(str(e), status=500)
 
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def calculate_route(request):
-    """
-    API: Tính route tối ưu giữa 2 điểm.
-    
-    Endpoint: /api/gis/route/
-    
-    Parameters:
-        - start_lat, start_lon, end_lat, end_lon (required)
-        - profile, use_osrm (optional)
-    """
     try:
-        data = request.GET if request.method == 'GET' else json.loads(request.body)
-        
-        is_valid, missing = validate_required_params(data, ['start_lat', 'start_lon', 'end_lat', 'end_lon'])
-        if not is_valid:
-            return error_response('Missing required parameters', errors=missing)
-        
-        start_lat = float(data.get('start_lat'))
-        start_lon = float(data.get('start_lon'))
-        end_lat = float(data.get('end_lat'))
-        end_lon = float(data.get('end_lon'))
-        
-        # Lazy import gis utilities
+        data = request.GET if request.method == "GET" else json.loads(request.body)
+
+        ok, missing = validate_required_params(
+            data, ["start_lat", "start_lon", "end_lat", "end_lon"]
+        )
+        if not ok:
+            return error_response("Missing required parameters", missing)
+
+        slat = float(data["start_lat"])
+        slon = float(data["start_lon"])
+        elat = float(data["end_lat"])
+        elon = float(data["end_lon"])
+
         gis = _get_gis()
-        if not (gis.validate_coordinates(start_lat, start_lon) and gis.validate_coordinates(end_lat, end_lon)):
-            return error_response('Invalid coordinates')
-        
-        profile = data.get('profile', 'driving')
-        if profile not in ['driving', 'cycling', 'walking']:
-            profile = 'driving'
-        
-        use_osrm = data.get('use_osrm', 'true').lower() in ['true', '1', 'yes']
-        
-        if use_osrm:
-            route = gis.calculate_route_osrm(start_lat, start_lon, end_lat, end_lon, profile)
-            if route is None:
-                route = gis.calculate_route_simple(start_lat, start_lon, end_lat, end_lon)
-                message = 'Route simulated (OSRM API unavailable)'
-            else:
-                message = 'Route calculated successfully'
-        else:
-            route = gis.calculate_route_simple(start_lat, start_lon, end_lat, end_lon)
-            message = 'Route simulated (not actual route)'
-        
-        bearing = gis.get_bearing(start_lat, start_lon, end_lat, end_lon)
-        direction = gis.get_direction_name(bearing)
-        
+        route = gis.calculate_route_simple(slat, slon, elat, elon)
+
         return success_response({
-            'start': {'latitude': start_lat, 'longitude': start_lon},
-            'end': {'latitude': end_lat, 'longitude': end_lon},
-            'bearing': round(bearing, 2),
-            'direction': direction,
-            'route': route
-        }, message=message)
-        
-    except (ValueError, TypeError):
-        return error_response('Invalid parameter types')
-    except json.JSONDecodeError:
-        return error_response('Invalid JSON format')
+            "start": {"lat": slat, "lon": slon},
+            "end": {"lat": elat, "lon": elon},
+            "route": route
+        })
+
     except Exception as e:
-        return error_response(f'Internal server error: {str(e)}', status=500)
+        return error_response(str(e), status=500)
 
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def route_to_parking(request):
-    """
-    API: Tính route từ vị trí hiện tại đến bãi đỗ xe cụ thể.
-    
-    Endpoint: /api/gis/route-to-parking/
-    
-    Parameters:
-        - start_lat, start_lon, parking_id (required)
-        - profile, use_osrm (optional)
-    """
     try:
-        data = request.GET if request.method == 'GET' else json.loads(request.body)
-        
-        is_valid, missing = validate_required_params(data, ['start_lat', 'start_lon', 'parking_id'])
-        if not is_valid:
-            return error_response('Missing required parameters', errors=missing)
-        
-        start_lat = float(data.get('start_lat'))
-        start_lon = float(data.get('start_lon'))
-        parking_id = int(data.get('parking_id'))
-        
-        # Lazy import gis utilities
-        gis = _get_gis()
-        if not gis.validate_coordinates(start_lat, start_lon):
-            return error_response('Invalid start coordinates')
-        
-        try:
-            parking = Parking.objects.select_related('area').get(id=parking_id)
-        except Parking.DoesNotExist:
-            return error_response(f'Parking with ID {parking_id} not found', status=404)
-        
-        profile = data.get('profile', 'driving')
-        use_osrm = data.get('use_osrm', 'true').lower() in ['true', '1', 'yes']
-        
-        if parking.latitude is None or parking.longitude is None:
-            return error_response('Parking does not have coordinates', status=400)
+        data = request.GET if request.method == "GET" else json.loads(request.body)
 
-        end_lat = float(parking.latitude)
-        end_lon = float(parking.longitude)
+        ok, missing = validate_required_params(
+            data, ["start_lat", "start_lon", "parking_id"]
+        )
+        if not ok:
+            return error_response("Missing required parameters", missing)
+
+        slat = float(data["start_lat"])
+        slon = float(data["start_lon"])
+        parking_id = int(data["parking_id"])
+
+        parking = ParkingLot.objects.get(id=parking_id, is_active=True)
 
         gis = _get_gis()
-        if use_osrm:
-            route = gis.calculate_route_osrm(start_lat, start_lon, end_lat, end_lon, profile)
-            if route is None:
-                route = gis.calculate_route_simple(start_lat, start_lon, end_lat, end_lon)
-                message = 'Route simulated (OSRM unavailable)'
-            else:
-                message = f'Route to {parking.name} calculated'
-        else:
-            route = gis.calculate_route_simple(start_lat, start_lon, end_lat, end_lon)
-            message = f'Route to {parking.name} simulated'
-        
-        status = parking.get_status() if hasattr(parking, 'get_status') else None
-        parking_info = {
-            'id': parking.id,
-            'name': parking.name,
-            'latitude': end_lat,
-            'longitude': end_lon,
-            'address': parking.address or '',
-            'available_slots': getattr(parking, 'available_slots', None),
-            'total_slots': getattr(parking, 'total_slots', None),
-            'capacity_percent': getattr(parking, 'get_capacity_percent', lambda: None)(),
-            'parking_type': getattr(getattr(parking, 'parking_type', None), 'name', None),
-            'khu_vuc': getattr(getattr(parking, 'area', None), 'name', None),
-            'status': {
-                'name': status.name if status else 'Unknown',
-                'color': status.color_code if status else '#999'
-            } if status else None
+        route = gis.calculate_route_simple(
+            slat, slon, parking.latitude, parking.longitude
+        )
+
+        return success_response({
+            "parking": {
+                "id": parking.id,
+                "name": parking.name,
+                "latitude": parking.latitude,
+                "longitude": parking.longitude,
+                "status": parking.status.name if parking.status else None
+            },
+            "route": route
+        })
+
+    except ParkingLot.DoesNotExist:
+        return error_response("Parking not found", status=404)
+    except Exception as e:
+        return error_response(str(e), status=500)
+
+
+@require_GET
+def filter_by_status(request):
+    status_name = request.GET.get("status")
+    if not status_name:
+        return error_response("Missing status parameter")
+
+    try:
+        status = ParkingStatus.objects.get(name__iexact=status_name)
+    except ParkingStatus.DoesNotExist:
+        return error_response("Status not found", status=404)
+
+    parkings = ParkingLot.objects.filter(status=status, is_active=True)
+
+    data = [
+        {
+            "id": p.id,
+            "name": p.name,
+            "address": p.address,
+            "latitude": float(p.latitude) if p.latitude else None,
+            "longitude": float(p.longitude) if p.longitude else None,
+            "available_slots": p.available_slots,
+            "capacity": p.capacity,
+            "status": status.name
         }
-        
-        return success_response({
-            'start': {'latitude': start_lat, 'longitude': start_lon},
-            'parking': parking_info,
-            'route': route
-        }, message=message)
-        
-    except (ValueError, TypeError):
-        return error_response('Invalid parameter types')
-    except json.JSONDecodeError:
-        return error_response('Invalid JSON format')
-    except Exception as e:
-        return error_response(f'Internal server error: {str(e)}', status=500)
+        for p in parkings
+    ]
+
+    return success_response(data)
 
 
-@csrf_exempt
-@require_http_methods(["GET"])
+@require_GET
 def export_geojson(request):
-    """
-    API: Export dữ liệu bãi đỗ xe sang GeoJSON.
-    
-    Endpoint: /api/gis/export-geojson/
-    
-    Query Parameters (optional):
-        - khu_vuc_id, parking_type_id
-        - only_active, only_available
-    """
     try:
-        queryset = Parking.objects.all()
-        
-        khu_vuc_id = request.GET.get('khu_vuc_id')
-        if khu_vuc_id:
-            queryset = queryset.filter(khu_vuc_id=khu_vuc_id)
-        
-        parking_type_id = request.GET.get('parking_type_id')
-        if parking_type_id:
-            queryset = queryset.filter(parking_type_id=parking_type_id)
-        
-        only_active = request.GET.get('only_active', 'true').lower() in ['true', '1', 'yes']
-        if only_active:
-            queryset = queryset.filter(is_active=True)
-        
-        only_available = request.GET.get('only_available', 'false').lower() in ['true', '1', 'yes']
-        if only_available:
-            # available_slots is a Python property, not a DB column; filter in Python
-            queryset = [p for p in queryset if getattr(p, 'available_slots', 0) > 0]
-
         gis = _get_gis()
-        geojson = gis.export_parkings_geojson(queryset)
+        geojson = gis.export_parkings_geojson(ParkingLot.objects.filter(is_active=True))
         return JsonResponse(geojson, safe=False)
-        
     except Exception as e:
-        return error_response(f'Internal server error: {str(e)}', status=500)
+        return error_response(str(e), status=500)
 
 
-@require_http_methods(["GET"])
+@require_GET
 def gis_health(request):
-    """
-    API: Kiểm tra trạng thái GIS service.
-    
-    Endpoint: /api/gis/health/
-    """
     try:
-        total_parkings = Parking.objects.count()
-        active_parkings = Parking.objects.filter(is_active=True).count()
-        
-        gis = _get_gis()
-        osrm_available = False
-        try:
-            test_route = gis.calculate_route_osrm(10.762622, 106.660172, 10.763, 106.661)
-            osrm_available = test_route is not None
-        except:
-            pass
-        
         return success_response({
-            'total_parkings': total_parkings,
-            'active_parkings': active_parkings,
-            'osrm_available': osrm_available,
-            'features': ['haversine_distance', 'nearby_search', 'route_calculation', 'geojson_export']
-        }, message='GIS service is healthy')
-        
+            "total_parkings": ParkingLot.objects.count(),
+            "active_parkings": ParkingLot.objects.filter(is_active=True).count()
+        })
     except Exception as e:
-        return error_response(f'Service unhealthy: {str(e)}', status=500)
+        return error_response(str(e), status=500)

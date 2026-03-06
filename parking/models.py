@@ -1,167 +1,95 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.utils import timezone
 
 
-# ========================
-# 1. Khu vực
-# ========================
 class Area(models.Model):
-    name = models.CharField("Tên khu vực", max_length=100)
-    description = models.TextField("Mô tả", blank=True)
-
-    latitude = models.FloatField("Vĩ độ", null=True, blank=True)
-    longitude = models.FloatField("Kinh độ", null=True, blank=True)
-
-    class Meta:
-        verbose_name = "Khu vực"
-        verbose_name_plural = "Danh sách khu vực"
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):
         return self.name
 
 
+class ParkingStatus(models.Model):
+    name = models.CharField(max_length=50)
+    color_code = models.CharField(max_length=10, default="#999999")
 
-# ========================
-# 2. Bãi đỗ xe
-# ========================
+    def __str__(self):
+        return self.name
+
+
 class ParkingLot(models.Model):
-    name = models.CharField("Tên bãi xe", max_length=100)
-    address = models.CharField("Địa chỉ", max_length=255)
-    area = models.ForeignKey(Area, verbose_name="Khu vực", on_delete=models.CASCADE)
+    name = models.CharField(max_length=150)
+    address = models.CharField(max_length=255)
 
-    # GPS coordinates (for GIS features)
-    latitude = models.FloatField("Vĩ độ", null=True, blank=True)
-    longitude = models.FloatField("Kinh độ", null=True, blank=True)
+    area = models.ForeignKey(
+        Area, on_delete=models.SET_NULL, null=True, related_name="parkings"
+    )
+    status = models.ForeignKey(
+        ParkingStatus, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
-    capacity = models.IntegerField("Sức chứa")
-    price_per_hour = models.IntegerField("Giá/giờ")
-    is_active = models.BooleanField("Đang hoạt động", default=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True)
 
-    class Meta:
-        verbose_name = "Bãi đỗ xe"
-        verbose_name_plural = "Danh sách bãi đỗ xe"
+    capacity = models.IntegerField(default=0)
+    available_slots = models.IntegerField(default=0)
+    price_per_hour = models.IntegerField(default=0)
 
-    def used_slots(self):
-        return self.parkinguser_set.filter(is_active=True).count()
+    is_active = models.BooleanField(default=True)
+    is_24h = models.BooleanField(default=False)
 
-    @property
-    def available_slots(self):
-        """Số chỗ trống hiện tại (property để tương thích với utils)."""
-        return self.capacity - self.used_slots()
+    opening_time = models.TimeField(null=True, blank=True)
+    closing_time = models.TimeField(null=True, blank=True)
 
-    @property
-    def total_slots(self):
-        return self.capacity
+    has_security = models.BooleanField(default=False)
+    has_camera = models.BooleanField(default=False)
+    has_ev_charging = models.BooleanField(default=False)
+
+    phone = models.CharField(max_length=20, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # ================== METHODS FOR GIS ==================
+
+    def get_capacity_percent(self):
+        if self.capacity <= 0:
+            return 0
+        return int((self.available_slots / self.capacity) * 100)
 
     def is_full(self):
         return self.available_slots <= 0
 
     def is_nearly_full(self):
-        if self.capacity == 0:
+        if self.capacity <= 0:
             return False
-        return (self.available_slots / self.capacity) < 0.15
-
-    def get_capacity_percent(self):
-        if self.capacity == 0:
-            return 0
-        used = self.capacity - self.available_slots
-        return int((used / self.capacity) * 100)
+        return self.available_slots / self.capacity <= 0.1
 
     def get_status(self):
-        # Placeholder: can be extended to return an object/dict with name/color
-        return None
+        return self.status
 
     def __str__(self):
         return self.name
 
 
-# ========================
-# 3. Nhật ký hoạt động
-# ========================
-class ActivityLog(models.Model):
-    ACTION_CHOICES = [
-        ('system', 'Hệ thống'),
-        ('vehicle', 'Xe'),
-    ]
-
-    user = models.ForeignKey(
-        User,
-        verbose_name="Người thực hiện",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
-    )
-
-    action = models.CharField("Hành động", max_length=255)
-    type = models.CharField("Loại hoạt động", max_length=20, choices=ACTION_CHOICES)
-
-    # 👉 Trường thời gian (đóng vai trò created_at)
-    created_at = models.DateTimeField(
-        "Thời gian",
-        auto_now_add=True
-    )
-
-    class Meta:
-        verbose_name = "Nhật ký hoạt động"
-        verbose_name_plural = "Nhật ký hoạt động"
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"{self.action}"
-
-
-# ========================
-# 4. Người sử dụng đỗ xe
-# ========================
 class ParkingUser(models.Model):
-    VEHICLE_TYPES = [
-        ('car', 'Ô tô'),
-        ('motorbike', 'Xe máy'),
-        ('bike', 'Xe đạp'),
-    ]
-
-    full_name = models.CharField("Họ và tên", max_length=100)
-    phone = models.CharField("Số điện thoại", max_length=15)
-    email = models.EmailField("Email", blank=True)
-    address = models.CharField("Địa chỉ", max_length=255, blank=True)
-
-    license_plate = models.CharField("Biển số xe", max_length=20)
-    vehicle_type = models.CharField("Loại xe", max_length=20, choices=VEHICLE_TYPES)
-
     parking_lot = models.ForeignKey(
-        ParkingLot,
-        verbose_name="Bãi đỗ xe",
-        on_delete=models.CASCADE
+        ParkingLot, on_delete=models.CASCADE, related_name="parking_users"
     )
-
-    is_active = models.BooleanField("Đang đỗ", default=True)
-    created_at = models.DateTimeField("Thời gian vào bãi", auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Người sử dụng đỗ xe"
-        verbose_name_plural = "Danh sách người sử dụng đỗ xe"
-
-    def save(self, *args, **kwargs):
-        if self.pk is None:
-            if self.parking_lot.available_slots <= 0:
-                raise ValueError("Bãi xe đã hết chỗ")
-
-            ActivityLog.objects.create(
-                action=f"Xe {self.license_plate} vào bãi {self.parking_lot.name}",
-                type='vehicle'
-            )
-
-        super().save(*args, **kwargs)
-
-    def exit_parking(self):
-        if self.is_active:
-            self.is_active = False
-            self.save()
-
-            ActivityLog.objects.create(
-                action=f"Xe {self.license_plate} rời bãi {self.parking_lot.name}",
-                type='vehicle'
-            )
+    license_plate = models.CharField(max_length=20)
+    checkin_time = models.DateTimeField(default=timezone.now)
+    checkout_time = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.full_name} - {self.license_plate}"
+        return self.license_plate
+
+
+class ActivityLog(models.Model):
+    action = models.CharField(max_length=255)
+    parking_lot = models.ForeignKey(
+        ParkingLot, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    time = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.action
