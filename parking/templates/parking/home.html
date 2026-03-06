@@ -3,11 +3,11 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-5">
     <div>
-        <h2 class="fw-bold text-dark mb-1" style="font-size: 32px;">Ứng dụng quản lý bãi đỗ xe thông minh</h2>
-        <p class="text-muted">Cập nhật trạng thái bãi đỗ xe theo thời gian thực.</p>
+        <h2 class="fw-bold text-dark mb-1" style="font-size: 32px;">Ung dung quan ly bai do xe thong minh</h2>
+        <p class="text-muted">Cap nhat trang thai bai do xe theo thoi gian thuc.</p>
     </div>
     <a href="{% url 'map_view' %}" class="btn btn-primary btn-primary-custom text-white">
-        <i class="fas fa-location-arrow me-2"></i>Xem bản đồ trực tiếp
+        <i class="fas fa-location-arrow me-2"></i>Xem ban do truc tiep
     </a>
 </div>
 
@@ -17,7 +17,7 @@
             <div class="card card-custom bg-white h-100 p-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">TỔNG BÃI ĐỖ</p>
+                        <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">TONG BAI DO</p>
                         <h2 class="fw-bold text-dark mb-0">{{ total_parking }}</h2>
                     </div>
                     <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary"><i class="fas fa-parking"></i></div>
@@ -31,7 +31,7 @@
             <div class="card card-custom bg-white h-100 p-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">CHỖ TRỐNG KHẢ DỤNG</p>
+                        <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">CHO TRONG KHA DUNG</p>
                         <h2 class="fw-bold text-success mb-0">{{ total_available }}</h2>
                     </div>
                     <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success"><i class="fas fa-check"></i></div>
@@ -45,7 +45,7 @@
             <div class="card card-custom bg-white h-100 p-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">DOANH THU THÁNG</p>
+                        <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">DOANH THU</p>
                         <h2 class="fw-bold text-warning mb-0">{{ revenue }}</h2>
                     </div>
                     <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning"><i class="fas fa-wallet"></i></div>
@@ -59,7 +59,7 @@
             <div class="card card-custom bg-white h-100 p-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">KHU VỰC HOẠT ĐỘNG</p>
+                        <p class="text-secondary fw-bold mb-1" style="font-size: 11px;">KHU VUC HOAT DONG</p>
                         <h2 class="fw-bold text-info mb-0">{{ active_areas }}</h2>
                     </div>
                     <div class="bg-info bg-opacity-10 p-3 rounded-circle text-info"><i class="fas fa-city"></i></div>
@@ -73,45 +73,47 @@
     <div class="col-lg-8">
         <div class="card card-custom bg-white p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold mb-0"><i class="fas fa-map-pin text-danger me-2"></i>Danh sách bãi đỗ xe gần đây</h5>
-                <a href="{% url 'parking_list' %}" class="btn btn-sm btn-light text-primary">Xem tất cả</a>
+                <h5 class="fw-bold mb-0"><i class="fas fa-map-pin text-danger me-2"></i>Danh sach bai do xe</h5>
+                <a href="{% url 'parking_list' %}" class="btn btn-sm btn-light text-primary">Xem tat ca</a>
             </div>
-            
+
             <table class="table align-middle">
                 <thead>
                     <tr class="text-secondary" style="font-size: 13px;">
-                        <th>Tên bãi</th>
-                        <th>Trạng thái</th>
-                        <th>Sức chứa</th>
-                        <th>Hành động</th>
+                        <th>Ten bai</th>
+                        <th>Trang thai</th>
+                        <th>Suc chua</th>
+                        <th>Hanh dong</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for p in parking_list %}
+                    {% for item in parking_data %}
+                    {% with p=item.obj %}
                     <tr>
                         <td class="py-3">
                             <div class="fw-bold text-dark">{{ p.name }}</div>
                             <small class="text-muted">{{ p.address }}</small>
                         </td>
                         <td>
-                            {% if p.status == 'open' %}
-                                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">Đang mở</span>
+                            {% if item.is_full %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">Da day</span>
                             {% else %}
-                                <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">Đã đầy</span>
+                                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">Con cho</span>
                             {% endif %}
                         </td>
                         <td style="width: 30%;">
                             <div class="progress mb-1" style="height: 6px;">
-                                <div class="progress-bar {% if p.status == 'full' %}bg-danger{% else %}bg-primary{% endif %}" style="width: {{ p.percent }}%"></div>
+                                <div class="progress-bar {% if item.is_full %}bg-danger{% else %}bg-primary{% endif %}" style="width: {{ item.percent }}%"></div>
                             </div>
-                            <small class="text-muted">{{ p.slots }}/{{ p.capacity }}</small>
+                            <small class="text-muted">{{ item.used }}/{{ p.capacity }}</small>
                         </td>
                         <td>
-                            <a href="{% url 'parking_detail' p.id %}" class="btn btn-outline-primary btn-sm">
-                                Chi tiết
-                            </a>
+                            <a href="{% url 'parking_detail' p.id %}" class="btn btn-outline-primary btn-sm">Chi tiet</a>
                         </td>
                     </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">Chua co bai do nao.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -120,12 +122,12 @@
 
     <div class="col-lg-4">
         <div class="card card-custom bg-white p-4 h-100">
-            <h5 class="fw-bold mb-4"><i class="fas fa-history text-secondary me-2"></i>Hoạt động gần đây</h5>
+            <h5 class="fw-bold mb-4"><i class="fas fa-history text-secondary me-2"></i>Hoat dong gan day</h5>
             <div class="vstack gap-4">
                 {% for act in activities %}
                 <div class="d-flex">
                     <div class="me-3">
-                        {% if 'ra' in act.action %}
+                        {% if 'roi bai' in act.action %}
                             <i class="fas fa-car text-primary"></i>
                         {% else %}
                             <i class="fas fa-plus-circle text-success"></i>
@@ -133,16 +135,16 @@
                     </div>
                     <div>
                         <div class="fw-bold text-dark">{{ act.action }}</div>
-                        <small class="text-muted">{{ act.time }} • {{ act.user }}</small>
+                        <small class="text-muted">{{ act.created_at|date:'d/m/Y H:i' }} • {% if act.user %}{{ act.user.username }}{% else %}System{% endif %}</small>
                     </div>
                 </div>
                 <hr class="my-0 text-muted opacity-25">
+                {% empty %}
+                <div class="text-muted">Chua co hoat dong.</div>
                 {% endfor %}
             </div>
             <div class="mt-auto pt-4 text-center">
-                <a href="{% url 'activity_log_view' %}" class="text-decoration-none fw-bold text-primary">
-                    Xem tất cả lịch sử
-                </a>
+                <a href="{% url 'activity_log_view' %}" class="text-decoration-none fw-bold text-primary">Xem tat ca lich su</a>
             </div>
         </div>
     </div>

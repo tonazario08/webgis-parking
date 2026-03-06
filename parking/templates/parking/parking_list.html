@@ -2,10 +2,8 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold text-dark"><i class="fas fa-list text-primary me-2"></i>Danh sách bãi đỗ xe</h3>
-    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-arrow-left me-1"></i> Quay lại Dashboard
-    </a>
+    <h3 class="fw-bold text-dark"><i class="fas fa-list text-primary me-2"></i>Danh sach bai do xe</h3>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Quay lai Dashboard</a>
 </div>
 
 <div class="card card-custom bg-white p-4 shadow-sm">
@@ -13,49 +11,43 @@
         <table class="table table-hover align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Tên bãi đỗ</th>
-                    <th>Địa chỉ</th>
-                    <th>Trạng thái</th>
-                    <th>Sức chứa</th>
-                    <th>Hành động</th>
+                    <th>Ten bai do</th>
+                    <th>Dia chi</th>
+                    <th>Trang thai</th>
+                    <th>Suc chua</th>
+                    <th>Hanh dong</th>
                 </tr>
             </thead>
             <tbody>
-                {% for i in "123456" %} <tr>
+                {% for p in parking_list %}
+                <tr>
+                    <td><div class="fw-bold text-dark">{{ p.name }}</div></td>
+                    <td>{{ p.address }}</td>
                     <td>
-                        <div class="fw-bold text-dark">Bãi xe Vincom Center {{ i }}</div>
-                        <small class="text-muted">Mã bãi: P00{{ i }}</small>
-                    </td>
-                    <td>72 Lê Thánh Tôn, Quận 1, TP.HCM</td>
-                    <td>
-                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">Đang mở</span>
+                        {% if p.is_active %}
+                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">Dang mo</span>
+                        {% else %}
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill">Tam dung</span>
+                        {% endif %}
                     </td>
                     <td style="width: 25%;">
                         <div class="d-flex align-items-center">
                             <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                <div class="progress-bar bg-primary" style="width: 65%"></div>
+                                <div class="progress-bar bg-primary" style="width: {{ p.percent_used }}%"></div>
                             </div>
-                            <span class="text-muted small">65/100</span>
+                            <span class="text-muted small">{{ p.used }}/{{ p.capacity }}</span>
                         </div>
                     </td>
                     <td>
-                        <a href="#" class="btn btn-sm btn-outline-primary"><i class="fas fa-info-circle"></i> Chi tiết</a>
-                        <a href="{% url 'map_view' %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-map-marker-alt"></i> Vị trí</a>
+                        <a href="{% url 'parking_detail' p.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-info-circle"></i> Chi tiet</a>
+                        <a href="{% url 'map_view' %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-map-marker-alt"></i> Vi tri</a>
                     </td>
                 </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">Chua co bai do nao trong he thong.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    
-    <nav class="mt-4">
-        <ul class="pagination justify-content-center">
-            <li class="page-item disabled"><a class="page-link" href="#">Trước</a></li>
-            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-            <li class="page-item"><a class="page-link" href="#">2</a></li>
-            <li class="page-item"><a class="page-link" href="#">3</a></li>
-            <li class="page-item"><a class="page-link" href="#">Sau</a></li>
-        </ul>
-    </nav>
 </div>
 {% endblock %}

@@ -1,0 +1,15 @@
+﻿{% extends 'parking/base.html' %}
+{% block content %}
+<div class="card p-4">
+    <h3 class="mb-3">Thong tin khach hang</h3>
+    <p><strong>Ho ten:</strong> {{ user.full_name }}</p>
+    <p><strong>So dien thoai:</strong> {{ user.phone }}</p>
+    <p><strong>Bien so:</strong> {{ user.license_plate }}</p>
+    <p><strong>Loai xe:</strong> {{ user.vehicle_type }}</p>
+    <p><strong>Bai do:</strong> {{ user.parking_lot }}</p>
+    <p><strong>Trang thai:</strong> {% if user.is_active %}Dang gui{% else %}Da roi bai{% endif %}</p>
+    {% if user.is_active %}
+    <a href="{% url 'checkout_vehicle' user.id %}" class="btn btn-danger">Check-out</a>
+    {% endif %}
+</div>
+{% endblock %}

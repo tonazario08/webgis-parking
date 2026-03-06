@@ -1,38 +1,334 @@
 {% extends 'parking/base.html' %}
 
 {% block content %}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-dark"><i class="fas fa-globe-asia text-primary me-2"></i>Bản đồ số Việt Nam</h3>
-        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left me-1"></i> Quay lại Dashboard
-        </a>
-    </div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-    <div class="card card-custom p-2 bg-white shadow-sm">
-        <div id="map" style="height: 75vh; width: 100%; border-radius: 8px;"></div>
-    </div>
+<style>
+    .map-page { display: grid; grid-template-columns: 340px 1fr; gap: 1rem; }
+    .map-panel { background: #fff; border: 1px solid #d7e2dc; border-radius: 14px; padding: 1rem; box-shadow: 0 8px 18px rgba(16, 33, 36, 0.08); height: 78vh; overflow: auto; }
+    .map-box { background: #fff; border: 1px solid #d7e2dc; border-radius: 14px; padding: .5rem; box-shadow: 0 8px 18px rgba(16, 33, 36, 0.08); }
+    #map { height: 76vh; width: 100%; border-radius: 10px; }
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    .ctl-title { font-size: 1rem; font-weight: 800; margin-bottom: .35rem; }
+    .ctl-sub { font-size: .87rem; color: #607173; margin-bottom: .9rem; }
+    .status { background: #eef6f3; border: 1px dashed #c6dbd2; border-radius: 10px; padding: .6rem .7rem; font-size: .9rem; margin-bottom: .9rem; }
 
-    <script>
-        // 1. Khởi tạo bản đồ: Tọa độ trung tâm Việt Nam [16.0, 106.0], Zoom level 6
-        var map = L.map('map').setView([16.047079, 108.206230], 6);
+    .route-box { border: 1px solid #d7e2dc; border-radius: 10px; padding: .7rem; margin-bottom: .9rem; }
+    .route-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; }
+    .route-grid input { border: 1px solid #cfdcd6; border-radius: 8px; padding: .45rem .55rem; font-size: .88rem; }
 
-        // 2. Thêm lớp nền OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+    .parking-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+    .parking-item { border: 1px solid #e3ebe6; border-radius: 10px; padding: .6rem; cursor: pointer; }
+    .parking-item:hover { border-color: #8fb9aa; background: #f4faf8; }
 
-        // 3. Ví dụ: Thêm Marker tại Hà Nội
-        L.marker([21.0285, 105.8542]).addTo(map)
-            .bindPopup("<b>Thủ đô Hà Nội</b><br>Khu vực quản lý miền Bắc.");
+    .badge-ok, .badge-full { border-radius: 999px; padding: .1rem .55rem; font-size: .75rem; font-weight: 700; }
+    .badge-ok { color: #0c7a40; background: #d8f3df; }
+    .badge-full { color: #b42318; background: #fee4e2; }
 
-        // 4. Ví dụ: Thêm Marker tại TP.HCM
-        L.marker([10.7769, 106.7009]).addTo(map)
-            .bindPopup("<b>TP. Hồ Chí Minh</b><br>Trung tâm dữ liệu chính.")
-            .openPopup(); // Mặc định mở popup này
-    </script>
+    @media (max-width: 992px) {
+        .map-page { grid-template-columns: 1fr; }
+        .map-panel { height: auto; }
+        #map { height: 62vh; }
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0"><i class="fas fa-map-location-dot text-primary me-2"></i>Ban do bai do xe</h4>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Ve Dashboard</a>
+</div>
+
+<div class="map-page">
+    <aside class="map-panel">
+        <div class="ctl-title">Dieu khien ban do</div>
+        <div class="ctl-sub">Nhap vi do/kinh do bat ky, tim bai do gan nhat va ve lo trinh ngan nhat theo du lieu duong thuc te.</div>
+
+        <div id="statusBox" class="status">San sang tai du lieu ban do...</div>
+
+        <div class="route-box">
+            <div class="ctl-title mb-2">Nhap toa do cua ban</div>
+            <div class="route-grid mb-2">
+                <input id="originLat" type="number" step="any" placeholder="Vi do (lat)">
+                <input id="originLon" type="number" step="any" placeholder="Kinh do (lon)">
+            </div>
+            <div class="d-grid gap-2">
+                <button id="btnApplyCoord" class="btn btn-sm btn-primary">Dong y toa do</button>
+                <button id="btnLocate" class="btn btn-sm btn-outline-primary">Lay vi tri hien tai</button>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 mb-3">
+            <button id="btnNearest" class="btn btn-success btn-sm"><i class="fas fa-compass me-1"></i>Tim bai gan nhat</button>
+            <button id="btnRouteNearest" class="btn btn-warning btn-sm"><i class="fas fa-route me-1"></i>Chi duong den bai gan nhat</button>
+            <button id="btnReset" class="btn btn-outline-secondary btn-sm"><i class="fas fa-rotate-left me-1"></i>Dat lai ban do</button>
+        </div>
+
+        <div class="ctl-title">Danh sach bai do</div>
+        <ul id="parkingList" class="parking-list"></ul>
+    </aside>
+
+    <section class="map-box">
+        <div id="map"></div>
+    </section>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const map = L.map('map').setView([10.7769, 106.7009], 12);
+    const defaultView = { lat: 10.7769, lng: 106.7009, zoom: 12 };
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const state = {
+        parkings: [],
+        markers: new Map(),
+        origin: null,
+        originMarker: null,
+        nearest: null,
+        nearestMarker: null,
+        routeLine: null,
+    };
+
+    const parkingListEl = document.getElementById('parkingList');
+    const statusBox = document.getElementById('statusBox');
+    const originLatEl = document.getElementById('originLat');
+    const originLonEl = document.getElementById('originLon');
+
+    function setStatus(text) {
+        statusBox.textContent = text;
+    }
+
+    function clearRoute() {
+        if (state.routeLine) {
+            map.removeLayer(state.routeLine);
+            state.routeLine = null;
+        }
+    }
+
+    function iconByAvailability(availableSlots) {
+        const color = availableSlots > 0 ? '#16a34a' : '#dc2626';
+        return L.divIcon({
+            html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 0 2px ${color}55"></div>`,
+            className: '',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+        });
+    }
+
+    function validateCoordinate(lat, lon) {
+        return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+    }
+
+    function setOrigin(lat, lon, sourceText) {
+        if (!validateCoordinate(lat, lon)) {
+            setStatus('Toa do khong hop le. Lat trong [-90..90], Lon trong [-180..180].');
+            return false;
+        }
+
+        state.origin = { lat, lon };
+        state.nearest = null;
+
+        if (state.originMarker) {
+            map.removeLayer(state.originMarker);
+        }
+        state.originMarker = L.marker([lat, lon]).addTo(map).bindPopup('Vi tri cua ban').openPopup();
+
+        originLatEl.value = lat;
+        originLonEl.value = lon;
+
+        clearRoute();
+        if (state.nearestMarker) {
+            map.removeLayer(state.nearestMarker);
+            state.nearestMarker = null;
+        }
+
+        map.setView([lat, lon], 15);
+        setStatus(`${sourceText}. Ban co the bam "Tim bai gan nhat".`);
+        return true;
+    }
+
+    function renderParkingList(parkings) {
+        parkingListEl.innerHTML = '';
+        parkings.forEach((p) => {
+            const li = document.createElement('li');
+            li.className = 'parking-item';
+            li.innerHTML = `
+                <div class="fw-bold">${p.name}</div>
+                <div class="small text-muted mb-1">${p.district || ''}</div>
+                <div class="small">Trong: <b>${p.available_slots}</b> / ${p.capacity}</div>
+                <span class="${p.available_slots > 0 ? 'badge-ok' : 'badge-full'}">${p.available_slots > 0 ? 'Con cho' : 'Da day'}</span>
+            `;
+            li.addEventListener('click', () => {
+                const marker = state.markers.get(p.id);
+                if (marker) {
+                    map.setView([p.lat, p.lng], 15);
+                    marker.openPopup();
+                }
+                state.nearest = { lat: p.lat, lon: p.lng, name: p.name, distance_km: null };
+                setStatus(`Da chon bai: ${p.name}. Bam "Chi duong den bai gan nhat" de ve duong tu vi tri cua ban.`);
+            });
+            parkingListEl.appendChild(li);
+        });
+    }
+
+    function renderMarkers(parkings) {
+        parkings.forEach((p) => {
+            const marker = L.marker([p.lat, p.lng], { icon: iconByAvailability(p.available_slots) }).addTo(map);
+            marker.bindPopup(`
+                <b>${p.name}</b><br>
+                Khu vuc: ${p.district || 'Khong ro'}<br>
+                Dia chi: ${p.address || 'N/A'}<br>
+                Cho trong: ${p.available_slots}/${p.capacity}
+            `);
+            marker.on('click', () => {
+                state.nearest = { lat: p.lat, lon: p.lng, name: p.name, distance_km: null };
+                setStatus(`Da chon bai: ${p.name}. Bam "Chi duong den bai gan nhat" de ve duong tu vi tri cua ban.`);
+            });
+            state.markers.set(p.id, marker);
+        });
+    }
+
+    async function loadParkings() {
+        setStatus('Dang tai du lieu bai do xe...');
+        try {
+            const res = await fetch("{% url 'parking_map_data' %}");
+            if (!res.ok) throw new Error('Khong tai duoc du lieu bai do');
+            const data = await res.json();
+
+            state.parkings = data;
+            renderMarkers(data);
+            renderParkingList(data);
+
+            if (data.length > 0) {
+                const bounds = L.latLngBounds(data.map(p => [p.lat, p.lng]));
+                map.fitBounds(bounds, { padding: [30, 30] });
+            }
+            setStatus(`Da tai ${data.length} bai do xe.`);
+        } catch (err) {
+            setStatus('Loi tai du lieu ban do: ' + err.message);
+        }
+    }
+
+    function applyCoordinateInput() {
+        const lat = parseFloat(originLatEl.value);
+        const lon = parseFloat(originLonEl.value);
+        if (!setOrigin(lat, lon, 'Da cap nhat vi tri tu toa do nhap tay')) return;
+    }
+
+    function locateUser() {
+        if (!navigator.geolocation) {
+            setStatus('Trinh duyet khong ho tro dinh vi.');
+            return;
+        }
+
+        setStatus('Dang lay vi tri hien tai...');
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            setOrigin(lat, lon, 'Da cap nhat vi tri hien tai');
+        }, () => {
+            setStatus('Khong lay duoc vi tri hien tai. Ban co the nhap toa do thu cong.');
+        }, { enableHighAccuracy: true, timeout: 10000 });
+    }
+
+    async function findNearest() {
+        if (!state.origin) {
+            setStatus('Hay nhap toa do va bam "Dong y toa do" truoc.');
+            return;
+        }
+
+        setStatus('Dang tim bai do gan nhat con cho...');
+        try {
+            const url = `{% url 'api_find_nearest_parking' %}?lat=${state.origin.lat}&lon=${state.origin.lon}`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (!res.ok || data.error || data.message || !data.lat || !data.lon) {
+                setStatus(data.error || data.message || 'Khong tim duoc bai do phu hop.');
+                return;
+            }
+
+            state.nearest = data;
+
+            if (state.nearestMarker) map.removeLayer(state.nearestMarker);
+            state.nearestMarker = L.circleMarker([data.lat, data.lon], {
+                radius: 11,
+                color: '#f59e0b',
+                weight: 3,
+                fillColor: '#f59e0b',
+                fillOpacity: 0.3,
+            }).addTo(map).bindPopup(`<b>Gan nhat: ${data.name}</b><br>Khoang cach: ${data.distance_km} km`).openPopup();
+
+            map.setView([data.lat, data.lon], 15);
+            clearRoute();
+            setStatus(`Da tim thay bai gan nhat: ${data.name} (${data.distance_km} km). Bam "Chi duong den bai gan nhat" de ve lo trinh.`);
+        } catch (err) {
+            setStatus('Loi tim bai gan nhat: ' + err.message);
+        }
+    }
+
+    async function drawRouteToNearest() {
+        if (!state.origin) {
+            setStatus('Hay nhap toa do diem di truoc.');
+            return;
+        }
+
+        if (!state.nearest) {
+            setStatus('Hay bam "Tim bai gan nhat" truoc khi chi duong.');
+            return;
+        }
+
+        clearRoute();
+        setStatus('Dang tinh lo trinh ngan nhat tren mang duong thuc te...');
+
+        try {
+            const url = `{% url 'api_route' %}?start_lat=${state.origin.lat}&start_lon=${state.origin.lon}&end_lat=${state.nearest.lat}&end_lon=${state.nearest.lon}`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (!res.ok || data.error || data.type !== 'LineString') {
+                setStatus(data.error || 'Khong ve duoc duong di.');
+                return;
+            }
+
+            const routeCoords = data.coordinates.map((c) => [c[1], c[0]]);
+            state.routeLine = L.polyline(routeCoords, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(map);
+            map.fitBounds(state.routeLine.getBounds(), { padding: [35, 35] });
+            setStatus(`Da ve lo trinh ngan nhat den ${state.nearest.name}.`);
+        } catch (err) {
+            setStatus('Loi ve duong di: ' + err.message);
+        }
+    }
+
+    function resetMap() {
+        clearRoute();
+
+        if (state.nearestMarker) {
+            map.removeLayer(state.nearestMarker);
+            state.nearestMarker = null;
+        }
+        if (state.originMarker) {
+            map.removeLayer(state.originMarker);
+            state.originMarker = null;
+        }
+
+        state.origin = null;
+        state.nearest = null;
+        originLatEl.value = '';
+        originLonEl.value = '';
+
+        map.setView([defaultView.lat, defaultView.lng], defaultView.zoom);
+        setStatus('Da dat lai ban do.');
+    }
+
+    document.getElementById('btnApplyCoord').addEventListener('click', applyCoordinateInput);
+    document.getElementById('btnLocate').addEventListener('click', locateUser);
+    document.getElementById('btnNearest').addEventListener('click', findNearest);
+    document.getElementById('btnRouteNearest').addEventListener('click', drawRouteToNearest);
+    document.getElementById('btnReset').addEventListener('click', resetMap);
+
+    loadParkings();
+</script>
 {% endblock %}
