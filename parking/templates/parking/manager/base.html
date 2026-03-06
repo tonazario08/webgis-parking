@@ -1,0 +1,55 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Quan tri he thong{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'parking/manager.css' %}">
+</head>
+<body>
+    <div class="manager-layout">
+        <aside class="sidebar">
+            <a href="{% url 'manager_dashboard' %}" class="brand">
+                <span class="brand-icon"><i class="fas fa-parking"></i></span>
+                <span>Parking Manager</span>
+            </a>
+
+            <div class="menu-label">Chuc nang</div>
+            <a class="menu-link" href="{% url 'manager_dashboard' %}"><i class="fas fa-chart-line"></i> Tong quan</a>
+            <a class="menu-link" href="{% url 'manager_list' 'areas' %}"><i class="fas fa-map"></i> Khu vuc</a>
+            <a class="menu-link" href="{% url 'manager_list' 'parkings' %}"><i class="fas fa-warehouse"></i> Bai do xe</a>
+            <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Nguoi gui xe</a>
+            <a class="menu-link" href="{% url 'manager_list' 'prices' %}"><i class="fas fa-tags"></i> Bang gia</a>
+            <a class="menu-link" href="{% url 'manager_list' 'logs' %}"><i class="fas fa-clock-rotate-left"></i> Nhat ky</a>
+
+            <div class="sidebar-foot">
+                <a href="{% url 'home' %}" class="btn btn-light btn-sm w-100 mb-2">Ve trang he thong</a>
+                <a href="{% url 'manager_logout' %}" class="btn btn-danger btn-sm w-100">Dang xuat</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <h1>{% block page_title %}Bang dieu khien{% endblock %}</h1>
+                <div class="user-pill"><i class="fas fa-user-shield"></i> {{ request.user.username }}</div>
+            </header>
+
+            {% if messages %}
+                <div class="mb-3">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} mb-2">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

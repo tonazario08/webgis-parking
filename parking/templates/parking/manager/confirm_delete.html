@@ -1,0 +1,17 @@
+{% extends 'parking/manager/base.html' %}
+
+{% block title %}Xoa {{ title }}{% endblock %}
+{% block page_title %}Xac nhan xoa{% endblock %}
+
+{% block content %}
+<div class="panel form-panel">
+    <p>Ban co chac chan muon xoa ban ghi nay?</p>
+    <p><strong>{{ instance }}</strong></p>
+
+    <form method="post" class="d-flex gap-2">
+        {% csrf_token %}
+        <button class="btn btn-danger" type="submit">Xoa</button>
+        <a class="btn btn-outline-secondary" href="{% url 'manager_list' entity %}">Huy</a>
+    </form>
+</div>
+{% endblock %}

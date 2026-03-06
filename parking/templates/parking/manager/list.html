@@ -1,0 +1,51 @@
+{% extends 'parking/manager/base.html' %}
+
+{% block title %}Danh sach {{ title }}{% endblock %}
+{% block page_title %}Danh sach {{ title }}{% endblock %}
+
+{% block content %}
+<div class="panel mb-3">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-6">
+            <label class="form-label">Tim kiem</label>
+            <input type="text" class="form-control" name="q" value="{{ query }}" placeholder="Nhap tu khoa...">
+        </div>
+        <div class="col-md-auto">
+            <button class="btn btn-manager">Loc</button>
+        </div>
+        {% if not readonly %}
+        <div class="col-md-auto ms-md-auto">
+            <a class="btn btn-success" href="{% url 'manager_create' entity %}">+ Them moi</a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    {% for col in columns %}<th>{{ col }}</th>{% endfor %}
+                    {% if not readonly %}<th style="width:150px">Thao tac</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    {% for val in row.values %}<td>{{ val }}</td>{% endfor %}
+                    {% if not readonly %}
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'manager_edit' entity row.obj.id %}">Sua</a>
+                        <a class="btn btn-sm btn-outline-danger" href="{% url 'manager_delete' entity row.obj.id %}">Xoa</a>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="20" class="text-muted text-center py-4">Khong co du lieu</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+:root {
+    --admin-brand: #0f766e;
+    --admin-brand-2: #115e59;
+    --admin-bg: #f2f6f4;
+    --admin-text: #1f2d2f;
+}
+
+body {
+    background: var(--admin-bg);
+}
+
+#header {
+    background: linear-gradient(120deg, var(--admin-brand), var(--admin-brand-2));
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(17, 94, 89, 0.2);
+}
+
+#site-name a,
+#user-tools,
+#user-tools a {
+    color: #fff !important;
+}
+
+#content h1 {
+    font-weight: 700;
+    color: var(--admin-text);
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+    background: var(--admin-brand);
+}
+
+div.breadcrumbs {
+    background: #d6ebe8;
+    color: #1a3c40;
+}
+
+a:link,
+a:visited {
+    color: #0f766e;
+}
+
+a:hover {
+    color: #0b4d49;
+}
+
+.button,
+input[type=submit],
+input[type=button],
+.submit-row input,
+a.button {
+    background: var(--admin-brand);
+    border: 1px solid var(--admin-brand);
+    color: #fff;
+}
+
+.button:hover,
+input[type=submit]:hover,
+input[type=button]:hover,
+.submit-row input:hover,
+a.button:hover {
+    background: #0b5b55;
+}
+
+#changelist .actions {
+    border-radius: 8px;
+}
+
+.module {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(12, 50, 47, 0.08);
+}
+
+@media (max-width: 1024px) {
+    #header {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+}
