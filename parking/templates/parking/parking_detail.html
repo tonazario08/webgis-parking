@@ -1,10 +1,10 @@
-﻿{% extends 'parking/base.html' %}
+﻿ï»¿{% extends 'parking/base.html' %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold text-primary"><i class="fas fa-parking me-2"></i>Chi tiết bãi đỗ xe</h3>
+    <h3 class="fw-bold text-primary"><i class="fas fa-parking me-2"></i>Chi tiáº¿t bÃ£i Ä‘á»— xe</h3>
     <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-arrow-left me-1"></i> Quay lại
+        <i class="fas fa-arrow-left me-1"></i> Quay láº¡i
     </a>
 </div>
 
@@ -18,9 +18,9 @@
                 </div>
                 <div>
                     {% if parking.status == 'open' %}
-                        <span class="badge bg-success bg-opacity-10 text-success fs-6 px-3 py-2">Đang hoạt động</span>
+                        <span class="badge bg-success bg-opacity-10 text-success fs-6 px-3 py-2">Äang hoáº¡t Ä‘á»™ng</span>
                     {% else %}
-                        <span class="badge bg-danger bg-opacity-10 text-danger fs-6 px-3 py-2">Đã đầy chỗ</span>
+                        <span class="badge bg-danger bg-opacity-10 text-danger fs-6 px-3 py-2">ÄÃ£ Ä‘áº§y chá»—</span>
                     {% endif %}
                 </div>
             </div>
@@ -28,30 +28,30 @@
             
             <div class="row mt-4 text-center">
                 <div class="col-4 border-end">
-                    <p class="text-muted mb-1">Sức chứa</p>
+                    <p class="text-muted mb-1">Sá»(c)c chá»(c)a</p>
                     <h3 class="fw-bold">{{ parking.capacity }}</h3>
                 </div>
                 <div class="col-4 border-end">
-                    <p class="text-muted mb-1">Còn trống</p>
+                    <p class="text-muted mb-1">CÃ²n trá»‘ng</p>
                     <h3 class="fw-bold text-success">{{ parking.slots }}</h3>
                 </div>
                 <div class="col-4">
-                    <p class="text-muted mb-1">Giá vé/giờ</p>
-                    <h3 class="fw-bold text-warning">{{ parking.price_per_hour }}đ</h3>
+                    <p class="text-muted mb-1">GiÃ¡ vÃ(c)/giá»</p>
+                    <h3 class="fw-bold text-warning">{{ parking.price_per_hour }}Ä‘</h3>
                 </div>
             </div>
 
             <div class="mt-4">
-                <h5 class="fw-bold">Tiện ích:</h5>
+                <h5 class="fw-bold">Tiá»‡n Ã­ch:</h5>
                 <div class="d-flex gap-2 mt-2">
-                    <span class="badge bg-light text-dark border"><i class="fas fa-wifi text-primary"></i> Wifi miễn phí</span>
+                    <span class="badge bg-light text-dark border"><i class="fas fa-wifi text-primary"></i> Wifi miá»…n phÃ­</span>
                     <span class="badge bg-light text-dark border"><i class="fas fa-camera text-primary"></i> Camera 24/7</span>
-                    <span class="badge bg-light text-dark border"><i class="fas fa-wheelchair text-primary"></i> Lối đi riêng</span>
+                    <span class="badge bg-light text-dark border"><i class="fas fa-wheelchair text-primary"></i> Lá»‘i Ä‘i riÃªng</span>
                 </div>
             </div>
             
             <div class="mt-4 d-flex gap-3">
-                <button class="btn btn-primary flex-grow-1 py-2"><i class="fas fa-car-side me-2"></i>Check-in (Xe vào)</button>
+                <button class="btn btn-primary flex-grow-1 py-2"><i class="fas fa-car-side me-2"></i>Check-in (Xe vÃ o)</button>
                 <button class="btn btn-outline-danger flex-grow-1 py-2"><i class="fas fa-sign-out-alt me-2"></i>Check-out (Xe ra)</button>
             </div>
         </div>
@@ -62,8 +62,8 @@
             <div class="bg-light d-flex align-items-center justify-content-center h-100 rounded" style="min-height: 300px;">
                 <div class="text-center text-muted">
                     <i class="fas fa-map-marked-alt fa-3x mb-3"></i>
-                    <p>Vị trí trên bản đồ</p>
-                    <a href="{% url 'map_view' %}" class="btn btn-sm btn-outline-primary">Mở bản đồ lớn</a>
+                    <p>Vá»‹ trÃ­ trÃªn báº£n Ä‘á»“</p>
+                    <a href="{% url 'map_view' %}" class="btn btn-sm btn-outline-primary">Má»Ÿ báº£n Ä‘á»“ lá»›n</a>
                 </div>
             </div>
         </div>

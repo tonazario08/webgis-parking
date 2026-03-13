@@ -1,4 +1,4 @@
-{% extends 'parking/manager/base.html' %}
+ï»¿{% extends 'parking/manager/base.html' %}
 
 {% block title %}{% if mode == 'create' %}Them{% else %}Cap nhat{% endif %} {{ title }}{% endblock %}
 {% block page_title %}{% if mode == 'create' %}Them{% else %}Cap nhat{% endif %} {{ title }}{% endblock %}
@@ -68,7 +68,7 @@
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '© OpenStreetMap contributors'
+        attribution: '(c) OpenStreetMap contributors'
     }).addTo(map);
 
     if (map.tap) map.tap.disable();
