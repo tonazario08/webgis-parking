@@ -5,14 +5,31 @@
 
 {% block content %}
 <div class="panel form-panel">
+    {% if entity == 'parkings' %}
+    <div class="alert alert-info">
+        Nhap 1 dong dia chi (vi du: 239 Duong Tay Thanh, Tay Thanh, Tan Phu, TP.HCM). He thong se tu dong lay toa do va hien tren ban do.
+    </div>
+
+    <div id="mapPreview" style="height: 280px; border-radius: 12px; overflow: hidden; border: 1px solid #d7e2dc; margin-bottom: 1rem;"></div>
+    <div class="small text-muted mb-3">Go dia chi de goi y. Ban do chi de xem vi tri sau khi kiem tra, khong the chon bang click.</div>
+    <div id="geoStatus" class="small text-danger mb-3" style="display:none;"></div>
+    {% endif %}
+
     <form method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}
 
         {% for field in form %}
-        <div class="mb-3">
+        <div class="mb-3 position-relative">
             <label class="form-label">{{ field.label }}</label>
             {{ field }}
+            {% if field.name == 'address_input' %}
+            <div class="d-flex gap-2 mt-2">
+                <button id="btnCheckAddress" class="btn btn-sm btn-outline-primary" type="button">Kiem tra dia chi</button>
+                <button id="btnClearAddress" class="btn btn-sm btn-outline-secondary" type="button">Xoa dia chi</button>
+            </div>
+            <div id="addressSuggestions" class="list-group position-absolute w-100" style="z-index: 5;"></div>
+            {% endif %}
             {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
         </div>
         {% endfor %}
@@ -23,4 +40,170 @@
         </div>
     </form>
 </div>
+
+{% if entity == 'parkings' %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const addressInput = document.getElementById('id_address_input');
+    const latInput = document.getElementById('id_geo_lat');
+    const lonInput = document.getElementById('id_geo_lon');
+    const suggestionBox = document.getElementById('addressSuggestions');
+    const geoStatus = document.getElementById('geoStatus');
+    const btnCheck = document.getElementById('btnCheckAddress');
+    const btnClear = document.getElementById('btnClearAddress');
+
+    const map = L.map('mapPreview', {
+        zoomControl: true,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+        tap: false,
+        touchZoom: false
+    }).setView([10.7769, 106.7009], 13);
+    let marker = null;
+    let debounceTimer = null;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    if (map.tap) map.tap.disable();
+    map.dragging.disable();
+    map.scrollWheelZoom.disable();
+    map.doubleClickZoom.disable();
+    map.boxZoom.disable();
+    map.keyboard.disable();
+    map.touchZoom.disable();
+
+    setTimeout(() => map.invalidateSize(), 200);
+
+    function showStatus(text, level = "error") {
+        geoStatus.style.display = 'block';
+        let cls = 'text-danger';
+        if (level === 'success') cls = 'text-success';
+        if (level === 'warning') cls = 'text-warning';
+        geoStatus.className = `small ${cls} mb-3`;
+        geoStatus.textContent = text;
+    }
+
+    function clearStatus() {
+        geoStatus.style.display = 'none';
+        geoStatus.textContent = '';
+    }
+
+    function setMarker(lat, lon) {
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lon]).addTo(map);
+        map.setView([lat, lon], 16);
+        if (latInput && lonInput) {
+            latInput.value = lat;
+            lonInput.value = lon;
+        }
+    }
+
+    async function fetchJson(url) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        try {
+            const res = await fetch(url, { signal: controller.signal });
+            return await res.json();
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
+    async function fetchSuggestions(query) {
+        if (!query || query.length < 3) {
+            suggestionBox.innerHTML = '';
+            return [];
+        }
+        let candidates = [];
+        try {
+            const data = await fetchJson(`{% url 'manager_geocode_suggest' %}?q=${encodeURIComponent(query)}`);
+            candidates = (data && data.results) || [];
+        } catch (e) {
+            candidates = [];
+        }
+        suggestionBox.innerHTML = '';
+        candidates.forEach((item) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action';
+            btn.textContent = item.display_name;
+            btn.addEventListener('click', () => {
+                addressInput.value = item.display_name;
+                suggestionBox.innerHTML = '';
+                clearStatus();
+                setMarker(parseFloat(item.lat), parseFloat(item.lon));
+            });
+            suggestionBox.appendChild(btn);
+        });
+        return candidates;
+    }
+
+    async function forwardGeocode(query) {
+        if (!query || query.length < 3) {
+            showStatus('Nhap dia chi day du.', 'error');
+            return null;
+        }
+        clearStatus();
+        try {
+            const data = await fetchJson(`{% url 'manager_geocode_forward' %}?q=${encodeURIComponent(query)}`);
+            if (!data || !data.ok) {
+                showStatus((data && data.error) ? data.error : 'Khong tim thay dia chi.', 'error');
+                return null;
+            }
+            return data;
+        } catch (e) {
+            showStatus('Khong the ket noi dich vu dinh vi.', 'error');
+            return null;
+        }
+    }
+
+    addressInput.addEventListener('input', (e) => {
+        clearStatus();
+        if (debounceTimer) window.clearTimeout(debounceTimer);
+        debounceTimer = window.setTimeout(() => {
+            fetchSuggestions(e.target.value);
+        }, 300);
+    });
+
+    addressInput.addEventListener('blur', () => {
+        setTimeout(() => { suggestionBox.innerHTML = ''; }, 200);
+    });
+
+    btnCheck.addEventListener('click', async () => {
+        const query = addressInput.value.trim();
+        const result = await forwardGeocode(query);
+        if (!result) return;
+        addressInput.value = result.display_name || query;
+        setMarker(parseFloat(result.lat), parseFloat(result.lon));
+        if (result.approximate) {
+            showStatus('Khong tim thay so nha, dang dinh vi theo ten duong (gan dung).', 'warning');
+        } else {
+            showStatus('Da tim thay dia chi va dinh vi tren ban do.', 'success');
+        }
+    });
+
+    btnClear.addEventListener('click', () => {
+        addressInput.value = '';
+        if (latInput) latInput.value = '';
+        if (lonInput) lonInput.value = '';
+        if (marker) { map.removeLayer(marker); marker = null; }
+        clearStatus();
+    });
+
+    if (latInput && lonInput && latInput.value && lonInput.value) {
+        setMarker(parseFloat(latInput.value), parseFloat(lonInput.value));
+    }
+</script>
+{% endif %}
 {% endblock %}
+
+
+
+
