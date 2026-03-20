@@ -1,4 +1,4 @@
-from django import forms
+﻿from django import forms
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -120,15 +120,36 @@ def _prepare_address(address):
 
     return cleaned
 
+def _englishize_address(address):
+    if not address:
+        return ""
+    cleaned = " ".join(address.strip().split())
+    cleaned = _strip_accents(cleaned)
+    cleaned = re.sub(r"\bphuong\b", "Ward", cleaned, flags=re.I)
+    cleaned = re.sub(r"\bquan\b", "District", cleaned, flags=re.I)
+    cleaned = re.sub(r"\bhuyen\b", "District", cleaned, flags=re.I)
+    cleaned = re.sub(r"\bthi xa\b", "Town", cleaned, flags=re.I)
+    cleaned = re.sub(r"\bthanh pho\b", "City", cleaned, flags=re.I)
+    cleaned = re.sub(r"\btp\.?\s*HCM\b", "Ho Chi Minh City", cleaned, flags=re.I)
+    cleaned = re.sub(r"\btp\.?\s*HN\b", "Ha Noi", cleaned, flags=re.I)
+    cleaned = re.sub(r"\bTPHCM\b", "Ho Chi Minh City", cleaned, flags=re.I)
+    cleaned = re.sub(r"\bHCM\b", "Ho Chi Minh City", cleaned, flags=re.I)
+    cleaned = re.sub(r"\bHN\b", "Ha Noi", cleaned, flags=re.I)
+    if not re.search(r"\bViet Nam\b|\bVietnam\b", cleaned, flags=re.I):
+        cleaned = f"{cleaned}, Viet Nam"
+    return cleaned
 
 def _build_query_variants(address):
     if not address:
         return []
     original = " ".join(address.strip().split())
     prepared = _prepare_address(original)
+    english = _englishize_address(original)
     ascii_original = _strip_accents(original)
     ascii_prepared = _strip_accents(prepared)
-    variants = [original, prepared, ascii_original, ascii_prepared]
+    ascii_english = _strip_accents(english)
+    no_number = re.sub(r"^\s*\d+[A-Za-z0-9\/-]*\s+", "", original).strip(" ,")
+    variants = [original, prepared, english, ascii_original, ascii_prepared, ascii_english, no_number]
     extra = []
     for v in variants:
         v_no_country = re.sub(r",?\s*(viet nam|vietnam)\s*$", "", v, flags=re.I).strip(" ,")
@@ -204,8 +225,12 @@ def _build_structured_queries(address):
         base["city"] = comps["city"]
     if comps.get("district"):
         base["county"] = comps["district"]
+        base["city_district"] = comps["district"]
+        base["district"] = comps["district"]
     if comps.get("suburb"):
         base["suburb"] = comps["suburb"]
+        base["neighbourhood"] = comps["suburb"]
+        base["quarter"] = comps["suburb"]
     if comps.get("house_number"):
         p = dict(base)
         p["street"] = f"{comps['house_number']} {road}"
@@ -213,6 +238,12 @@ def _build_structured_queries(address):
     p2 = dict(base)
     p2["street"] = road
     params.append(p2)
+    base_min = {"country": "Viet Nam"}
+    if comps.get("city"):
+        base_min["city"] = comps["city"]
+    p3 = dict(base_min)
+    p3["street"] = road
+    params.append(p3)
     return params
 
 
@@ -279,7 +310,7 @@ def _nominatim_headers():
     return {"User-Agent": "webgis-parking/1.0"}
 
 
-def _nominatim_search(query, address_norms, limit=5):
+def _nominatim_search(query, address_norms, limit=5, countrycodes=True, bounded=True):
     viewbox = None
     for norm in address_norms:
         viewbox = _build_viewbox(norm) or viewbox
@@ -288,11 +319,14 @@ def _nominatim_search(query, address_norms, limit=5):
         "format": "jsonv2",
         "q": query,
         "limit": limit,
-        "countrycodes": "vn",
         "addressdetails": 1,
-        "accept-language": "vi",
+        "accept-language": "vi,en",
+        "namedetails": 1,
+        "dedupe": 0,
     }
-    if viewbox:
+    if countrycodes:
+        params["countrycodes"] = "vn"
+    if bounded and viewbox:
         params["viewbox"] = viewbox
         params["bounded"] = 1
 
@@ -306,7 +340,7 @@ def _nominatim_search(query, address_norms, limit=5):
     return res.json(), address_norms
 
 
-def _nominatim_search_structured(params, address_norms, limit=5):
+def _nominatim_search_structured(params, address_norms, limit=5, countrycodes=True, bounded=True):
     viewbox = None
     for norm in address_norms:
         viewbox = _build_viewbox(norm) or viewbox
@@ -314,12 +348,15 @@ def _nominatim_search_structured(params, address_norms, limit=5):
     base = {
         "format": "jsonv2",
         "limit": limit,
-        "countrycodes": "vn",
         "addressdetails": 1,
-        "accept-language": "vi",
+        "accept-language": "vi,en",
+        "namedetails": 1,
+        "dedupe": 0,
     }
+    if countrycodes:
+        base["countrycodes"] = "vn"
     base.update(params or {})
-    if viewbox:
+    if bounded and viewbox:
         base["viewbox"] = viewbox
         base["bounded"] = 1
 
@@ -365,24 +402,51 @@ def _photon_search(query, limit=6):
     return results
 
 
-def _search_address(address, limit=6):
+def _search_address(address, limit=10):
     address_norms = _normalized_variants(address)
     queries = _build_query_variants(address)
+    structured = _build_structured_queries(address)
     data = []
 
     for query in queries:
         try:
-            data, _ = _nominatim_search(query, address_norms, limit=limit)
+            data, _ = _nominatim_search(query, address_norms, limit=limit, countrycodes=True, bounded=True)
         except requests.RequestException:
             data = []
         if data:
             break
 
     if not data:
-        structured = _build_structured_queries(address)
         for params in structured:
             try:
-                data, _ = _nominatim_search_structured(params, address_norms, limit=limit)
+                data, _ = _nominatim_search_structured(params, address_norms, limit=limit, countrycodes=True, bounded=True)
+            except requests.RequestException:
+                data = []
+            if data:
+                break
+
+    if not data:
+        for query in queries:
+            try:
+                data, _ = _nominatim_search(query, address_norms, limit=limit, countrycodes=True, bounded=False)
+            except requests.RequestException:
+                data = []
+            if data:
+                break
+
+    if not data:
+        for params in structured:
+            try:
+                data, _ = _nominatim_search_structured(params, address_norms, limit=limit, countrycodes=True, bounded=False)
+            except requests.RequestException:
+                data = []
+            if data:
+                break
+
+    if not data:
+        for query in queries:
+            try:
+                data, _ = _nominatim_search(query, address_norms, limit=limit, countrycodes=False, bounded=False)
             except requests.RequestException:
                 data = []
             if data:
@@ -411,7 +475,7 @@ def _geocode_address(address):
         raise ValidationError("Dia chi khong hop le.")
 
     try:
-        data, address_norms = _search_address(address, limit=6)
+        data, address_norms = _search_address(address, limit=10)
     except requests.RequestException:
         raise ValidationError("Khong the lay toa do. Kiem tra ket noi Internet.")
 
@@ -424,7 +488,7 @@ def _geocode_address(address):
 def _geocode_address_full(address):
     if not address:
         return None
-    data, address_norms = _search_address(address, limit=8)
+    data, address_norms = _search_address(address, limit=10)
     if not data:
         return None
     best = _rank_results(address_norms, data)[0]
@@ -716,7 +780,7 @@ def manager_geocode_suggest(request):
         return JsonResponse({"results": []})
 
     try:
-        data, address_norms = _search_address(q, limit=8)
+        data, address_norms = _search_address(q, limit=10)
     except requests.RequestException:
         return JsonResponse({"results": []})
 
@@ -784,6 +848,7 @@ def manager_geocode_reverse(request):
         return JsonResponse({"display_name": ""})
 
     return JsonResponse({"display_name": data.get("display_name", "")})
+
 
 
 

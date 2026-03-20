@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404, redirect
+﻿from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from django.contrib import messages
@@ -147,12 +147,14 @@ def parking_detail(request, id):
 
     available = parking.available_slots()
     used = parking.capacity - available
+    price_list = list(ParkingPrice.objects.filter(parking_lot=parking).order_by("vehicle_type"))
 
     context = {
         "parking": parking,
         "available": available,
         "used": used,
         "is_full": available <= 0,
+        "price_list": price_list,
     }
 
     return render(request, "parking/parking_detail.html", context)

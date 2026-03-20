@@ -16,6 +16,7 @@
     .route-box { border: 1px solid #d7e2dc; border-radius: 10px; padding: .7rem; margin-bottom: .9rem; }
     .route-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; }
     .route-grid input { border: 1px solid #cfdcd6; border-radius: 8px; padding: .45rem .55rem; font-size: .88rem; }
+    .route-address { display: grid; gap: .45rem; margin-top: .6rem; }
 
     .parking-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
     .parking-item { border: 1px solid #e3ebe6; border-radius: 10px; padding: .6rem; cursor: pointer; }
@@ -50,7 +51,15 @@
                 <input id="originLat" type="number" step="any" placeholder="Vi do (lat)">
                 <input id="originLon" type="number" step="any" placeholder="Kinh do (lon)">
             </div>
-            <div class="d-grid gap-2">
+            <div class="route-address">
+                <input id="originAddress" type="text" placeholder="Nhap dia chi cua ban (1 dong)">
+                <div class="d-flex gap-2">
+                    <button id="btnGeocodeAddress" class="btn btn-sm btn-outline-primary" type="button">Kiem tra dia chi</button>
+                    <button id="btnClearAddress" class="btn btn-sm btn-outline-secondary" type="button">Xoa dia chi</button>
+                </div>
+                <div id="addressSuggestions" class="list-group" style="z-index: 5;"></div>
+            </div>
+            <div class="d-grid gap-2 mt-2">
                 <button id="btnApplyCoord" class="btn btn-sm btn-primary">Dong y toa do</button>
                 <button id="btnLocate" class="btn btn-sm btn-outline-primary">Lay vi tri hien tai</button>
             </div>
@@ -95,6 +104,11 @@
     const statusBox = document.getElementById('statusBox');
     const originLatEl = document.getElementById('originLat');
     const originLonEl = document.getElementById('originLon');
+    const originAddressEl = document.getElementById('originAddress');
+    const addressSuggestionsEl = document.getElementById('addressSuggestions');
+    const btnGeocodeAddress = document.getElementById('btnGeocodeAddress');
+    const btnClearAddress = document.getElementById('btnClearAddress');
+    let suggestionTimer = null;
 
     function setStatus(text) {
         statusBox.textContent = text;
@@ -147,6 +161,62 @@
         map.setView([lat, lon], 15);
         setStatus(`${sourceText}. Ban co the bam "Tim bai gan nhat".`);
         return true;
+    }
+
+    async function fetchJson(url) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        try {
+            const res = await fetch(url, { signal: controller.signal });
+            return await res.json();
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
+    async function geocodeAddress(query) {
+        if (!query || query.length < 3) {
+            setStatus('Hay nhap dia chi day du.');
+            return null;
+        }
+        try {
+            const data = await fetchJson(`{% url 'manager_geocode_forward' %}?q=${encodeURIComponent(query)}`);
+            if (!data || !data.ok) {
+                setStatus((data && data.error) ? data.error : 'Khong tim thay dia chi.');
+                return null;
+            }
+            return data;
+        } catch (e) {
+            setStatus('Khong the ket noi dich vu dinh vi.');
+            return null;
+        }
+    }
+
+    async function fetchAddressSuggestions(query) {
+        if (!query || query.length < 3) {
+            addressSuggestionsEl.innerHTML = '';
+            return;
+        }
+        let results = [];
+        try {
+            const data = await fetchJson(`{% url 'manager_geocode_suggest' %}?q=${encodeURIComponent(query)}`);
+            results = (data && data.results) || [];
+        } catch (e) {
+            results = [];
+        }
+        addressSuggestionsEl.innerHTML = '';
+        results.forEach((item) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action';
+            btn.textContent = item.display_name;
+            btn.addEventListener('click', () => {
+                originAddressEl.value = item.display_name;
+                addressSuggestionsEl.innerHTML = '';
+                setOrigin(parseFloat(item.lat), parseFloat(item.lon), 'Da cap nhat vi tri tu dia chi');
+            });
+            addressSuggestionsEl.appendChild(btn);
+        });
     }
 
     function renderParkingList(parkings) {
@@ -215,6 +285,17 @@
         const lat = parseFloat(originLatEl.value);
         const lon = parseFloat(originLonEl.value);
         if (!setOrigin(lat, lon, 'Da cap nhat vi tri tu toa do nhap tay')) return;
+    }
+
+    async function applyAddressInput() {
+        const query = originAddressEl.value.trim();
+        const result = await geocodeAddress(query);
+        if (!result) return;
+        originAddressEl.value = result.display_name || query;
+        setOrigin(parseFloat(result.lat), parseFloat(result.lon), 'Da cap nhat vi tri tu dia chi');
+        if (result.approximate) {
+            setStatus('Khong tim thay so nha, dang dinh vi gan dung theo ten duong.');
+        }
     }
 
     function locateUser() {
@@ -318,6 +399,8 @@
         state.nearest = null;
         originLatEl.value = '';
         originLonEl.value = '';
+        originAddressEl.value = '';
+        addressSuggestionsEl.innerHTML = '';
 
         map.setView([defaultView.lat, defaultView.lng], defaultView.zoom);
         setStatus('Da dat lai ban do.');
@@ -328,6 +411,36 @@
     document.getElementById('btnNearest').addEventListener('click', findNearest);
     document.getElementById('btnRouteNearest').addEventListener('click', drawRouteToNearest);
     document.getElementById('btnReset').addEventListener('click', resetMap);
+    btnGeocodeAddress.addEventListener('click', applyAddressInput);
+    btnClearAddress.addEventListener('click', () => {
+        originAddressEl.value = '';
+        addressSuggestionsEl.innerHTML = '';
+    });
+
+    originAddressEl.addEventListener('input', (e) => {
+        if (suggestionTimer) window.clearTimeout(suggestionTimer);
+        suggestionTimer = window.setTimeout(() => {
+            fetchAddressSuggestions(e.target.value);
+        }, 300);
+    });
+
+    originAddressEl.addEventListener('blur', () => {
+        setTimeout(() => { addressSuggestionsEl.innerHTML = ''; }, 200);
+    });
+
+    map.on('click', async (e) => {
+        const lat = e.latlng.lat;
+        const lon = e.latlng.lng;
+        setOrigin(lat, lon, 'Da cap nhat vi tri tu ban do');
+        try {
+            const data = await fetchJson(`{% url 'manager_geocode_reverse' %}?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
+            if (data && data.display_name) {
+                originAddressEl.value = data.display_name;
+            }
+        } catch (e) {
+            // ignore reverse errors
+        }
+    });
 
     loadParkings();
 </script>

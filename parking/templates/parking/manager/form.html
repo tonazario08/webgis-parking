@@ -11,7 +11,7 @@
     </div>
 
     <div id="mapPreview" style="height: 280px; border-radius: 12px; overflow: hidden; border: 1px solid #d7e2dc; margin-bottom: 1rem;"></div>
-    <div class="small text-muted mb-3">Go dia chi de goi y. Ban do chi de xem vi tri sau khi kiem tra, khong the chon bang click.</div>
+    <div class="small text-muted mb-3">Go dia chi de goi y hoac click tren ban do de lay dia chi.</div>
     <div id="geoStatus" class="small text-danger mb-3" style="display:none;"></div>
     {% endif %}
 
@@ -53,16 +53,7 @@
     const btnCheck = document.getElementById('btnCheckAddress');
     const btnClear = document.getElementById('btnClearAddress');
 
-    const map = L.map('mapPreview', {
-        zoomControl: true,
-        dragging: false,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
-        boxZoom: false,
-        keyboard: false,
-        tap: false,
-        touchZoom: false
-    }).setView([10.7769, 106.7009], 13);
+    const map = L.map('mapPreview', { zoomControl: true }).setView([10.7769, 106.7009], 13);
     let marker = null;
     let debounceTimer = null;
 
@@ -70,14 +61,6 @@
         maxZoom: 19,
         attribution: '(c) OpenStreetMap contributors'
     }).addTo(map);
-
-    if (map.tap) map.tap.disable();
-    map.dragging.disable();
-    map.scrollWheelZoom.disable();
-    map.doubleClickZoom.disable();
-    map.boxZoom.disable();
-    map.keyboard.disable();
-    map.touchZoom.disable();
 
     setTimeout(() => map.invalidateSize(), 200);
 
@@ -113,6 +96,15 @@
             return await res.json();
         } finally {
             clearTimeout(timer);
+        }
+    }
+
+    async function reverseGeocode(lat, lon) {
+        try {
+            const data = await fetchJson(`{% url 'manager_geocode_reverse' %}?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
+            return data && data.display_name ? data.display_name : '';
+        } catch (e) {
+            return '';
         }
     }
 
@@ -195,6 +187,20 @@
         if (lonInput) lonInput.value = '';
         if (marker) { map.removeLayer(marker); marker = null; }
         clearStatus();
+    });
+
+    map.on('click', async (e) => {
+        clearStatus();
+        const lat = e.latlng.lat;
+        const lon = e.latlng.lng;
+        setMarker(lat, lon);
+        const addr = await reverseGeocode(lat, lon);
+        if (addr) {
+            addressInput.value = addr;
+            showStatus('Da lay dia chi tu ban do.', 'success');
+        } else {
+            showStatus('Khong the lay dia chi tu vi tri nay. Hay thu lai.', 'error');
+        }
     });
 
     if (latInput && lonInput && latInput.value && lonInput.value) {
