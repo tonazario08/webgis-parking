@@ -1,4 +1,4 @@
-﻿{% extends 'parking/manager/base.html' %}
+{% extends 'parking/manager/base.html' %}
 
 {% block title %}{% if mode == 'create' %}Them{% else %}Cap nhat{% endif %} {{ title }}{% endblock %}
 {% block page_title %}{% if mode == 'create' %}Them{% else %}Cap nhat{% endif %} {{ title }}{% endblock %}
@@ -43,7 +43,21 @@
 
 {% if entity == 'parkings' %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.css" />
+
+<style>
+    .map-info { background: #fff; border: 1px solid #d7e2dc; border-radius: 10px; padding: .45rem .55rem; box-shadow: 0 6px 14px rgba(16, 33, 36, 0.12); font-size: .75rem; color: #405557; }
+    .map-btn { background: #fff; border: 1px solid #d7e2dc; border-radius: 8px; padding: .3rem .45rem; box-shadow: 0 6px 14px rgba(16, 33, 36, 0.12); cursor: pointer; }
+    .map-btn:hover { background: #f4faf8; }
+</style>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/Leaflet.fullscreen.min.js"></script>
+<script src="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.js"></script>
 <script>
     const addressInput = document.getElementById('id_address_input');
     const latInput = document.getElementById('id_geo_lat');
@@ -53,16 +67,80 @@
     const btnCheck = document.getElementById('btnCheckAddress');
     const btnClear = document.getElementById('btnClearAddress');
 
-    const map = L.map('mapPreview', { zoomControl: true }).setView([10.7769, 106.7009], 13);
+    const defaultView = { lat: 10.7769, lng: 106.7009, zoom: 13 };
+    const maxBounds = L.latLngBounds([7.5, 102.0], [23.7, 110.5]);
+
+    const map = L.map('mapPreview', {
+        zoomControl: true,
+        maxBounds: maxBounds,
+        maxBoundsViscosity: 0.85,
+        fullscreenControl: true,
+    }).setView([defaultView.lat, defaultView.lng], defaultView.zoom);
+
+    const baseLayers = {
+        "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '(c) OpenStreetMap contributors'
+        }),
+        "OSM Humanitarian": L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '(c) OpenStreetMap contributors, HOT'
+        }),
+        "Esri Imagery": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles (c) Esri'
+        })
+    };
+    baseLayers["OpenStreetMap"].addTo(map);
+
+    L.control.layers(baseLayers, {}, { position: 'topright' }).addTo(map);
+    L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
+
+    const miniLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    new L.Control.MiniMap(miniLayer, { toggleDisplay: true, minimized: true, position: 'bottomright' }).addTo(map);
+
+    const mapInfo = L.control({ position: 'bottomleft' });
+    mapInfo.onAdd = function () {
+        const div = L.DomUtil.create('div', 'map-info');
+        div.id = 'mapInfoBox';
+        return div;
+    };
+    mapInfo.addTo(map);
+
+    const homeControl = L.control({ position: 'topleft' });
+    homeControl.onAdd = function () {
+        const btn = L.DomUtil.create('button', 'map-btn');
+        btn.type = 'button';
+        btn.title = 'Ve tam mac dinh';
+        btn.innerHTML = '<i class="fas fa-house"></i>';
+        L.DomEvent.disableClickPropagation(btn);
+        L.DomEvent.on(btn, 'click', (e) => {
+            L.DomEvent.preventDefault(e);
+            map.setView([defaultView.lat, defaultView.lng], defaultView.zoom);
+        });
+        return btn;
+    };
+    homeControl.addTo(map);
+
     let marker = null;
     let debounceTimer = null;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '(c) OpenStreetMap contributors'
-    }).addTo(map);
 
     setTimeout(() => map.invalidateSize(), 200);
+
+    function updateMapInfo() {
+        const center = map.getCenter();
+        const bounds = map.getBounds();
+        const infoEl = document.getElementById('mapInfoBox');
+        if (!infoEl) return;
+        infoEl.innerHTML = `
+            Center: ${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}<br>
+            Bounds: ${bounds.getSouthWest().lat.toFixed(4)}, ${bounds.getSouthWest().lng.toFixed(4)} -> ${bounds.getNorthEast().lat.toFixed(4)}, ${bounds.getNorthEast().lng.toFixed(4)}
+        `;
+    }
+
+    map.on('moveend zoomend', updateMapInfo);
+    updateMapInfo();
 
     function showStatus(text, level = "error") {
         geoStatus.style.display = 'block';
@@ -78,14 +156,39 @@
         geoStatus.textContent = '';
     }
 
-    function setMarker(lat, lon) {
-        if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lon]).addTo(map);
-        map.setView([lat, lon], 16);
+    function syncLatLon(lat, lon) {
         if (latInput && lonInput) {
             latInput.value = lat;
             lonInput.value = lon;
         }
+    }
+
+    function bindMarkerDrag() {
+        if (!marker) return;
+        marker.on('dragend', async () => {
+            const pos = marker.getLatLng();
+            syncLatLon(pos.lat, pos.lng);
+            try {
+                const addr = await reverseGeocode(pos.lat, pos.lng);
+                if (addr) {
+                    addressInput.value = addr;
+                    showStatus('Da cap nhat dia chi tu marker keo.', 'success');
+                }
+            } catch (e) {
+                showStatus('Khong the cap nhat dia chi tu marker.', 'warning');
+            }
+        });
+    }
+
+    function setMarker(lat, lon) {
+        if (marker) {
+            marker.setLatLng([lat, lon]);
+        } else {
+            marker = L.marker([lat, lon], { draggable: true }).addTo(map);
+            bindMarkerDrag();
+        }
+        map.setView([lat, lon], 16);
+        syncLatLon(lat, lon);
     }
 
     async function fetchJson(url) {
@@ -209,7 +312,3 @@
 </script>
 {% endif %}
 {% endblock %}
-
-
-
-

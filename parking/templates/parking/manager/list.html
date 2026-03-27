@@ -1,7 +1,7 @@
-﻿{% extends 'parking/manager/base.html' %}
+{% extends 'parking/manager/base.html' %}
 
-{% block title %}Danh sach {{ title }}{% endblock %}
-{% block page_title %}Danh sach {{ title }}{% endblock %}
+{% block title %}{% if trash_mode %}Thung rac - {{ title }}{% else %}Danh sach {{ title }}{% endif %}{% endblock %}
+{% block page_title %}{% if trash_mode %}Thung rac - {{ title }}{% else %}Danh sach {{ title }}{% endif %}{% endblock %}
 
 {% block content %}
 <div class="panel mb-3">
@@ -13,10 +13,21 @@
         <div class="col-md-auto">
             <button class="btn btn-manager">Loc</button>
         </div>
-        {% if not readonly %}
+        {% if trash_mode %}
         <div class="col-md-auto ms-md-auto">
-            <a class="btn btn-success" href="{% url 'manager_create' entity %}">+ Them moi</a>
+            <a class="btn btn-outline-secondary" href="{% url 'manager_list' entity %}">Quay lai danh sach</a>
         </div>
+        {% else %}
+        {% if not readonly or show_trash %}
+        <div class="col-md-auto ms-md-auto d-flex gap-2">
+            {% if show_trash %}
+            <a class="btn btn-outline-danger" href="{% url 'manager_trash' entity %}">Thung rac</a>
+            {% endif %}
+            {% if not readonly %}
+            <a class="btn btn-success" href="{% url 'manager_create' entity %}">+ Them moi</a>
+            {% endif %}
+        </div>
+        {% endif %}
         {% endif %}
     </form>
 </div>
@@ -27,17 +38,26 @@
             <thead>
                 <tr>
                     {% for col in columns %}<th>{{ col }}</th>{% endfor %}
-                    {% if not readonly %}<th style="width:150px">Thao tac</th>{% endif %}
+                    {% if can_manage and not readonly %}<th style="width:210px">Thao tac</th>{% endif %}
                 </tr>
             </thead>
             <tbody>
                 {% for row in rows %}
                 <tr>
                     {% for val in row.values %}<td>{{ val }}</td>{% endfor %}
-                    {% if not readonly %}
+                    {% if can_manage and not readonly %}
                     <td>
+                        {% if trash_mode %}
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'manager_restore' entity row.obj.id %}">Hoan tac</a>
+                        <a class="btn btn-sm btn-outline-danger" href="{% url 'manager_delete' entity row.obj.id %}?from=trash">Xoa vinh vien</a>
+                        {% else %}
                         <a class="btn btn-sm btn-outline-primary" href="{% url 'manager_edit' entity row.obj.id %}">Sua</a>
+                        {% if trashable %}
+                        <a class="btn btn-sm btn-outline-danger" href="{% url 'manager_delete' entity row.obj.id %}">Chuyen vao thung rac</a>
+                        {% else %}
                         <a class="btn btn-sm btn-outline-danger" href="{% url 'manager_delete' entity row.obj.id %}">Xoa</a>
+                        {% endif %}
+                        {% endif %}
                     </td>
                     {% endif %}
                 </tr>

@@ -1,17 +1,23 @@
-﻿{% extends 'parking/manager/base.html' %}
+{% extends 'parking/manager/base.html' %}
 
 {% block title %}Xoa {{ title }}{% endblock %}
 {% block page_title %}Xac nhan xoa{% endblock %}
 
 {% block content %}
 <div class="panel form-panel">
-    <p>Ban co chac chan muon xoa ban ghi nay?</p>
+    {% if trash_mode %}
+    <p>Ban co chac chan muon xoa vinh vien ban ghi nay?</p>
+    {% else %}
+    <p>Ban co chac chan muon chuyen ban ghi nay vao thung rac?</p>
+    {% endif %}
     <p><strong>{{ instance }}</strong></p>
 
     <form method="post" class="d-flex gap-2">
         {% csrf_token %}
-        <button class="btn btn-danger" type="submit">Xoa</button>
-        <a class="btn btn-outline-secondary" href="{% url 'manager_list' entity %}">Huy</a>
+        <button class="btn btn-danger" type="submit">
+            {% if trash_mode %}Xoa vinh vien{% else %}Chuyen vao thung rac{% endif %}
+        </button>
+        <a class="btn btn-outline-secondary" href="{{ back_url|default:'javascript:history.back()' }}">Huy</a>
     </form>
 </div>
 {% endblock %}

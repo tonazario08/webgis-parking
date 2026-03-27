@@ -1,4 +1,4 @@
-﻿from django import forms
+from django import forms
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -8,6 +8,7 @@ from django.forms import modelform_factory
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.urls import reverse
 import re
 import requests
 import unicodedata
@@ -82,6 +83,8 @@ MANAGER_MODELS = {
     },
 }
 
+TRASHABLE_ENTITIES = {"areas", "parkings", "users"}
+LIMITED_MANAGER_GROUP = "parking_user_creator"
 
 def _strip_accents(text):
     if not text:
@@ -95,6 +98,12 @@ def _normalize_text(text):
         return ""
     text = _strip_accents(text)
     return text.lower()
+
+def _normalize_address_value(address):
+    if not address:
+        return ""
+    compact = " ".join(address.strip().split())
+    return _normalize_text(compact)
 
 
 def _prepare_address(address):
@@ -522,6 +531,8 @@ class ParkingLotManagerForm(forms.ModelForm):
             "geo_lat",
             "geo_lon",
         ])
+        if "area" in self.fields:
+            self.fields["area"].queryset = Area.objects.filter(is_deleted=False)
         if self.instance and self.instance.pk and self.instance.address:
             self.fields["address_input"].initial = self.instance.address
         if self.instance and self.instance.pk:
@@ -537,7 +548,18 @@ class ParkingLotManagerForm(forms.ModelForm):
         geo_lon = cleaned.get("geo_lon")
 
         if not address_input:
-            raise ValidationError("Hay nhap dia chi.")
+            raise ValidationError({"address_input": "Hay nhap dia chi."})
+
+        normalized_input = _normalize_address_value(address_input)
+        if normalized_input:
+            existing = ParkingLot.objects.filter(is_deleted=False)
+            if self.instance and self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+            for addr in existing.values_list("address", flat=True):
+                if _normalize_address_value(addr) == normalized_input:
+                    raise ValidationError({
+                        "address_input": "Da co bai o vi tri nay, vui long nhap lai vi tri khac."
+                    })
 
         cleaned["_address_input"] = address_input
         return cleaned
@@ -574,8 +596,97 @@ class ParkingLotManagerForm(forms.ModelForm):
         return instance
 
 
-def _is_manager(user):
+def _is_full_manager(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
+
+
+def _is_limited_manager(user):
+    return user.is_authenticated and user.groups.filter(name=LIMITED_MANAGER_GROUP).exists()
+
+
+def _is_manager(user):
+    return _is_full_manager(user) or _is_limited_manager(user)
+
+
+def _is_trashable(entity):
+    return entity in TRASHABLE_ENTITIES
+
+
+def _manager_back_url(entity, from_trash):
+    if from_trash and _is_trashable(entity):
+        return reverse("manager_trash", kwargs={"entity": entity})
+    return reverse("manager_list", kwargs={"entity": entity})
+
+
+def _limited_only_redirect(request):
+    messages.error(request, "Tai khoan chi duoc xem va them nguoi gui xe.")
+    return redirect("manager_list", entity="users")
+
+
+def _soft_delete_entity(entity, instance):
+    now = timezone.now()
+    if entity == "areas":
+        instance.is_deleted = True
+        instance.deleted_at = now
+        instance.save(update_fields=["is_deleted", "deleted_at"])
+
+        lots = ParkingLot.objects.filter(area=instance, is_deleted=False)
+        lot_ids = list(lots.values_list("id", flat=True))
+        if lot_ids:
+            lots.update(is_deleted=True, deleted_at=now)
+            ParkingUser.objects.filter(parking_lot_id__in=lot_ids, is_deleted=False).update(
+                is_deleted=True,
+                deleted_at=now,
+            )
+        return
+
+    if entity == "parkings":
+        instance.is_deleted = True
+        instance.deleted_at = now
+        instance.save(update_fields=["is_deleted", "deleted_at"])
+        ParkingUser.objects.filter(parking_lot=instance, is_deleted=False).update(
+            is_deleted=True,
+            deleted_at=now,
+        )
+        return
+
+    if entity == "users":
+        instance.is_deleted = True
+        instance.deleted_at = now
+        instance.save(update_fields=["is_deleted", "deleted_at"])
+
+
+def _restore_entity(entity, instance):
+    if not getattr(instance, "is_deleted", False):
+        return
+
+    stamp = instance.deleted_at
+    instance.is_deleted = False
+    instance.deleted_at = None
+    instance.save(update_fields=["is_deleted", "deleted_at"])
+
+    if entity == "areas":
+        lots = ParkingLot.objects.filter(area=instance, is_deleted=True)
+        if stamp is not None:
+            lots = lots.filter(deleted_at=stamp)
+        lot_ids = list(lots.values_list("id", flat=True))
+        if lot_ids:
+            lots.update(is_deleted=False, deleted_at=None)
+            users = ParkingUser.objects.filter(parking_lot_id__in=lot_ids, is_deleted=True)
+            if stamp is not None:
+                users = users.filter(deleted_at=stamp)
+            users.update(is_deleted=False, deleted_at=None)
+        return
+
+    if entity == "parkings":
+        users = ParkingUser.objects.filter(parking_lot=instance, is_deleted=True)
+        if stamp is not None:
+            users = users.filter(deleted_at=stamp)
+        users.update(is_deleted=False, deleted_at=None)
+        return
+
+    if entity == "users":
+        return
 
 
 def _style_form(form):
@@ -591,15 +702,24 @@ def _style_form(form):
 
 
 def manager_login(request):
-    if request.user.is_authenticated and _is_manager(request.user):
-        return redirect("manager_dashboard")
+    if request.user.is_authenticated:
+        if _is_full_manager(request.user):
+            return redirect("manager_dashboard")
+        if _is_limited_manager(request.user):
+            return redirect("manager_list", entity="users")
 
     form = AuthenticationForm(request, data=request.POST or None)
     _style_form(form)
 
     if request.method == "POST" and form.is_valid():
-        login(request, form.get_user())
-        return redirect("manager_dashboard")
+        user = form.get_user()
+        if not _is_manager(user):
+            form.add_error(None, "Tai khoan khong co quyen quan tri.")
+        else:
+            login(request, user)
+            if _is_full_manager(user):
+                return redirect("manager_dashboard")
+            return redirect("manager_list", entity="users")
 
     return render(request, "parking/manager/login.html", {"form": form})
 
@@ -612,19 +732,22 @@ def manager_logout(request):
 @login_required(login_url="manager_login")
 @user_passes_test(_is_manager, login_url="manager_login")
 def manager_dashboard(request):
-    active_users = ParkingUser.objects.filter(is_active=True).count()
-    total_capacity = sum(p.capacity for p in ParkingLot.objects.all())
-    total_available = sum(p.available_slots() for p in ParkingLot.objects.all())
+    if _is_limited_manager(request.user):
+        return redirect("manager_list", entity="users")
+
+    active_users = ParkingUser.objects.filter(is_active=True, is_deleted=False).count()
+    total_capacity = sum(p.capacity for p in ParkingLot.objects.filter(is_deleted=False))
+    total_available = sum(p.available_slots() for p in ParkingLot.objects.filter(is_deleted=False))
 
     context = {
         "now": timezone.now(),
-        "total_areas": Area.objects.count(),
-        "total_parkings": ParkingLot.objects.count(),
+        "total_areas": Area.objects.filter(is_deleted=False).count(),
+        "total_parkings": ParkingLot.objects.filter(is_deleted=False).count(),
         "active_users": active_users,
         "total_prices": ParkingPrice.objects.count(),
         "total_capacity": total_capacity,
         "total_available": total_available,
-        "recent_users": ParkingUser.objects.order_by("-created_at")[:6],
+        "recent_users": ParkingUser.objects.filter(is_deleted=False).order_by("-created_at")[:6],
         "recent_logs": ActivityLog.objects.order_by("-created_at")[:8],
     }
     return render(request, "parking/manager/dashboard.html", context)
@@ -650,9 +773,17 @@ def manager_list(request, entity):
     if not config:
         return redirect("manager_dashboard")
 
+    limited_manager = _is_limited_manager(request.user)
+    if limited_manager and entity != "users":
+        return _limited_only_redirect(request)
+
     model = config["model"]
+    trashable = _is_trashable(entity)
     q = request.GET.get("q", "").strip()
-    queryset = model.objects.all().order_by("-id")
+    if trashable and hasattr(model, "is_deleted"):
+        queryset = model.objects.filter(is_deleted=False).order_by("-id")
+    else:
+        queryset = model.objects.all().order_by("-id")
 
     if q:
         for field in ("name", "full_name", "phone", "license_plate", "district", "action"):
@@ -667,8 +798,79 @@ def manager_list(request, entity):
         "rows": _build_rows(queryset, config["columns"]),
         "readonly": config.get("readonly", False),
         "query": q,
+        "trashable": trashable,
+        "trash_mode": False,
+        "limited_manager": limited_manager,
+        "can_manage": not limited_manager,
+        "show_trash": trashable and not limited_manager,
     }
     return render(request, "parking/manager/list.html", context)
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_manager, login_url="manager_login")
+def manager_trash_list(request, entity):
+    if not _is_trashable(entity):
+        return redirect("manager_list", entity=entity)
+
+    if _is_limited_manager(request.user):
+        return _limited_only_redirect(request)
+
+    config = MANAGER_MODELS.get(entity)
+    if not config or config.get("readonly"):
+        return redirect("manager_list", entity=entity)
+
+    if _is_limited_manager(request.user):
+        return _limited_only_redirect(request)
+
+    model = config["model"]
+    q = request.GET.get("q", "").strip()
+    queryset = model.objects.filter(is_deleted=True).order_by("-id")
+
+    if q:
+        for field in ("name", "full_name", "phone", "license_plate", "district", "action"):
+            if any(f.name == field for f in model._meta.get_fields()):
+                queryset = queryset.filter(**{f"{field}__icontains": q})
+                break
+
+    context = {
+        "entity": entity,
+        "title": config["title"],
+        "columns": config["columns"],
+        "rows": _build_rows(queryset, config["columns"]),
+        "readonly": config.get("readonly", False),
+        "query": q,
+        "trashable": True,
+        "trash_mode": True,
+        "limited_manager": False,
+        "can_manage": True,
+        "show_trash": False,
+    }
+    return render(request, "parking/manager/list.html", context)
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_manager, login_url="manager_login")
+def manager_restore(request, entity, pk):
+    if not _is_trashable(entity):
+        return redirect("manager_list", entity=entity)
+
+    config = MANAGER_MODELS.get(entity)
+    if not config or config.get("readonly"):
+        return redirect("manager_list", entity=entity)
+
+    if _is_limited_manager(request.user):
+        return _limited_only_redirect(request)
+
+    model = config["model"]
+    instance = get_object_or_404(model, pk=pk)
+
+    if not getattr(instance, "is_deleted", False):
+        return redirect("manager_list", entity=entity)
+
+    _restore_entity(entity, instance)
+    messages.success(request, "Da hoan tac.")
+    return redirect("manager_trash", entity=entity)
 
 
 @login_required(login_url="manager_login")
@@ -678,6 +880,9 @@ def manager_create(request, entity):
     if not config or config.get("readonly"):
         return redirect("manager_list", entity=entity)
 
+    if _is_limited_manager(request.user) and entity != "users":
+        return _limited_only_redirect(request)
+
     model = config["model"]
     if entity == "parkings":
         FormClass = ParkingLotManagerForm
@@ -686,14 +891,22 @@ def manager_create(request, entity):
 
     form = FormClass(request.POST or None)
     _style_form(form)
+    if entity in ("users", "prices") and "parking_lot" in form.fields:
+        form.fields["parking_lot"].queryset = ParkingLot.objects.filter(is_deleted=False)
 
     if request.method == "POST" and form.is_valid():
         try:
             form.save()
             messages.success(request, "Tao moi thanh cong.")
+            if _is_limited_manager(request.user):
+                return redirect("manager_list", entity="users")
             return redirect("manager_list", entity=entity)
         except ValidationError as exc:
-            form.add_error(None, exc)
+            if hasattr(exc, "message_dict"):
+                for field, errors in exc.message_dict.items():
+                    form.add_error(field, errors)
+            else:
+                form.add_error(None, exc)
 
     return render(
         request,
@@ -714,6 +927,9 @@ def manager_edit(request, entity, pk):
     if not config or config.get("readonly"):
         return redirect("manager_list", entity=entity)
 
+    if _is_limited_manager(request.user):
+        return _limited_only_redirect(request)
+
     model = config["model"]
     instance = get_object_or_404(model, pk=pk)
 
@@ -724,6 +940,8 @@ def manager_edit(request, entity, pk):
 
     form = FormClass(request.POST or None, instance=instance)
     _style_form(form)
+    if entity in ("users", "prices") and "parking_lot" in form.fields:
+        form.fields["parking_lot"].queryset = ParkingLot.objects.filter(is_deleted=False)
 
     if request.method == "POST" and form.is_valid():
         try:
@@ -753,13 +971,29 @@ def manager_delete(request, entity, pk):
     if not config or config.get("readonly"):
         return redirect("manager_list", entity=entity)
 
+    if _is_limited_manager(request.user):
+        return _limited_only_redirect(request)
+
     model = config["model"]
     instance = get_object_or_404(model, pk=pk)
 
+    from_trash = request.GET.get("from") == "trash"
+    back_url = _manager_back_url(entity, from_trash)
+
     if request.method == "POST":
+        if _is_trashable(entity) and hasattr(instance, "is_deleted"):
+            if instance.is_deleted:
+                instance.delete()
+                messages.success(request, "Da xoa vinh vien.")
+                return redirect(back_url)
+
+            _soft_delete_entity(entity, instance)
+            messages.success(request, "Da chuyen vao thung rac.")
+            return redirect(back_url)
+
         instance.delete()
         messages.success(request, "Da xoa ban ghi.")
-        return redirect("manager_list", entity=entity)
+        return redirect(back_url)
 
     return render(
         request,
@@ -768,6 +1002,8 @@ def manager_delete(request, entity, pk):
             "entity": entity,
             "title": config["title"],
             "instance": instance,
+            "trash_mode": bool(getattr(instance, "is_deleted", False)),
+            "back_url": back_url,
         },
     )
 

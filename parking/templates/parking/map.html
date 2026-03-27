@@ -1,7 +1,11 @@
-﻿{% extends 'parking/base.html' %}
+{% extends 'parking/base.html' %}
 
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.css" />
 
 <style>
     .map-page { display: grid; grid-template-columns: 340px 1fr; gap: 1rem; }
@@ -25,6 +29,13 @@
     .badge-ok, .badge-full { border-radius: 999px; padding: .1rem .55rem; font-size: .75rem; font-weight: 700; }
     .badge-ok { color: #0c7a40; background: #d8f3df; }
     .badge-full { color: #b42318; background: #fee4e2; }
+
+    .map-legend, .map-info { background: #fff; border: 1px solid #d7e2dc; border-radius: 10px; padding: .55rem .6rem; box-shadow: 0 8px 18px rgba(16, 33, 36, 0.08); font-size: .78rem; color: #405557; }
+    .map-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .map-info strong { display: block; font-size: .8rem; margin-bottom: .2rem; }
+
+    .map-btn { background: #fff; border: 1px solid #d7e2dc; border-radius: 8px; padding: .35rem .5rem; box-shadow: 0 6px 14px rgba(16, 33, 36, 0.12); cursor: pointer; }
+    .map-btn:hover { background: #f4faf8; }
 
     @media (max-width: 992px) {
         .map-page { grid-template-columns: 1fr; }
@@ -81,14 +92,87 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/Leaflet.fullscreen.min.js"></script>
+<script src="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.js"></script>
 <script>
-    const map = L.map('map').setView([10.7769, 106.7009], 12);
     const defaultView = { lat: 10.7769, lng: 106.7009, zoom: 12 };
+    const maxBounds = L.latLngBounds([7.5, 102.0], [23.7, 110.5]);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '(c) OpenStreetMap contributors'
-    }).addTo(map);
+    const map = L.map('map', {
+        zoomControl: true,
+        maxBounds: maxBounds,
+        maxBoundsViscosity: 0.85,
+        fullscreenControl: true,
+    }).setView([defaultView.lat, defaultView.lng], defaultView.zoom);
+
+    const baseLayers = {
+        "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '(c) OpenStreetMap contributors'
+        }),
+        "OSM Humanitarian": L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '(c) OpenStreetMap contributors, HOT'
+        }),
+        "Esri Imagery": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles (c) Esri'
+        })
+    };
+    baseLayers["OpenStreetMap"].addTo(map);
+
+    const availableCluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 52 });
+    const fullCluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 52 });
+    const routeLayer = L.layerGroup().addTo(map);
+
+    const overlayLayers = {
+        "Bai con cho": availableCluster,
+        "Bai da day": fullCluster,
+        "Lo trinh": routeLayer,
+    };
+    availableCluster.addTo(map);
+    fullCluster.addTo(map);
+
+    L.control.layers(baseLayers, overlayLayers, { position: 'topright' }).addTo(map);
+    L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
+
+    const miniLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    new L.Control.MiniMap(miniLayer, { toggleDisplay: true, minimized: true, position: 'bottomright' }).addTo(map);
+
+    const mapInfo = L.control({ position: 'bottomleft' });
+    mapInfo.onAdd = function () {
+        const div = L.DomUtil.create('div', 'map-info');
+        div.id = 'mapInfoBox';
+        return div;
+    };
+    mapInfo.addTo(map);
+
+    const legend = L.control({ position: 'bottomleft' });
+    legend.onAdd = function () {
+        const div = L.DomUtil.create('div', 'map-legend');
+        div.innerHTML = `
+            <div><span class="dot" style="background:#16a34a"></span>Con cho</div>
+            <div><span class="dot" style="background:#dc2626"></span>Da day</div>
+        `;
+        return div;
+    };
+    legend.addTo(map);
+
+    const homeControl = L.control({ position: 'topleft' });
+    homeControl.onAdd = function () {
+        const btn = L.DomUtil.create('button', 'map-btn');
+        btn.type = 'button';
+        btn.title = 'Ve tam mac dinh';
+        btn.innerHTML = '<i class="fas fa-house"></i>';
+        L.DomEvent.disableClickPropagation(btn);
+        L.DomEvent.on(btn, 'click', (e) => {
+            L.DomEvent.preventDefault(e);
+            resetMap();
+        });
+        return btn;
+    };
+    homeControl.addTo(map);
 
     const state = {
         parkings: [],
@@ -114,9 +198,25 @@
         statusBox.textContent = text;
     }
 
+    function updateMapInfo() {
+        const center = map.getCenter();
+        const bounds = map.getBounds();
+        const infoEl = document.getElementById('mapInfoBox');
+        if (!infoEl) return;
+        infoEl.innerHTML = `
+            <strong>Thong tin khung nhin</strong>
+            Center: ${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}<br>
+            Bounds: ${bounds.getSouthWest().lat.toFixed(4)}, ${bounds.getSouthWest().lng.toFixed(4)} -> ${bounds.getNorthEast().lat.toFixed(4)}, ${bounds.getNorthEast().lng.toFixed(4)}<br>
+            Zoom: ${map.getZoom()}
+        `;
+    }
+
+    map.on('moveend zoomend', updateMapInfo);
+    updateMapInfo();
+
     function clearRoute() {
         if (state.routeLine) {
-            map.removeLayer(state.routeLine);
+            routeLayer.removeLayer(state.routeLine);
             state.routeLine = null;
         }
     }
@@ -135,6 +235,21 @@
         return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
     }
 
+    function bindOriginDrag(marker) {
+        marker.on('dragend', async () => {
+            const pos = marker.getLatLng();
+            state.origin = { lat: pos.lat, lon: pos.lng };
+            originLatEl.value = pos.lat.toFixed(6);
+            originLonEl.value = pos.lng.toFixed(6);
+            clearRoute();
+            if (state.nearestMarker) {
+                map.removeLayer(state.nearestMarker);
+                state.nearestMarker = null;
+            }
+            setStatus('Da cap nhat vi tri tu keo marker.');
+        });
+    }
+
     function setOrigin(lat, lon, sourceText) {
         if (!validateCoordinate(lat, lon)) {
             setStatus('Toa do khong hop le. Lat trong [-90..90], Lon trong [-180..180].');
@@ -147,7 +262,8 @@
         if (state.originMarker) {
             map.removeLayer(state.originMarker);
         }
-        state.originMarker = L.marker([lat, lon]).addTo(map).bindPopup('Vi tri cua ban').openPopup();
+        state.originMarker = L.marker([lat, lon], { draggable: true }).addTo(map).bindPopup('Vi tri cua ban').openPopup();
+        bindOriginDrag(state.originMarker);
 
         originLatEl.value = lat;
         originLonEl.value = lon;
@@ -243,9 +359,15 @@
         });
     }
 
+    function clearParkingMarkers() {
+        availableCluster.clearLayers();
+        fullCluster.clearLayers();
+        state.markers.clear();
+    }
+
     function renderMarkers(parkings) {
         parkings.forEach((p) => {
-            const marker = L.marker([p.lat, p.lng], { icon: iconByAvailability(p.available_slots) }).addTo(map);
+            const marker = L.marker([p.lat, p.lng], { icon: iconByAvailability(p.available_slots) });
             marker.bindPopup(`
                 <b>${p.name}</b><br>
                 Khu vuc: ${p.district || 'Khong ro'}<br>
@@ -256,6 +378,11 @@
                 state.nearest = { lat: p.lat, lon: p.lng, name: p.name, distance_km: null };
                 setStatus(`Da chon bai: ${p.name}. Bam "Chi duong den bai gan nhat" de ve duong tu vi tri cua ban.`);
             });
+            if (p.available_slots > 0) {
+                availableCluster.addLayer(marker);
+            } else {
+                fullCluster.addLayer(marker);
+            }
             state.markers.set(p.id, marker);
         });
     }
@@ -268,6 +395,7 @@
             const data = await res.json();
 
             state.parkings = data;
+            clearParkingMarkers();
             renderMarkers(data);
             renderParkingList(data);
 
@@ -375,7 +503,7 @@
             }
 
             const routeCoords = data.coordinates.map((c) => [c[1], c[0]]);
-            state.routeLine = L.polyline(routeCoords, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(map);
+            state.routeLine = L.polyline(routeCoords, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(routeLayer);
             map.fitBounds(state.routeLine.getBounds(), { padding: [35, 35] });
             setStatus(`Da ve lo trinh ngan nhat den ${state.nearest.name}.`);
         } catch (err) {

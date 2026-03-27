@@ -10,6 +10,8 @@ class Area(models.Model):
 
     latitude = models.FloatField("Vi do", null=True, blank=True)
     longitude = models.FloatField("Kinh do", null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Khu vuc"
@@ -30,13 +32,15 @@ class ParkingLot(models.Model):
     price_per_hour = models.PositiveIntegerField("Gia mac dinh (khong dung)", default=0)
     is_active = models.BooleanField("Dang hoat dong", default=True)
     revenue = models.PositiveIntegerField("Doanh thu", default=0)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Bai do xe"
         verbose_name_plural = "Danh sach bai do xe"
 
     def used_slots(self):
-        return self.parkinguser_set.filter(is_active=True).count()
+        return self.parkinguser_set.filter(is_active=True, is_deleted=False).count()
 
     def available_slots(self):
         return max(self.capacity - self.used_slots(), 0)
@@ -100,6 +104,8 @@ class ParkingUser(models.Model):
     )
 
     is_active = models.BooleanField("Dang do", default=True)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField("Thoi gian vao bai", auto_now_add=True)
 
     class Meta:

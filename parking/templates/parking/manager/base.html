@@ -1,4 +1,4 @@
-﻿ï»¿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -21,12 +21,16 @@
             </a>
 
             <div class="menu-label">Chuc nang</div>
+            {% if request.user.is_staff or request.user.is_superuser %}
             <a class="menu-link" href="{% url 'manager_dashboard' %}"><i class="fas fa-chart-line"></i> Tong quan</a>
             <a class="menu-link" href="{% url 'manager_list' 'areas' %}"><i class="fas fa-map"></i> Khu vuc</a>
             <a class="menu-link" href="{% url 'manager_list' 'parkings' %}"><i class="fas fa-warehouse"></i> Bai do xe</a>
             <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Nguoi gui xe</a>
             <a class="menu-link" href="{% url 'manager_list' 'prices' %}"><i class="fas fa-tags"></i> Bang gia</a>
             <a class="menu-link" href="{% url 'manager_list' 'logs' %}"><i class="fas fa-clock-rotate-left"></i> Nhat ky</a>
+            {% else %}
+            <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Nguoi gui xe</a>
+            {% endif %}
 
             <div class="sidebar-foot">
                 <a href="{% url 'home' %}" class="btn btn-light btn-sm w-100 mb-2">Ve trang he thong</a>

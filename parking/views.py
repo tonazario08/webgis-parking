@@ -1,4 +1,4 @@
-﻿from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from django.contrib import messages
@@ -10,12 +10,12 @@ from .utils.gis import haversine_distance, find_nearest_parking
 
 
 def home(request):
-    parkings = ParkingLot.objects.all()
+    parkings = ParkingLot.objects.filter(is_deleted=False)
     parking_data = []
     total_available = 0
     total_revenue = 0
 
-    active_users = ParkingUser.objects.filter(is_active=True)
+    active_users = ParkingUser.objects.filter(is_active=True, is_deleted=False)
 
     for p in parkings:
         available = p.available_slots()
@@ -51,7 +51,7 @@ def home(request):
         "total_parking": parkings.count(),
         "total_available": total_available,
         "revenue": total_revenue,
-        "active_areas": Area.objects.count(),
+        "active_areas": Area.objects.filter(is_deleted=False).count(),
         "parking_data": parking_data,
         "activities": ActivityLog.objects.all()[:5],
     }
@@ -60,12 +60,12 @@ def home(request):
 
 
 def map_view(request):
-    areas = Area.objects.all()
+    areas = Area.objects.filter(is_deleted=False)
     return render(request, "parking/map.html", {"areas": areas})
 
 
 def parking_list(request):
-    parkings = ParkingLot.objects.all()
+    parkings = ParkingLot.objects.filter(is_deleted=False)
     parking_items = []
 
     for p in parkings:
@@ -90,7 +90,7 @@ def parking_list(request):
 
 
 def parking_available(request):
-    parking_lots = [p for p in ParkingLot.objects.filter(is_active=True) if p.available_slots() > 0]
+    parking_lots = [p for p in ParkingLot.objects.filter(is_active=True, is_deleted=False) if p.available_slots() > 0]
     return render(request, "parking/parking_available.html", {"parking_lots": parking_lots})
 
 
@@ -99,10 +99,11 @@ def revenue_view(request):
     total_revenue = 0
     parking_data = []
 
-    for lot in ParkingLot.objects.all():
+    for lot in ParkingLot.objects.filter(is_deleted=False):
         users = ParkingUser.objects.filter(
             parking_lot=lot,
             is_active=True,
+            is_deleted=False,
             created_at__month=now.month,
             created_at__year=now.year,
         )
@@ -129,8 +130,8 @@ def revenue_view(request):
 
 def areas_view(request):
     data = []
-    for a in Area.objects.all():
-        parkings = ParkingLot.objects.filter(area=a)
+    for a in Area.objects.filter(is_deleted=False):
+        parkings = ParkingLot.objects.filter(area=a, is_deleted=False)
         data.append(
             {
                 "obj": a,
@@ -143,7 +144,7 @@ def areas_view(request):
 
 
 def parking_detail(request, id):
-    parking = get_object_or_404(ParkingLot, id=id)
+    parking = get_object_or_404(ParkingLot, id=id, is_deleted=False)
 
     available = parking.available_slots()
     used = parking.capacity - available
@@ -174,7 +175,7 @@ def nearest_parking_page(request):
 
     results = []
 
-    for p in ParkingLot.objects.filter(is_active=True):
+    for p in ParkingLot.objects.filter(is_active=True, is_deleted=False):
         lat = p.latitude if p.latitude is not None else (p.area.latitude if p.area else None)
         lon = p.longitude if p.longitude is not None else (p.area.longitude if p.area else None)
         if lat is None or lon is None:
@@ -196,7 +197,7 @@ def api_find_nearest_parking(request):
     except (TypeError, ValueError):
         return JsonResponse({"error": "Thieu lat/lon"}, status=400)
 
-    nearest = find_nearest_parking(ParkingLot.objects.select_related("area").filter(is_active=True), lat, lon, only_available=True)
+    nearest = find_nearest_parking(ParkingLot.objects.select_related("area").filter(is_active=True, is_deleted=False), lat, lon, only_available=True)
     return JsonResponse(nearest or {"message": "Khong co bai do phu hop"})
 
 
@@ -234,7 +235,7 @@ def search_by_phone(request):
     if not phone:
         return redirect("home")
 
-    user = ParkingUser.objects.filter(phone=phone).first()
+    user = ParkingUser.objects.filter(phone=phone, is_deleted=False).first()
 
     if not user:
         return render(request, "parking/search.html", {"error": "Khong tim thay khach hang"})
@@ -243,12 +244,12 @@ def search_by_phone(request):
 
 
 def parking_user_detail(request, id):
-    user = get_object_or_404(ParkingUser, id=id)
+    user = get_object_or_404(ParkingUser, id=id, is_deleted=False)
     return render(request, "parking/customer_detail.html", {"user": user})
 
 
 def checkout_vehicle(request, user_id):
-    user = get_object_or_404(ParkingUser, id=user_id)
+    user = get_object_or_404(ParkingUser, id=user_id, is_deleted=False)
 
     if user.is_active:
         user.exit_parking()
@@ -258,7 +259,7 @@ def checkout_vehicle(request, user_id):
 
 
 def parking_map_data(request):
-    parkings = ParkingLot.objects.select_related("area")
+    parkings = ParkingLot.objects.select_related("area").filter(is_deleted=False)
 
     data = []
     for p in parkings:
