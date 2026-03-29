@@ -1,4 +1,4 @@
-{% extends 'parking/manager/base.html' %}
+﻿{% extends 'parking/manager/base.html' %}
 
 {% block title %}{% if mode == 'create' %}Them{% else %}Cap nhat{% endif %} {{ title }}{% endblock %}
 {% block page_title %}{% if mode == 'create' %}Them{% else %}Cap nhat{% endif %} {{ title }}{% endblock %}
@@ -10,9 +10,16 @@
         Nhap 1 dong dia chi (vi du: 239 Duong Tay Thanh, Tay Thanh, Tan Phu, TP.HCM). He thong se tu dong lay toa do va hien tren ban do.
     </div>
 
-    <div id="mapPreview" style="height: 280px; border-radius: 12px; overflow: hidden; border: 1px solid #d7e2dc; margin-bottom: 1rem;"></div>
-    <div class="small text-muted mb-3">Go dia chi de goi y hoac click tren ban do de lay dia chi.</div>
-    <div id="geoStatus" class="small text-danger mb-3" style="display:none;"></div>
+        <div class="map-preview" style="margin-bottom: 1rem;">
+        <div id="mapPreview" style="height: 280px; border-radius: 12px; overflow: hidden; border: 1px solid #d7e2dc;"></div>
+        <div id="mapContextMenuForm" class="context-menu">
+            <button type="button" data-action="add-marker">Them marker tai day</button>
+            <button type="button" data-action="copy-coords">Copy toa do</button>
+            <button type="button" data-action="center-here">Can giua tai day</button>
+            <button type="button" data-action="toggle-drag">Bat/tat keo marker</button>
+        </div>
+    </div>
+        <div id="geoStatus" class="small text-danger mb-3" style="display:none;"></div>
     {% endif %}
 
     <form method="post">
@@ -47,17 +54,30 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+<link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.14.3/dist/leaflet-geoman.css" />
 
 <style>
     .map-info { background: #fff; border: 1px solid #d7e2dc; border-radius: 10px; padding: .45rem .55rem; box-shadow: 0 6px 14px rgba(16, 33, 36, 0.12); font-size: .75rem; color: #405557; }
     .map-btn { background: #fff; border: 1px solid #d7e2dc; border-radius: 8px; padding: .3rem .45rem; box-shadow: 0 6px 14px rgba(16, 33, 36, 0.12); cursor: pointer; }
     .map-btn:hover { background: #f4faf8; }
+    .map-preview { position: relative; }
+    .context-menu { position: absolute; background: #ffffff; border: 1px solid #d7e2dc; border-radius: 10px; box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12); padding: .4rem; display: none; z-index: 800; min-width: 160px; }
+    .context-menu button { width: 100%; background: transparent; border: none; text-align: left; padding: .35rem .5rem; border-radius: 8px; font-size: .86rem; }
+    .context-menu button:hover { background: #f1f5f9; }
+    .marker-jump { animation: markerJump .6s ease; }
+    @keyframes markerJump { 0% { transform: translateY(0); } 30% { transform: translateY(-10px); } 60% { transform: translateY(0); } }
+    .marker-label { background: rgba(255,255,255,0.9); border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px 6px; font-size: 11px; font-weight: 600; color: #0f172a; box-shadow: 0 2px 6px rgba(15,23,42,0.12); }
+    .mega-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
 </style>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/Leaflet.fullscreen.min.js"></script>
 <script src="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.14.3/dist/leaflet-geoman.min.js"></script>
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.min.js"></script>
 <script>
     const addressInput = document.getElementById('id_address_input');
     const latInput = document.getElementById('id_geo_lat');
@@ -309,6 +329,468 @@
     if (latInput && lonInput && latInput.value && lonInput.value) {
         setMarker(parseFloat(latInput.value), parseFloat(lonInput.value));
     }
+</script><script>
+// formMapEnhancements
+(() => {
+    if (typeof map === 'undefined') return;
+
+    const contextMenu = document.getElementById('mapContextMenuForm');
+    const btnRandom = document.getElementById('btnRandomMarkerForm');
+    const btnExport = document.getElementById('btnExportGeojsonForm');
+    const btnClear = document.getElementById('btnClearDrawForm');
+    const btnWorker = document.getElementById('btnWorkerMarkersForm');
+    const btnMega = document.getElementById('btnMegaMarkersForm');
+    const maxDrawRange = document.getElementById('maxDrawRangeForm');
+    const maxDrawLabel = document.getElementById('maxDrawLabelForm');
+
+    const grayLayer = baseLayers['Gray'] || L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 20,
+        attribution: 'Tiles (c) CartoDB'
+    });
+    baseLayers['Gray'] = grayLayer;
+
+    let activeBaseLayer = baseLayers['OpenStreetMap'];
+    const baseOrder = ['OpenStreetMap', 'Gray', 'Esri Imagery', 'OSM Humanitarian'];
+
+    const drawnLayer = L.featureGroup().addTo(map);
+    const helperLayer = L.layerGroup().addTo(map);
+    const workerCluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 60 }).addTo(map);
+
+    const megaPane = map.createPane('megaPaneForm');
+    megaPane.style.zIndex = 250;
+
+    const LargePointLayer = L.Layer.extend({
+        initialize: function (options) {
+            L.setOptions(this, options);
+            this._data = null;
+            this._count = 0;
+            this._redrawPending = false;
+            this._ratio = 1;
+        },
+        onAdd: function (mapRef) {
+            this._map = mapRef;
+            const pane = mapRef.getPane(this.options.pane || 'overlayPane');
+            this._canvas = L.DomUtil.create('canvas', 'mega-canvas', pane);
+            this._ctx = this._canvas.getContext('2d');
+            mapRef.on('moveend zoomend resize', this._reset, this);
+            this._reset();
+        },
+        onRemove: function (mapRef) {
+            mapRef.off('moveend zoomend resize', this._reset, this);
+            if (this._canvas && this._canvas.parentNode) {
+                this._canvas.parentNode.removeChild(this._canvas);
+            }
+            this._canvas = null;
+            this._ctx = null;
+            this._map = null;
+        },
+        setData: function (data, count) {
+            this._data = data;
+            this._count = count || (data ? data.length / 2 : 0);
+            this._scheduleRedraw();
+        },
+        setMaxDraw: function (maxDraw) {
+            this.options.maxDraw = maxDraw;
+            this._scheduleRedraw();
+        },
+        _scheduleRedraw: function () {
+            if (!this._map || this._redrawPending) return;
+            this._redrawPending = true;
+            requestAnimationFrame(() => {
+                this._redrawPending = false;
+                this._redraw();
+            });
+        },
+        _reset: function () {
+            if (!this._map || !this._canvas) return;
+            const size = this._map.getSize();
+            const ratio = window.devicePixelRatio || 1;
+            this._ratio = ratio;
+            this._canvas.width = size.x * ratio;
+            this._canvas.height = size.y * ratio;
+            this._canvas.style.width = size.x + 'px';
+            this._canvas.style.height = size.y + 'px';
+            L.DomUtil.setPosition(this._canvas, this._map._getMapPanePos());
+            this._scheduleRedraw();
+        },
+        _redraw: function () {
+            if (!this._ctx || !this._canvas) return;
+            this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+            if (!this._data || !this._count) return;
+            if (this.options.minZoom && this._map.getZoom() < this.options.minZoom) return;
+            const bounds = this._map.getBounds();
+            const maxDraw = this.options.maxDraw || 30000;
+            const step = Math.max(1, Math.floor(this._count / maxDraw));
+            const radius = this.options.radius || 2;
+            const ratio = this._ratio || 1;
+            const south = bounds.getSouth();
+            const north = bounds.getNorth();
+            const west = bounds.getWest();
+            const east = bounds.getEast();
+            this._ctx.fillStyle = this.options.color || '#0ea5e9';
+            let drawn = 0;
+            for (let i = 0; i < this._count; i += step) {
+                const lat = this._data[i * 2];
+                const lng = this._data[i * 2 + 1];
+                if (lat < south || lat > north || lng < west || lng > east) continue;
+                const pt = this._map.latLngToContainerPoint([lat, lng]);
+                this._ctx.beginPath();
+                this._ctx.arc(pt.x * ratio, pt.y * ratio, radius * ratio, 0, Math.PI * 2);
+                this._ctx.fill();
+                drawn += 1;
+                if (drawn >= maxDraw) break;
+            }
+        }
+    });
+
+    let megaLayer = null;
+    let megaData = null;
+    let megaWorker = null;
+    let megaLoading = false;
+    const MEGA_COUNT = 1000000;
+    let contextLatLng = null;
+
+    function slideMarker(target, latlng, duration = 500) {
+        if (!target) return;
+        const from = target.getLatLng();
+        const start = performance.now();
+        function step(now) {
+            const t = Math.min((now - start) / duration, 1);
+            const lat = from.lat + (latlng.lat - from.lat) * t;
+            const lng = from.lng + (latlng.lng - from.lng) * t;
+            target.setLatLng([lat, lng]);
+            if (t < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
+
+    function bounceMarker(target) {
+        if (!target || !target._icon) return;
+        target._icon.classList.remove('marker-jump');
+        void target._icon.offsetWidth;
+        target._icon.classList.add('marker-jump');
+    }
+
+    function setBaseLayer(name) {
+        if (!baseLayers[name]) return;
+        if (activeBaseLayer && map.hasLayer(activeBaseLayer)) map.removeLayer(activeBaseLayer);
+        activeBaseLayer = baseLayers[name];
+        activeBaseLayer.addTo(map);
+    }
+
+    function cycleBaseLayer() {
+        const currentKey = baseOrder.find((key) => baseLayers[key] === activeBaseLayer) || baseOrder[0];
+        const idx = baseOrder.indexOf(currentKey);
+        const next = baseOrder[(idx + 1) % baseOrder.length];
+        setBaseLayer(next);
+    }
+
+    function randomPoint(bounds) {
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+        return [sw.lat + Math.random() * (ne.lat - sw.lat), sw.lng + Math.random() * (ne.lng - sw.lng)];
+    }
+
+    function exportGeoJson() {
+        const features = [];
+        drawnLayer.eachLayer((layer) => { if (layer.toGeoJSON) features.push(layer.toGeoJSON()); });
+        helperLayer.eachLayer((layer) => { if (layer.toGeoJSON) features.push(layer.toGeoJSON()); });
+        if (marker && marker.toGeoJSON) features.push(marker.toGeoJSON());
+        workerCluster.eachLayer((layer) => { if (layer.toGeoJSON) features.push(layer.toGeoJSON()); });
+        const collection = { type: 'FeatureCollection', features };
+        const blob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'parking-form.geojson';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function createWorkerMarkers() {
+        if (!window.Worker) return;
+        workerCluster.clearLayers();
+        const bounds = map.getBounds();
+        const workerCode = `
+            self.onmessage = function(e) {
+                const count = e.data.count;
+                const b = e.data.bounds;
+                const points = [];
+                for (let i = 0; i < count; i++) {
+                    const lat = b.s + Math.random() * (b.n - b.s);
+                    const lng = b.w + Math.random() * (b.e - b.w);
+                    points.push([lat, lng]);
+                }
+
+    function updateMaxDrawLabel() {
+        if (!maxDrawRange || !maxDrawLabel) return;
+        maxDrawLabel.textContent = maxDrawRange.value;
+        if (megaLayer) {
+            megaLayer.setMaxDraw(parseInt(maxDrawRange.value, 10));
+            if (map.getZoom() < 14 && typeof showStatus === 'function') {
+                showStatus('Zoom >= 14 de xem 1.000.000 diem.', 'warning');
+            }
+        }
+    }
+
+    function ensureMegaLayer() {
+        if (!megaLayer) {
+            const maxDraw = parseInt(maxDrawRange && maxDrawRange.value ? maxDrawRange.value : '30000', 10);
+            megaLayer = new LargePointLayer({ pane: 'megaPaneForm', color: '#0ea5e9', radius: 2, maxDraw: maxDraw, minZoom: 14 });
+            if (megaData) {
+                megaLayer.setData(megaData, megaData.length / 2);
+            }
+        }
+        return megaLayer;
+    }
+
+    function buildMegaPoints() {
+        if (megaLoading) return;
+        megaLoading = true;
+        if (typeof showStatus === 'function') {
+            showStatus('Dang tao 1.000.000 diem (canvas)...', 'warning');
+        }
+        if (megaWorker) {
+            megaWorker.terminate();
+        }
+        const bounds = maxBounds;
+        const workerCode = `
+            self.onmessage = function(e) {
+                const count = e.data.count;
+                const b = e.data.bounds;
+                const arr = new Float32Array(count * 2);
+                for (let i = 0; i < count; i++) {
+                    const lat = b.s + Math.random() * (b.n - b.s);
+                    const lng = b.w + Math.random() * (b.e - b.w);
+                    const idx = i * 2;
+                    arr[idx] = lat;
+                    arr[idx + 1] = lng;
+                }
+                self.postMessage({ buffer: arr.buffer, count: count }, [arr.buffer]);
+            };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        megaWorker = new Worker(URL.createObjectURL(blob));
+        megaWorker.onmessage = (e) => {
+            megaData = new Float32Array(e.data.buffer);
+            megaLoading = false;
+            ensureMegaLayer();
+            megaLayer.setData(megaData, e.data.count);
+            if (!map.hasLayer(megaLayer)) {
+                map.addLayer(megaLayer);
+            }
+            if (typeof showStatus === 'function') {
+                showStatus('Da tao 1.000.000 diem (canvas).', 'success');
+            }
+            megaWorker.terminate();
+        };
+        megaWorker.onerror = () => {
+            megaLoading = false;
+            if (typeof showStatus === 'function') {
+                showStatus('Loi tao 1.000.000 diem.', 'error');
+            }
+        };
+        megaWorker.postMessage({
+            count: MEGA_COUNT,
+            bounds: { s: bounds.getSouth(), n: bounds.getNorth(), w: bounds.getWest(), e: bounds.getEast() }
+        });
+    }
+
+    function toggleMegaLayer() {
+        if (!megaData) {
+            buildMegaPoints();
+            return;
+        }
+        ensureMegaLayer();
+        if (map.hasLayer(megaLayer)) {
+            map.removeLayer(megaLayer);
+        } else {
+            map.addLayer(megaLayer);
+            megaLayer.setMaxDraw(parseInt(maxDrawRange.value, 10));
+            if (map.getZoom() < 14 && typeof showStatus === 'function') {
+                showStatus('Zoom >= 14 de xem 1.000.000 diem.', 'warning');
+            }
+        }
+    }
+                self.postMessage(points);
+            };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const worker = new Worker(URL.createObjectURL(blob));
+        worker.onmessage = (e) => {
+            e.data.forEach((pt) => { workerCluster.addLayer(L.marker(pt)); });
+            worker.terminate();
+        };
+        worker.postMessage({ count: 200, bounds: { s: bounds.getSouth(), n: bounds.getNorth(), w: bounds.getWest(), e: bounds.getEast() } });
+    }
+
+    function tileBounds(latlng, zoom) {
+        const tileSize = 256;
+        const point = map.project(latlng, zoom).divideBy(tileSize).floor();
+        const nw = point.multiplyBy(tileSize);
+        const se = nw.add([tileSize, tileSize]);
+        const nwLatLng = map.unproject(nw, zoom);
+        const seLatLng = map.unproject(se, zoom);
+        return L.latLngBounds(nwLatLng, seLatLng);
+    }
+
+    function ensureGradientDef(id) {
+        const renderer = map.getRenderer(drawnLayer);
+        const svg = renderer && renderer._container;
+        if (!svg) return null;
+        let defs = svg.querySelector('defs');
+        if (!defs) {
+            defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            svg.insertBefore(defs, svg.firstChild);
+        }
+        let gradient = defs.querySelector(`#${id}`);
+        if (!gradient) {
+            gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+            gradient.setAttribute('id', id);
+            gradient.setAttribute('x1', '0%');
+            gradient.setAttribute('y1', '0%');
+            gradient.setAttribute('x2', '100%');
+            gradient.setAttribute('y2', '100%');
+            const stops = [
+                { offset: '0%', color: '#38bdf8', opacity: '0.7' },
+                { offset: '60%', color: '#14b8a6', opacity: '0.55' },
+                { offset: '100%', color: '#22c55e', opacity: '0.45' }
+            ];
+            stops.forEach((stop) => {
+                const el = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                el.setAttribute('offset', stop.offset);
+                el.setAttribute('stop-color', stop.color);
+                el.setAttribute('stop-opacity', stop.opacity);
+                gradient.appendChild(el);
+            });
+            defs.appendChild(gradient);
+        }
+        return `url(#${id})`;
+    }
+
+    function applyGradientToLayer(layer) {
+        if (!layer || !layer._path) return;
+        if (!(layer instanceof L.Polygon) || layer instanceof L.CircleMarker) return;
+        const fill = ensureGradientDef('parkingGradientForm');
+        if (!fill) return;
+        layer._path.setAttribute('fill', fill);
+        layer._path.setAttribute('fill-opacity', '0.55');
+        layer._path.setAttribute('stroke', '#0ea5e9');
+        layer._path.setAttribute('stroke-width', '2');
+    }
+    if (map.pm && map.pm.addControls) {
+        map.pm.addControls({
+            position: 'topleft',
+            drawMarker: true,
+            drawCircle: true,
+            drawPolyline: true,
+            drawPolygon: true,
+            drawRectangle: true,
+            editMode: true,
+            dragMode: true,
+            cutPolygon: true,
+            removalMode: true,
+        });
+        map.on('pm:create', (e) => {
+            drawnLayer.addLayer(e.layer);
+            applyGradientToLayer(e.layer);
+        });
+        map.on('pm:edit', (e) => {
+            if (e && e.layers && e.layers.eachLayer) {
+                e.layers.eachLayer((layer) => applyGradientToLayer(layer));
+            } else if (e && e.layer) {
+                applyGradientToLayer(e.layer);
+            }
+        });
+    }
+
+    map.on('contextmenu', (e) => {
+        contextLatLng = e.latlng;
+        if (!contextMenu) return;
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = `${e.containerPoint.x}px`;
+        contextMenu.style.top = `${e.containerPoint.y}px`;
+    });
+
+    map.on('click', (e) => {
+        if (contextMenu) contextMenu.style.display = 'none';
+        if (e.originalEvent && e.originalEvent.altKey) cycleBaseLayer();
+        if (e.originalEvent && e.originalEvent.shiftKey) {
+            const bounds = tileBounds(e.latlng, map.getZoom());
+            const rect = L.rectangle(bounds, { color: '#6366f1', weight: 1, fillOpacity: 0.1 });
+            rect.addTo(helperLayer);
+            applyGradientToLayer(rect);
+        }
+    });
+
+    if (contextMenu) {
+        contextMenu.addEventListener('click', async (e) => {
+            const action = e.target.getAttribute('data-action');
+            if (!action) return;
+            if (action === 'add-marker' && contextLatLng) {
+                setMarker(contextLatLng.lat, contextLatLng.lng);
+            }
+            if (action === 'copy-coords' && contextLatLng) {
+                const text = `${contextLatLng.lat.toFixed(6)}, ${contextLatLng.lng.toFixed(6)}`;
+                if (navigator.clipboard) await navigator.clipboard.writeText(text);
+            }
+            if (action === 'center-here' && contextLatLng) {
+                map.panTo(contextLatLng);
+            }
+            if (action === 'toggle-drag' && marker && marker.dragging) {
+                if (marker.dragging.enabled()) marker.dragging.disable();
+                else marker.dragging.enable();
+            }
+            contextMenu.style.display = 'none';
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (contextMenu && !contextMenu.contains(e.target)) contextMenu.style.display = 'none';
+    });
+
+    const _setMarker = setMarker;
+    setMarker = function (lat, lon) {
+        _setMarker(lat, lon);
+        if (marker) {
+            marker.bindTooltip('Vi tri bai do', { permanent: true, direction: 'bottom', offset: [0, 12], className: 'marker-label' });
+            bounceMarker(marker);
+            slideMarker(marker, L.latLng(lat, lon));
+        }
+    };
+
+    if (btnRandom) btnRandom.addEventListener('click', () => {
+        const point = randomPoint(map.getBounds());
+        setMarker(point[0], point[1]);
+    });
+    if (btnExport) btnExport.addEventListener('click', exportGeoJson);
+    if (btnClear) btnClear.addEventListener('click', () => {
+        drawnLayer.clearLayers();
+        helperLayer.clearLayers();
+        workerCluster.clearLayers();
+    });
+    if (btnWorker) btnWorker.addEventListener('click', createWorkerMarkers);
+    if (btnMega) btnMega.addEventListener('click', toggleMegaLayer);
+    if (maxDrawRange) {
+        updateMaxDrawLabel();
+        maxDrawRange.addEventListener('input', updateMaxDrawLabel);
+    }
+})();
 </script>
 {% endif %}
 {% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
