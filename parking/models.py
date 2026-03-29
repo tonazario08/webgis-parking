@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -92,6 +92,9 @@ class ParkingUser(models.Model):
     full_name = models.CharField("Ho va ten", max_length=100)
     phone = models.CharField("So dien thoai", max_length=15, unique=True)
     email = models.EmailField("Email", blank=True)
+    email_verified = models.BooleanField("Email da xac thuc", default=False)
+    email_verification_token = models.CharField("Email token", max_length=64, blank=True, null=True)
+    email_verification_sent_at = models.DateTimeField("Thoi gian gui xac thuc", null=True, blank=True)
     address = models.CharField("Dia chi", max_length=255, blank=True)
 
     license_plate = models.CharField("Bien so xe", max_length=20, unique=True)

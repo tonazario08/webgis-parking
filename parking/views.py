@@ -1,8 +1,9 @@
-from django.shortcuts import render, get_object_or_404, redirect
+﻿from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from django.contrib import messages
 from django.utils import timezone
+from django.core.paginator import Paginator
 import requests
 
 from .models import ParkingLot, Area, ActivityLog, ParkingUser, ParkingPrice
@@ -10,14 +11,14 @@ from .utils.gis import haversine_distance, find_nearest_parking
 
 
 def home(request):
-    parkings = ParkingLot.objects.filter(is_deleted=False)
-    parking_data = []
+    parkings_all = list(ParkingLot.objects.filter(is_deleted=False).order_by("id"))
+    parking_stats = {}
     total_available = 0
     total_revenue = 0
 
     active_users = ParkingUser.objects.filter(is_active=True, is_deleted=False)
 
-    for p in parkings:
+    for p in parkings_all:
         available = p.available_slots()
         used = p.used_slots()
         percent = p.usage_percent()
@@ -35,24 +36,38 @@ def home(request):
                 pass
 
         total_revenue += revenue
+        parking_stats[p.id] = {
+            "available": available,
+            "used": used,
+            "percent": percent,
+            "revenue": revenue,
+        }
 
+    paginator = Paginator(parkings_all, 5)
+    page_number = request.GET.get("page")
+    parkings_page = paginator.get_page(page_number)
+
+    parking_data = []
+    for p in parkings_page:
+        stats = parking_stats.get(p.id, {})
         parking_data.append(
             {
                 "obj": p,
-                "available": available,
-                "used": used,
-                "percent": percent,
-                "is_full": available == 0,
-                "revenue": revenue,
+                "available": stats.get("available", 0),
+                "used": stats.get("used", 0),
+                "percent": stats.get("percent", 0),
+                "is_full": stats.get("available", 0) == 0,
+                "revenue": stats.get("revenue", 0),
             }
         )
 
     context = {
-        "total_parking": parkings.count(),
+        "total_parking": len(parkings_all),
         "total_available": total_available,
         "revenue": total_revenue,
         "active_areas": Area.objects.filter(is_deleted=False).count(),
         "parking_data": parking_data,
+        "parking_page": parkings_page,
         "activities": ActivityLog.objects.all()[:5],
     }
 
@@ -285,3 +300,35 @@ def parking_map_data(request):
         )
 
     return JsonResponse(data, safe=False)
+
+
+def verify_parking_user_email(request, user_id, token):
+    parking_user = get_object_or_404(ParkingUser, pk=user_id, is_deleted=False)
+
+    if not parking_user.email_verification_token:
+        status = "error"
+        message = "Email da duoc xac thuc hoac lien ket khong hop le."
+    elif token != parking_user.email_verification_token:
+        status = "error"
+        message = "Lien ket xac thuc khong hop le hoac da het han."
+    else:
+        parking_user.email_verified = True
+        parking_user.email_verification_token = None
+        parking_user.email_verification_sent_at = None
+        parking_user.save(update_fields=[
+            "email_verified",
+            "email_verification_token",
+            "email_verification_sent_at",
+        ])
+        status = "success"
+        message = "Xac thuc email thanh cong."
+
+    return render(
+        request,
+        "parking/verify_email_result.html",
+        {
+            "status": status,
+            "message": message,
+            "parking_user": parking_user,
+        },
+    )

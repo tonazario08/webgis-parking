@@ -1,9 +1,10 @@
-from django import forms
+﻿from django import forms
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.forms import modelform_factory
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -14,6 +15,7 @@ import requests
 import unicodedata
 
 from .models import ActivityLog, Area, ParkingLot, ParkingPrice, ParkingUser
+from .utils.email import send_parking_user_verification_email
 
 
 MANAGER_MODELS = {
@@ -896,7 +898,12 @@ def manager_create(request, entity):
 
     if request.method == "POST" and form.is_valid():
         try:
-            form.save()
+            with transaction.atomic():
+                instance = form.save()
+                if entity == "users":
+                    ok, err_msg = send_parking_user_verification_email(request, instance)
+                    if not ok:
+                        raise ValidationError({"email": f"Khong gui duoc email: {err_msg}"})
             messages.success(request, "Tao moi thanh cong.")
             if _is_limited_manager(request.user):
                 return redirect("manager_list", entity="users")

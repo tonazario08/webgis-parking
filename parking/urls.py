@@ -13,6 +13,7 @@ urlpatterns = [
     path('search/', views.search_by_phone, name='search_by_phone'),
     path('customer/<int:id>/', views.parking_user_detail, name='parking_user_detail'),
     path('customer/<int:user_id>/', views.parking_user_detail, name='customer_detail'),
+    path('verify-email/<int:user_id>/<str:token>/', views.verify_parking_user_email, name='parking_user_verify_email'),
     path('checkout/<int:user_id>/', views.checkout_vehicle, name='checkout_vehicle'),
     path('parking/<int:id>/', views.parking_detail, name='parking_detail'),
 

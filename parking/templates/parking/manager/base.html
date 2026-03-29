@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -55,5 +55,66 @@
             {% block content %}{% endblock %}
         </main>
     </div>
-</body>
+<script src="https://cdn.jsdelivr.net/npm/animejs/dist/bundles/anime.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!window.anime || !window.anime.animate) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        const { animate, stagger } = anime;
+
+        const brand = document.querySelector('.sidebar .brand');
+        if (brand) {
+            animate(brand, {
+                opacity: [0, 1],
+                translateX: [-14, 0],
+                duration: 600,
+                ease: 'outCubic'
+            });
+        }
+
+        const links = document.querySelectorAll('.menu-link');
+        if (links.length) {
+            animate(links, {
+                opacity: [0, 1],
+                translateX: [-16, 0],
+                delay: stagger(60),
+                duration: 550,
+                ease: 'outCubic'
+            });
+        }
+
+        const topbar = document.querySelector('.topbar');
+        if (topbar) {
+            animate(topbar, {
+                opacity: [0, 1],
+                translateY: [-10, 0],
+                duration: 500,
+                ease: 'outCubic'
+            });
+        }
+
+        const panels = document.querySelectorAll('.panel');
+        if (panels.length) {
+            animate(panels, {
+                opacity: [0, 1],
+                translateY: [14, 0],
+                delay: stagger(70),
+                duration: 550,
+                ease: 'outCubic'
+            });
+        }
+
+        const rows = document.querySelectorAll('table tbody tr');
+        if (rows.length && rows.length <= 60) {
+            animate(rows, {
+                opacity: [0, 1],
+                translateY: [8, 0],
+                delay: stagger(18),
+                duration: 350,
+                ease: 'outCubic'
+            });
+        }
+    });
+</script></body>
 </html>

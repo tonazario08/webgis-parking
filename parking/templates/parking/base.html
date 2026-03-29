@@ -36,13 +36,6 @@
                         <i class="fas fa-globe-asia"></i> Bản đồ số
                     </a>
                 </li>
-                
-                <li class="nav-item">
-                    <a class="nav-link text-secondary" href="#">
-                        <i class="fas fa-list"></i> Danh sách
-                    </a>
-                </li>
-                
                 <li class="nav-item">
                     <a class="btn btn-primary rounded-pill px-4" href="/admin/">
                         <i class="fas fa-user me-2"></i> Admin
@@ -61,5 +54,66 @@
     (c) 2026 Parking GIS System. Developed with Django & Leaflet.
 </div>
 
-</body>
+<script src="https://cdn.jsdelivr.net/npm/animejs/dist/bundles/anime.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!window.anime || !window.anime.animate) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        const { animate, stagger } = anime;
+
+        const navbar = document.querySelector('.navbar-custom');
+        if (navbar) {
+            animate(navbar, {
+                opacity: [0, 1],
+                translateY: [-10, 0],
+                duration: 500,
+                ease: 'outCubic'
+            });
+        }
+
+        const hero = document.querySelector('.js-hero');
+        if (hero) {
+            animate(hero, {
+                opacity: [0, 1],
+                translateY: [-14, 0],
+                duration: 600,
+                ease: 'outCubic'
+            });
+        }
+
+        const cards = document.querySelectorAll('.card-custom');
+        if (cards.length) {
+            animate(cards, {
+                opacity: [0, 1],
+                translateY: [16, 0],
+                delay: stagger(80),
+                duration: 600,
+                ease: 'outCubic'
+            });
+        }
+
+        const mapPanels = document.querySelectorAll('.map-panel, .map-box');
+        if (mapPanels.length) {
+            animate(mapPanels, {
+                opacity: [0, 1],
+                translateY: [12, 0],
+                delay: stagger(90),
+                duration: 650,
+                ease: 'outCubic'
+            });
+        }
+
+        const rows = document.querySelectorAll('table tbody tr');
+        if (rows.length && rows.length <= 60) {
+            animate(rows, {
+                opacity: [0, 1],
+                translateY: [8, 0],
+                delay: stagger(20),
+                duration: 400,
+                ease: 'outCubic'
+            });
+        }
+    });
+</script></body>
 </html>
