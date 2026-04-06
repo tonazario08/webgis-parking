@@ -1,53 +1,298 @@
 ﻿{% extends 'parking/base.html' %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold text-dark"><i class="fas fa-list text-primary me-2"></i>Danh sach bai do xe</h3>
-    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Quay lai Dashboard</a>
-</div>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Public+Sans:wght@300;400;600&display=swap');
+    .listing-page {
+        --ink: #0f172a;
+        --muted: #5b6473;
+        --accent: #1d4ed8;
+        --accent-2: #0ea5e9;
+        --surface: #ffffff;
+        --surface-alt: #f8fafc;
+        --stroke: #e2e8f0;
+        --glow: rgba(29, 78, 216, 0.18);
+        font-family: 'Public Sans', sans-serif;
+    }
+    .listing-hero {
+        position: relative;
+        background: radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 55%),
+                    radial-gradient(circle at top right, rgba(14,165,233,0.2), transparent 45%),
+                    linear-gradient(135deg, #ffffff, #f5f7fb);
+        border: 1px solid var(--stroke);
+        border-radius: 22px;
+        padding: 32px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 24px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+    }
+    .listing-hero__title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        color: var(--ink);
+        font-size: clamp(1.8rem, 2.5vw, 2.5rem);
+        margin-bottom: 12px;
+    }
+    .listing-hero__eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 600;
+        font-size: .72rem;
+        color: var(--accent);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(29, 78, 216, 0.08);
+        padding: 6px 12px;
+        border-radius: 999px;
+        margin-bottom: 14px;
+    }
+    .listing-hero__desc {
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 540px;
+    }
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 16px;
+        margin-top: 22px;
+    }
+    .stat-tile {
+        background: var(--surface);
+        border: 1px solid var(--stroke);
+        border-radius: 16px;
+        padding: 14px 16px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+    }
+    .stat-tile__label {
+        font-size: .75rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .stat-tile__value {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: var(--ink);
+        margin-top: 6px;
+    }
+    .hero-panel {
+        background: #111827;
+        color: #e2e8f0;
+        border-radius: 18px;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+    }
+    .hero-panel h4 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        margin: 0;
+    }
+    .hero-panel__pill {
+        background: rgba(148, 163, 184, 0.18);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: .8rem;
+        width: fit-content;
+    }
+    .listing-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+    }
+    .btn-hero {
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-weight: 600;
+        border: 1px solid transparent;
+    }
+    .btn-hero.primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: #fff;
+        box-shadow: 0 12px 24px var(--glow);
+    }
+    .btn-hero.outline {
+        border-color: var(--stroke);
+        color: var(--ink);
+        background: #fff;
+    }
+    .parking-grid {
+        margin-top: 28px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 22px;
+    }
+    .parking-card {
+        background: var(--surface);
+        border: 1px solid var(--stroke);
+        border-radius: 18px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+        transition: transform .25s ease, box-shadow .25s ease;
+    }
+    .parking-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.14);
+    }
+    .parking-card__title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        color: var(--ink);
+        font-size: 1.1rem;
+        margin: 0;
+    }
+    .parking-card__address {
+        color: var(--muted);
+        font-size: .92rem;
+        line-height: 1.5;
+    }
+    .status-chip {
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: .75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .status-open { background: rgba(34,197,94,0.12); color: #15803d; }
+    .status-close { background: rgba(148,163,184,0.2); color: #475569; }
+    .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .meta-chip {
+        background: var(--surface-alt);
+        border: 1px solid var(--stroke);
+        border-radius: 12px;
+        padding: 6px 10px;
+        font-size: .78rem;
+        color: var(--muted);
+    }
+    .usage-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .usage-track {
+        flex: 1;
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+    .usage-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #38bdf8, #2563eb);
+    }
+    .card-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .card-actions .btn {
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    .empty-state {
+        padding: 30px;
+        border-radius: 18px;
+        border: 1px dashed var(--stroke);
+        background: #fff;
+        text-align: center;
+        color: var(--muted);
+    }
+</style>
 
-<div class="card card-custom bg-white p-4 shadow-sm">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Ten bai do</th>
-                    <th>Dia chi</th>
-                    <th>Trang thai</th>
-                    <th>Suc chua</th>
-                    <th>Hanh dong</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in parking_list %}
-                <tr>
-                    <td><div class="fw-bold text-dark">{{ p.name }}</div></td>
-                    <td>{{ p.address }}</td>
-                    <td>
-                        {% if p.is_active %}
-                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">Dang mo</span>
-                        {% else %}
-                        <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill">Tam dung</span>
-                        {% endif %}
-                    </td>
-                    <td style="width: 25%;">
-                        <div class="d-flex align-items-center">
-                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                <div class="progress-bar bg-primary" style="width: {{ p.percent_used }}%"></div>
-                            </div>
-                            <span class="text-muted small">{{ p.used }}/{{ p.capacity }}</span>
-                        </div>
-                    </td>
-                    <td>
-                        <a href="{% url 'parking_detail' p.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-info-circle"></i> Chi tiet</a>
-                        <a href="{% url 'map_view' %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-map-marker-alt"></i> Vi tri</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" class="text-center text-muted py-4">Chua co bai do nao trong he thong.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="listing-page">
+    <div class="listing-hero js-hero">
+        <div>
+            <div class="listing-hero__eyebrow"><i class="fas fa-parking"></i> He thong bai do xe</div>
+            <h1 class="listing-hero__title">Tong quan he thong bai do xe thong minh</h1>
+            <p class="listing-hero__desc">Trang nay gioi thieu cac bai do xe hien co, tinh trang hoat dong va suc chua. Chon bai de xem chi tiet hoac xem vi tri tren ban do.</p>
+            <div class="stats-row">
+                <div class="stat-tile">
+                    <div class="stat-tile__label">Tong so bai</div>
+                    <div class="stat-tile__value">{{ parking_total }}</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="stat-tile__label">Dang hoat dong</div>
+                    <div class="stat-tile__value">{{ parking_active }}</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="stat-tile__label">Suc chua</div>
+                    <div class="stat-tile__value">{{ parking_capacity }}</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="stat-tile__label">Cho con trong</div>
+                    <div class="stat-tile__value">{{ parking_available }}</div>
+                </div>
+            </div>
+            <div class="listing-actions">
+                <a href="{% url 'map_view' %}" class="btn-hero primary"><i class="fas fa-globe-asia me-2"></i>Xem ban do tong quan</a>
+                <a href="{% url 'home' %}" class="btn-hero outline"><i class="fas fa-arrow-left me-2"></i>Quay lai Dashboard</a>
+            </div>
+        </div>
+        <div class="hero-panel">
+            <div class="hero-panel__pill">Cap nhat theo thoi gian thuc</div>
+            <h4>Tram thong tin bai do</h4>
+            <p class="mb-0" style="color: #cbd5f5;">Du lieu duoc tong hop tu he thong quan ly bai do. Su dung de dinh huong nhanh cac bai gan ban.</p>
+            <div class="meta-row">
+                <span class="meta-chip" style="background: rgba(59,130,246,0.18); color: #bfdbfe; border-color: rgba(148,163,184,0.3);">{{ parking_used }} xe dang gui</span>
+                <span class="meta-chip" style="background: rgba(14,165,233,0.2); color: #bae6fd; border-color: rgba(148,163,184,0.3);">{{ parking_available }} cho con</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="parking-grid">
+        {% for p in parking_list %}
+        <article class="parking-card card-custom">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                    <h3 class="parking-card__title">{{ p.name }}</h3>
+                    <div class="parking-card__address">{{ p.address }}</div>
+                </div>
+                {% if p.is_active %}
+                <span class="status-chip status-open"><i class="fas fa-circle"></i> Dang mo</span>
+                {% else %}
+                <span class="status-chip status-close"><i class="fas fa-circle"></i> Tam dung</span>
+                {% endif %}
+            </div>
+            <div class="meta-row">
+                <span class="meta-chip">Suc chua: {{ p.capacity }}</span>
+                <span class="meta-chip">Da gui: {{ p.used }}</span>
+                <span class="meta-chip">Con trong: {{ p.available }}</span>
+                {% if p.area %}
+                <span class="meta-chip">Khu vuc: {{ p.area }}</span>
+                {% endif %}
+            </div>
+            <div class="usage-bar">
+                <div class="usage-track">
+                    <div class="usage-fill" style="width: {{ p.percent_used }}%"></div>
+                </div>
+                <div class="text-muted small">{{ p.used }}/{{ p.capacity }}</div>
+            </div>
+            <div class="card-actions">
+                <a href="{% url 'parking_detail' p.id %}" class="btn btn-outline-primary btn-sm"><i class="fas fa-info-circle me-1"></i>Chi tiet</a>
+                <a href="{% url 'map_view' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-map-marker-alt me-1"></i>Vi tri</a>
+            </div>
+        </article>
+        {% empty %}
+        <div class="empty-state">Chua co bai do nao trong he thong.</div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

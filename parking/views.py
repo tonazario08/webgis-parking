@@ -15,8 +15,8 @@ def home(request):
     parking_stats = {}
     total_available = 0
     total_revenue = 0
-
     active_users = ParkingUser.objects.filter(is_active=True, is_deleted=False)
+
 
     for p in parkings_all:
         available = p.available_slots()
@@ -82,10 +82,18 @@ def map_view(request):
 def parking_list(request):
     parkings = ParkingLot.objects.filter(is_deleted=False)
     parking_items = []
+    total_capacity = 0
+    total_available = 0
+    active_count = 0
 
     for p in parkings:
         available = p.available_slots()
         used = p.used_slots()
+
+        total_capacity += p.capacity
+        total_available += available
+        if p.is_active:
+            active_count += 1
 
         parking_items.append(
             {
@@ -101,14 +109,19 @@ def parking_list(request):
             }
         )
 
-    return render(request, "parking/parking_list.html", {"parking_list": parking_items})
+    context = {
+        "parking_list": parking_items,
+        "parking_total": len(parking_items),
+        "parking_active": active_count,
+        "parking_capacity": total_capacity,
+        "parking_available": total_available,
+        "parking_used": max(total_capacity - total_available, 0),
+    }
 
-
+    return render(request, "parking/parking_list.html", context)
 def parking_available(request):
     parking_lots = [p for p in ParkingLot.objects.filter(is_active=True, is_deleted=False) if p.available_slots() > 0]
     return render(request, "parking/parking_available.html", {"parking_lots": parking_lots})
-
-
 def revenue_view(request):
     now = timezone.now()
     total_revenue = 0
@@ -117,10 +130,7 @@ def revenue_view(request):
     for lot in ParkingLot.objects.filter(is_deleted=False):
         users = ParkingUser.objects.filter(
             parking_lot=lot,
-            is_active=True,
             is_deleted=False,
-            created_at__month=now.month,
-            created_at__year=now.year,
         )
 
         lot_revenue = 0
@@ -128,6 +138,11 @@ def revenue_view(request):
             price = ParkingPrice.objects.filter(parking_lot=lot, vehicle_type=u.vehicle_type).first()
             if price:
                 lot_revenue += price.price_per_hour
+            elif lot.price_per_hour:
+                lot_revenue += lot.price_per_hour
+
+        if lot_revenue == 0 and lot.revenue:
+            lot_revenue = lot.revenue
 
         total_revenue += lot_revenue
 
@@ -141,8 +156,6 @@ def revenue_view(request):
         )
 
     return render(request, "parking/revenue.html", {"total_revenue": total_revenue, "parking_data": parking_data})
-
-
 def areas_view(request):
     data = []
     for a in Area.objects.filter(is_deleted=False):
@@ -189,8 +202,8 @@ def nearest_parking_page(request):
         return JsonResponse({"error": "Thieu toa do"}, status=400)
 
     results = []
+    for p in ParkingLot.objects.filter(is_deleted=False):
 
-    for p in ParkingLot.objects.filter(is_active=True, is_deleted=False):
         lat = p.latitude if p.latitude is not None else (p.area.latitude if p.area else None)
         lon = p.longitude if p.longitude is not None else (p.area.longitude if p.area else None)
         if lat is None or lon is None:
@@ -212,11 +225,9 @@ def api_find_nearest_parking(request):
     except (TypeError, ValueError):
         return JsonResponse({"error": "Thieu lat/lon"}, status=400)
 
-    nearest = find_nearest_parking(ParkingLot.objects.select_related("area").filter(is_active=True, is_deleted=False), lat, lon, only_available=True)
+    parkings = ParkingLot.objects.filter(is_deleted=False, is_active=True)
+    nearest = find_nearest_parking(parkings, lat, lon, only_available=True)
     return JsonResponse(nearest or {"message": "Khong co bai do phu hop"})
-
-
-@require_GET
 def api_route(request):
     try:
         start_lat = float(request.GET.get("start_lat"))

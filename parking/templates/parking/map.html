@@ -112,6 +112,21 @@
         <div id="selectedInfo" class="status">Chon 1 bai do de xem chi tiet.</div>
 
         <details class="route-box" open>
+            <summary class="ctl-title mb-2">Tim theo ban kinh</summary>
+            <div class="route-body">
+                <label class="small text-muted d-flex justify-content-between align-items-center">
+                    <span>Ban kinh (km)</span>
+                    <span id="radiusValue">3 km</span>
+                </label>
+                <input id="radiusRange" type="range" min="0" max="10" step="0.5" value="3" class="form-range">
+                <div class="d-grid gap-2">
+                    <button id="btnRadiusSearch" class="btn btn-sm btn-outline-primary" type="button">Tim bai trong ban kinh</button>
+                    <button id="btnRadiusClear" class="btn btn-sm btn-outline-secondary" type="button">Huy loc ban kinh</button>
+                </div>
+            </div>
+        </details>
+
+        <details class="route-box" open>
             <summary class="ctl-title mb-2">Lop ban do</summary>
             <div class="route-body">
                 <div class="layer-box">
@@ -193,13 +208,13 @@
     }).setView([defaultView.lat, defaultView.lng], defaultView.zoom);
 
     const baseLayers = {
-        "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        "OpenStreetMap": L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             maxZoom: 19,
-            attribution: '(c) OpenStreetMap contributors'
+            attribution: '© OpenStreetMap contributors © CARTO'
         }),
-        "OSM Humanitarian": L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        "OSM Humanitarian": L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 19,
-            attribution: '(c) OpenStreetMap contributors, HOT'
+            attribution: '© OpenStreetMap contributors © CARTO'
         }),
         "Esri Imagery": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 19,
@@ -223,7 +238,7 @@
     L.control.layers(baseLayers, overlayLayers, { position: 'topright' }).addTo(map);
     L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
 
-    const miniLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    const miniLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png');
     new L.Control.MiniMap(miniLayer, { toggleDisplay: true, minimized: true, position: 'bottomright' }).addTo(map);
 
     const mapInfo = L.control({ position: 'bottomleft' });
@@ -270,20 +285,51 @@
         routeLine: null,
     };
 
+    let radiusCircle = null;
+    let radiusFilterActive = false;
+
     const parkingListEl = document.getElementById('parkingList');
     const statusBox = document.getElementById('statusBox');
+    const markerCountBox = document.getElementById('markerCountBox');
+    const selectedInfo = document.getElementById('selectedInfo');
     const originLatEl = document.getElementById('originLat');
     const originLonEl = document.getElementById('originLon');
     const originAddressEl = document.getElementById('originAddress');
     const addressSuggestionsEl = document.getElementById('addressSuggestions');
     const btnGeocodeAddress = document.getElementById('btnGeocodeAddress');
     const btnClearAddress = document.getElementById('btnClearAddress');
+    const radiusRange = document.getElementById('radiusRange');
+    const radiusValue = document.getElementById('radiusValue');
+    const btnRadiusSearch = document.getElementById('btnRadiusSearch');
+    const btnRadiusClear = document.getElementById('btnRadiusClear');
     let suggestionTimer = null;
 
     function setStatus(text) {
         statusBox.textContent = text;
     }
 
+    function updateCounts(list) {
+        if (!markerCountBox) return;
+        const items = list || state.parkings;
+        const total = items.length;
+        let available = 0;
+        let full = 0;
+        items.forEach((p) => {
+            if ((p.available_slots || 0) > 0) available += 1;
+            else full += 1;
+        });
+        markerCountBox.textContent = `Tong bai: ${total} • Con cho: ${available} • Da day: ${full}`;
+    }
+
+    function updateSelectedInfo(p) {
+        if (!selectedInfo || !p) return;
+        const status = (p.available_slots || 0) > 0 ? 'Con cho' : 'Da day';
+        selectedInfo.innerHTML = `
+            <div class="fw-bold">${p.name}</div>
+            <div class="small text-muted">${p.address || ''}</div>
+            <div class="small">Trang thai: <strong>${status}</strong> • Suc chua: ${p.capacity}</div>
+        `;
+    }
     function updateMapInfo() {
         const center = map.getCenter();
         const bounds = map.getBounds();
@@ -321,6 +367,66 @@
         return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
     }
 
+function updateRadiusLabel() {
+        if (!radiusRange || !radiusValue) return;
+        radiusValue.textContent = `${radiusRange.value} km`;
+    }
+
+    function setRadiusCircle(originLatLng, radiusKm) {
+        if (radiusCircle) {
+            map.removeLayer(radiusCircle);
+            radiusCircle = null;
+        }
+        if (!originLatLng || !Number.isFinite(radiusKm) || radiusKm <= 0) return;
+        radiusCircle = L.circle(originLatLng, {
+            radius: radiusKm * 1000,
+            color: '#2563eb',
+            weight: 2,
+            fillColor: '#93c5fd',
+            fillOpacity: 0.18,
+        }).addTo(map);
+    }
+
+    function filterParkingsByRadius() {
+        if (!state.origin) {
+            setStatus('Hay chon vi tri (click hoac nhap dia chi) truoc.');
+            return;
+        }
+        const radiusKm = parseFloat(radiusRange ? radiusRange.value : '0');
+        if (!Number.isFinite(radiusKm) || radiusKm <= 0) {
+            setStatus('Hay keo ban kinh > 0 km.');
+            return;
+        }
+        const originLatLng = L.latLng(state.origin.lat, state.origin.lon);
+        const within = state.parkings.filter((p) => {
+            const d = map.distance(originLatLng, L.latLng(p.lat, p.lng));
+            return d <= radiusKm * 1000;
+        });
+        radiusFilterActive = true;
+        clearParkingMarkers();
+        renderMarkers(within);
+        renderParkingList(within);
+        setRadiusCircle(originLatLng, radiusKm);
+        if (within.length) {
+            const bounds = L.latLngBounds(within.map(p => [p.lat, p.lng]).concat([originLatLng]));
+            map.fitBounds(bounds, { padding: [30, 30] });
+            setStatus(`Tim thay ${within.length} bai trong ${radiusKm} km.`);
+        } else {
+            setStatus(`Khong co bai trong ${radiusKm} km.`);
+        }
+    }
+
+    function clearRadiusFilter() {
+        radiusFilterActive = false;
+        clearParkingMarkers();
+        renderMarkers(state.parkings);
+        renderParkingList(state.parkings);
+        if (radiusCircle) {
+            map.removeLayer(radiusCircle);
+            radiusCircle = null;
+        }
+        setStatus('Da huy loc ban kinh.');
+    }
     function bindOriginDrag(marker) {
         marker.on('dragend', async () => {
             const pos = marker.getLatLng();
@@ -362,6 +468,9 @@
 
         map.setView([lat, lon], 15);
         setStatus(`${sourceText}. Ban co the bam "Tim bai gan nhat".`);
+        if (radiusFilterActive) {
+            filterParkingsByRadius();
+        }
         return true;
     }
 
@@ -439,6 +548,7 @@
                     marker.openPopup();
                 }
                 state.nearest = { lat: p.lat, lon: p.lng, name: p.name, distance_km: null };
+                updateSelectedInfo(p);
                 setStatus(`Da chon bai: ${p.name}. Bam "Chi duong den bai gan nhat" de ve duong tu vi tri cua ban.`);
             });
             parkingListEl.appendChild(li);
@@ -462,6 +572,7 @@
             `);
             marker.on('click', () => {
                 state.nearest = { lat: p.lat, lon: p.lng, name: p.name, distance_km: null };
+                updateSelectedInfo(p);
                 setStatus(`Da chon bai: ${p.name}. Bam "Chi duong den bai gan nhat" de ve duong tu vi tri cua ban.`);
             });
             if (p.available_slots > 0) {
@@ -471,6 +582,7 @@
             }
             state.markers.set(p.id, marker);
         });
+        updateCounts(parkings);
     }
 
     async function loadParkings() {
@@ -656,985 +768,41 @@
         }
     });
 
+    if (radiusRange) {
+        updateRadiusLabel();
+        radiusRange.addEventListener('input', updateRadiusLabel);
+    }
+    if (btnRadiusSearch) btnRadiusSearch.addEventListener('click', filterParkingsByRadius);
+    if (btnRadiusClear) btnRadiusClear.addEventListener('click', clearRadiusFilter);
+
     loadParkings();
 </script>
-<script>
-(() => {
-    if (typeof map === 'undefined') return;
-
-    const markerCountBox = document.getElementById('markerCountBox');
-    const selectedInfo = document.getElementById('selectedInfo');
-    const searchInput = document.getElementById('parkingSearch');
-    const searchList = document.getElementById('parkingSuggestions');
-    const toggleAvailable = document.getElementById('toggleAvailable');
-    const toggleFull = document.getElementById('toggleFull');
-    const toggleRoute = document.getElementById('toggleRoute');
-    const toggleDraw = document.getElementById('toggleDraw');
-    const btnRandomMarker = document.getElementById('btnRandomMarker');
-    const btnExportGeo = document.getElementById('btnExportGeojson');
-    const btnClearDraw = document.getElementById('btnClearDraw');
-    const btnWorkerMarkers = document.getElementById('btnWorkerMarkers');
-    const toggleMega = document.getElementById('toggleMega');
-    const maxDrawRange = document.getElementById('maxDrawRange');
-    const maxDrawLabel = document.getElementById('maxDrawLabel');
-    const contextMenu = document.getElementById('mapContextMenu');
-
-    const grayLayer = baseLayers['Gray'] || L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 20,
-        attribution: 'Tiles (c) CartoDB'
-    });
-    baseLayers['Gray'] = grayLayer;
-
-    let activeBaseLayer = baseLayers['OpenStreetMap'];
-    const baseOrder = ['OpenStreetMap', 'Gray', 'Esri Imagery', 'OSM Humanitarian'];
-
-    const drawnLayer = L.featureGroup().addTo(map);
-    const helperLayer = L.layerGroup().addTo(map);
-    const workerCluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 60 });
-    workerCluster.addTo(map);
-
-    const megaPane = map.createPane('megaPane');
-    megaPane.style.zIndex = 250;
-
-    const LargePointLayer = L.Layer.extend({
-        initialize: function (options) {
-            L.setOptions(this, options);
-            this._data = null;
-            this._count = 0;
-            this._redrawPending = false;
-            this._ratio = 1;
-        },
-        onAdd: function (mapRef) {
-            this._map = mapRef;
-            const pane = mapRef.getPane(this.options.pane || 'overlayPane');
-            this._canvas = L.DomUtil.create('canvas', 'mega-canvas', pane);
-            this._ctx = this._canvas.getContext('2d');
-            mapRef.on('moveend zoomend resize', this._reset, this);
-            this._reset();
-        },
-        onRemove: function (mapRef) {
-            mapRef.off('moveend zoomend resize', this._reset, this);
-            if (this._canvas && this._canvas.parentNode) {
-                this._canvas.parentNode.removeChild(this._canvas);
-            }
-            this._canvas = null;
-            this._ctx = null;
-            this._map = null;
-        },
-        setData: function (data, count) {
-            this._data = data;
-            this._count = count || (data ? data.length / 2 : 0);
-            this._scheduleRedraw();
-        },
-        setMaxDraw: function (maxDraw) {
-            this.options.maxDraw = maxDraw;
-            this._scheduleRedraw();
-        },
-        _scheduleRedraw: function () {
-            if (!this._map || this._redrawPending) return;
-            this._redrawPending = true;
-            requestAnimationFrame(() => {
-                this._redrawPending = false;
-                this._redraw();
-            });
-        },
-        _reset: function () {
-            if (!this._map || !this._canvas) return;
-            const size = this._map.getSize();
-            const ratio = window.devicePixelRatio || 1;
-            this._ratio = ratio;
-            this._canvas.width = size.x * ratio;
-            this._canvas.height = size.y * ratio;
-            this._canvas.style.width = size.x + 'px';
-            this._canvas.style.height = size.y + 'px';
-            L.DomUtil.setPosition(this._canvas, this._map._getMapPanePos());
-            this._scheduleRedraw();
-        },
-        _redraw: function () {
-            if (!this._ctx || !this._canvas) return;
-            this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
-            if (!this._data || !this._count) return;
-            if (this.options.minZoom && this._map.getZoom() < this.options.minZoom) return;
-            const bounds = this._map.getBounds();
-            const maxDraw = this.options.maxDraw || 50000;
-            const step = Math.max(1, Math.floor(this._count / maxDraw));
-            const radius = this.options.radius || 2;
-            const ratio = this._ratio || 1;
-            const south = bounds.getSouth();
-            const north = bounds.getNorth();
-            const west = bounds.getWest();
-            const east = bounds.getEast();
-            this._ctx.fillStyle = this.options.color || '#0ea5e9';
-            let drawn = 0;
-            for (let i = 0; i < this._count; i += step) {
-                const lat = this._data[i * 2];
-                const lng = this._data[i * 2 + 1];
-                if (lat < south || lat > north || lng < west || lng > east) continue;
-                const pt = this._map.latLngToContainerPoint([lat, lng]);
-                this._ctx.beginPath();
-                this._ctx.arc(pt.x * ratio, pt.y * ratio, radius * ratio, 0, Math.PI * 2);
-                this._ctx.fill();
-                drawn += 1;
-                if (drawn >= maxDraw) break;
-            }
-        }
-    });
-
-    let megaLayer = null;
-    let megaData = null;
-    let megaWorker = null;
-    let megaLoading = false;
-    const MEGA_COUNT = 1000000;
-    let routeDecorator = null;
-    const routeDots = L.layerGroup().addTo(routeLayer);
-    let greatCircleLine = null;
-    let directionMarker = null;
-    let routingControl = null;
-    let mousePos = null;
-    let selectedMarker = null;
-    let contextLatLng = null;
-
-    const extraControl = L.control({ position: 'topright' });
-    extraControl.onAdd = function () {
-        const div = L.DomUtil.create('div');
-        div.id = 'mapExtraControls';
-        return div;
-    };
-    extraControl.addTo(map);
-
-    const locateControl = L.control({ position: 'topleft' });
-    locateControl.onAdd = function () {
-        const btn = L.DomUtil.create('button', 'map-btn');
-        btn.type = 'button';
-        btn.title = 'Lay vi tri hien tai';
-        btn.innerHTML = '<i class="fas fa-location-crosshairs"></i>';
-        L.DomEvent.disableClickPropagation(btn);
-        L.DomEvent.on(btn, 'click', (e) => {
-            L.DomEvent.preventDefault(e);
-            document.getElementById('btnLocate').click();
-        });
-        return btn;
-    };
-    locateControl.addTo(map);
-
-    const searchControl = L.control({ position: 'topleft' });
-    searchControl.onAdd = function () {
-        const btn = L.DomUtil.create('button', 'map-btn');
-        btn.type = 'button';
-        btn.title = 'Tim nhanh theo ten';
-        btn.innerHTML = '<i class="fas fa-magnifying-glass"></i>';
-        L.DomEvent.disableClickPropagation(btn);
-        L.DomEvent.on(btn, 'click', (e) => {
-            L.DomEvent.preventDefault(e);
-            if (searchInput) searchInput.focus();
-        });
-        return btn;
-    };
-    searchControl.addTo(map);
-
-    function setBaseLayer(name) {
-        if (!baseLayers[name]) return;
-        if (activeBaseLayer && map.hasLayer(activeBaseLayer)) {
-            map.removeLayer(activeBaseLayer);
-        }
-        activeBaseLayer = baseLayers[name];
-        activeBaseLayer.addTo(map);
-    }
-
-    function cycleBaseLayer() {
-        const idx = baseOrder.indexOf(Object.keys(baseLayers).find(k => baseLayers[k] === activeBaseLayer));
-        const next = baseOrder[(idx + 1) % baseOrder.length];
-        setBaseLayer(next);
-        const radio = document.querySelector(`input[name="baseLayer"][value="${next}"]`);
-        if (radio) radio.checked = true;
-    }
-
-    function geodesicArea(latlngs) {
-        const pointsCount = latlngs.length;
-        let area = 0;
-        const d2r = Math.PI / 180;
-        if (pointsCount > 2) {
-            for (let i = 0; i < pointsCount; i++) {
-                const p1 = latlngs[i];
-                const p2 = latlngs[(i + 1) % pointsCount];
-                area += ((p2.lng - p1.lng) * d2r) * (2 + Math.sin(p1.lat * d2r) + Math.sin(p2.lat * d2r));
-            }
-            area = area * 6378137 * 6378137 / 2;
-        }
-        return Math.abs(area);
-    }
-
-    function formatArea(area) {
-        if (!Number.isFinite(area)) return '';
-        if (area >= 1000000) return `${(area / 1000000).toFixed(2)} km²`;
-        return `${area.toFixed(0)} m²`;
-    }
-
-    function updateDrawStats(layer) {
-        let areaText = '';
-        if (layer && layer.getLatLngs) {
-            const latlngs = layer.getLatLngs();
-            const flat = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs;
-            if (flat && flat.length > 2) {
-                areaText = formatArea(geodesicArea(flat));
-            }
-        }
-        if (areaText) {
-            setStatus(`Da ve khu vuc. Dien tich uoc tinh: ${areaText}`);
-        } else {
-            setStatus('Da cap nhat lop ve.');
-        }
-    }
-
-    function ensureGradientDef(id) {
-        const renderer = map.getRenderer(drawnLayer);
-        const svg = renderer && renderer._container;
-        if (!svg) return null;
-        let defs = svg.querySelector('defs');
-        if (!defs) {
-            defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-            svg.insertBefore(defs, svg.firstChild);
-        }
-        let gradient = defs.querySelector(`#${id}`);
-        if (!gradient) {
-            gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-            gradient.setAttribute('id', id);
-            gradient.setAttribute('x1', '0%');
-            gradient.setAttribute('y1', '0%');
-            gradient.setAttribute('x2', '100%');
-            gradient.setAttribute('y2', '100%');
-            const stops = [
-                { offset: '0%', color: '#38bdf8', opacity: '0.7' },
-                { offset: '60%', color: '#14b8a6', opacity: '0.55' },
-                { offset: '100%', color: '#22c55e', opacity: '0.45' }
-            ];
-            stops.forEach((stop) => {
-                const el = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-                el.setAttribute('offset', stop.offset);
-                el.setAttribute('stop-color', stop.color);
-                el.setAttribute('stop-opacity', stop.opacity);
-                gradient.appendChild(el);
-            });
-            defs.appendChild(gradient);
-        }
-        return `url(#${id})`;
-    }
-
-    function applyGradientToLayer(layer) {
-        if (!layer || !layer._path) return;
-        if (!(layer instanceof L.Polygon) || layer instanceof L.CircleMarker) return;
-        const fill = ensureGradientDef('parkingGradient');
-        if (!fill) return;
-        layer._path.setAttribute('fill', fill);
-        layer._path.setAttribute('fill-opacity', '0.55');
-        layer._path.setAttribute('stroke', '#0ea5e9');
-        layer._path.setAttribute('stroke-width', '2');
-    }
-    if (map.pm && map.pm.addControls) {
-        map.pm.addControls({
-            position: 'topleft',
-            drawMarker: true,
-            drawCircle: true,
-            drawPolyline: true,
-            drawPolygon: true,
-            drawRectangle: true,
-            editMode: true,
-            dragMode: true,
-            cutPolygon: true,
-            removalMode: true,
-        });
-        map.on('pm:create', (e) => {
-            drawnLayer.addLayer(e.layer);
-            updateDrawStats(e.layer);
-            applyGradientToLayer(e.layer);
-        });
-        map.on('pm:remove', updateDrawStats);
-        map.on('pm:cut', updateDrawStats);
-        map.on('pm:edit', (e) => {
-            if (e && e.layers && e.layers.eachLayer) {
-                e.layers.eachLayer((layer) => {
-                    updateDrawStats(layer);
-                    applyGradientToLayer(layer);
-                });
-            } else if (e && e.layer) {
-                updateDrawStats(e.layer);
-                applyGradientToLayer(e.layer);
-            }
-        });
-    }
-
-    function updateCounts() {
-        if (!markerCountBox) return;
-        const total = state.parkings.length;
-        let available = 0;
-        let full = 0;
-        state.parkings.forEach((p) => {
-            if ((p.available_slots || 0) > 0) available += 1;
-            else full += 1;
-        });
-        markerCountBox.textContent = `Tong bai: ${total} • Con cho: ${available} • Da day: ${full}`;
-    }
-
-    function updateSelected(p) {
-        if (!selectedInfo || !p) return;
-        const status = (p.available_slots || 0) > 0 ? 'Con cho' : 'Da day';
-        selectedInfo.innerHTML = `
-            <div class="fw-bold">${p.name}</div>
-            <div class="small text-muted">${p.address || ''}</div>
-            <div class="small">Trang thai: <strong>${status}</strong> • Suc chua: ${p.capacity}</div>
-        `;
-    }
-
-    function bounceMarker(marker) {
-        if (!marker || !marker._icon) return;
-        marker._icon.classList.remove('marker-jump');
-        void marker._icon.offsetWidth;
-        marker._icon.classList.add('marker-jump');
-    }
-
-    function ensureMarkerData(marker, p) {
-        marker.on('add', () => {
-            if (marker._icon) {
-                marker._icon.dataset.parkingId = p.id;
-            }
-        });
-        if (!marker.getTooltip()) {
-            marker.bindTooltip(p.name, { permanent: true, direction: 'bottom', offset: [0, 12], className: 'marker-label' });
-        }
-    }
-
-    function buildPopupHtml(p) {
-        const status = (p.available_slots || 0) > 0 ? 'Con cho' : 'Da day';
-        return `
-            <div class="popup-tabs">
-                <button class="popup-tab active" data-tab="info">Thong tin</button>
-                <button class="popup-tab" data-tab="stats">Thong ke</button>
-            </div>
-            <div class="popup-pane active" data-tab-content="info">
-                <div><strong>${p.name}</strong></div>
-                <div>${p.address || 'Khong co dia chi'}</div>
-                <div>Khu vuc: ${p.district || 'Khong ro'}</div>
-            </div>
-            <div class="popup-pane" data-tab-content="stats">
-                <div>Trang thai: ${status}</div>
-                <div>Suc chua: ${p.capacity}</div>
-                <div>Con trong: ${p.available_slots}</div>
-            </div>
-        `;
-    }
-
-    map.on('popupopen', (e) => {
-        const popupEl = e.popup.getElement();
-        if (!popupEl) return;
-        const tabs = popupEl.querySelectorAll('.popup-tab');
-        tabs.forEach((tab) => {
-            tab.addEventListener('click', () => {
-                const target = tab.getAttribute('data-tab');
-                popupEl.querySelectorAll('.popup-tab').forEach((t) => t.classList.remove('active'));
-                popupEl.querySelectorAll('.popup-pane').forEach((pane) => pane.classList.remove('active'));
-                tab.classList.add('active');
-                const pane = popupEl.querySelector(`[data-tab-content="${target}"]`);
-                if (pane) pane.classList.add('active');
-            });
-        });
-    });
-
-    function ensureMarkerInView(marker) {
-        if (!marker) return;
-        const latlng = marker.getLatLng();
-        if (!map.getBounds().contains(latlng)) {
-            map.flyTo(latlng, Math.max(map.getZoom(), 14));
-            setStatus('Marker ngoai khung nhin. Da tu dong dua vao khung ban do.');
-        }
-    }
-
-    function openMarkerFromOutside(marker) {
-        if (!marker) return;
-        const group = availableCluster.hasLayer(marker) ? availableCluster : fullCluster;
-        if (group && group.zoomToShowLayer) {
-            group.zoomToShowLayer(marker, () => marker.openPopup());
-        } else {
-            marker.openPopup();
-        }
-    }
-
-    function slideMarker(marker, latlng, duration = 600) {
-        if (!marker) return;
-        const from = marker.getLatLng();
-        const start = performance.now();
-        function step(now) {
-            const t = Math.min((now - start) / duration, 1);
-            const lat = from.lat + (latlng.lat - from.lat) * t;
-            const lng = from.lng + (latlng.lng - from.lng) * t;
-            marker.setLatLng([lat, lng]);
-            if (t < 1) requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
-    }
-
-    function bearing(from, to) {
-        const d2r = Math.PI / 180;
-        const y = Math.sin((to.lng - from.lng) * d2r) * Math.cos(to.lat * d2r);
-        const x = Math.cos(from.lat * d2r) * Math.sin(to.lat * d2r) - Math.sin(from.lat * d2r) * Math.cos(to.lat * d2r) * Math.cos((to.lng - from.lng) * d2r);
-        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-    }
-
-    function greatCirclePoints(start, end, segments = 32) {
-        const toRad = (deg) => deg * Math.PI / 180;
-        const toDeg = (rad) => rad * 180 / Math.PI;
-        const lat1 = toRad(start.lat);
-        const lon1 = toRad(start.lon);
-        const lat2 = toRad(end.lat);
-        const lon2 = toRad(end.lon);
-        const d = 2 * Math.asin(Math.sqrt(Math.sin((lat1 - lat2) / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon1 - lon2) / 2) ** 2));
-        if (d === 0) return [[start.lat, start.lon]];
-        const points = [];
-        for (let i = 0; i <= segments; i++) {
-            const f = i / segments;
-            const A = Math.sin((1 - f) * d) / Math.sin(d);
-            const B = Math.sin(f * d) / Math.sin(d);
-            const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2);
-            const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2);
-            const z = A * Math.sin(lat1) + B * Math.sin(lat2);
-            const lat = Math.atan2(z, Math.sqrt(x * x + y * y));
-            const lon = Math.atan2(y, x);
-            points.push([toDeg(lat), toDeg(lon)]);
-        }
-        return points;
-    }
-
-    function drawDirectionIndicator(start, end) {
-        if (directionMarker) {
-            map.removeLayer(directionMarker);
-            directionMarker = null;
-        }
-        const angle = bearing(start, end);
-        const icon = L.divIcon({
-            html: `<div style="transform: rotate(${angle}deg); font-size:16px; color:#0f172a;">▲</div>`,
-            className: '',
-            iconSize: [16, 16],
-            iconAnchor: [8, 8],
-        });
-        directionMarker = L.marker([start.lat, start.lon], { icon }).addTo(routeLayer);
-    }
-
-    function drawRouteDecorations(coords) {
-        routeDots.clearLayers();
-        if (!coords || !coords.length) return;
-        const steps = Math.min(12, coords.length);
-        for (let i = 0; i < steps; i++) {
-            const idx = Math.floor((coords.length - 1) * (i / (steps - 1)));
-            const point = coords[idx];
-            L.circleMarker(point, { radius: 4, color: '#0ea5e9', fillColor: '#38bdf8', fillOpacity: 0.9 }).addTo(routeDots);
-        }
-        if (routeDecorator) {
-            routeLayer.removeLayer(routeDecorator);
-            routeDecorator = null;
-        }
-        if (L.polylineDecorator && state.routeLine) {
-            routeDecorator = L.polylineDecorator(state.routeLine, {
-                patterns: [
-                    { offset: '10%', repeat: '14%', symbol: L.Symbol.arrowHead({ pixelSize: 8, pathOptions: { color: '#1d4ed8', weight: 2 } }) }
-                ]
-            }).addTo(routeLayer);
-        }
-    }
-
-    function drawGreatCircle() {
-        if (!state.origin || !state.nearest) return;
-        if (greatCircleLine) {
-            routeLayer.removeLayer(greatCircleLine);
-            greatCircleLine = null;
-        }
-        const points = greatCirclePoints(state.origin, { lat: state.nearest.lat, lon: state.nearest.lon });
-        greatCircleLine = L.polyline(points, { color: '#f97316', dashArray: '6,6', weight: 2, opacity: 0.8 }).addTo(routeLayer);
-    }
-
-    function clearRouteExtras() {
-        routeDots.clearLayers();
-        if (routeDecorator) {
-            routeLayer.removeLayer(routeDecorator);
-            routeDecorator = null;
-        }
-        if (greatCircleLine) {
-            routeLayer.removeLayer(greatCircleLine);
-            greatCircleLine = null;
-        }
-        if (directionMarker) {
-            routeLayer.removeLayer(directionMarker);
-            directionMarker = null;
-        }
-        if (routingControl) {
-            map.removeControl(routingControl);
-            routingControl = null;
-        }
-    }
-
-    const _clearRoute = clearRoute;
-    clearRoute = function () {
-        _clearRoute();
-        clearRouteExtras();
-    };
-
-        const _drawRouteToNearest = drawRouteToNearest;
-    drawRouteToNearest = async function () {
-        if (window.L && L.Routing && state.origin && state.nearest) {
-            clearRoute();
-            if (routingControl) {
-                map.removeControl(routingControl);
-                routingControl = null;
-            }
-            routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(state.origin.lat, state.origin.lon),
-                    L.latLng(state.nearest.lat, state.nearest.lon),
-                ],
-                addWaypoints: false,
-                draggableWaypoints: false,
-                routeWhileDragging: false,
-                show: false,
-                fitSelectedRoutes: false,
-                createMarker: () => null,
-                lineOptions: { styles: [] },
-            }).addTo(map);
-
-            routingControl.on('routesfound', (e) => {
-                const coords = e.routes[0].coordinates.map((c) => [c.lat, c.lng]);
-                if (state.routeLine) routeLayer.removeLayer(state.routeLine);
-                state.routeLine = L.polyline(coords, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(routeLayer);
-                map.fitBounds(state.routeLine.getBounds(), { padding: [35, 35] });
-                drawRouteDecorations(state.routeLine.getLatLngs());
-                drawGreatCircle();
-                drawDirectionIndicator(state.origin, state.nearest);
-            });
-
-            routingControl.route();
-            setStatus('Dang tinh lo trinh bang Routing Machine...');
-            return;
-        }
-
-        await _drawRouteToNearest();
-        if (state.routeLine) {
-            drawRouteDecorations(state.routeLine.getLatLngs());
-            drawGreatCircle();
-            if (state.origin && state.nearest) {
-                drawDirectionIndicator(state.origin, state.nearest);
-            }
-        }
-    };
-
-    const _renderMarkers = renderMarkers;
-    renderMarkers = function (parkings) {
-        _renderMarkers(parkings);
-        parkings.forEach((p) => {
-            const marker = state.markers.get(p.id);
-            if (!marker) return;
-            ensureMarkerData(marker, p);
-            marker.bindPopup(buildPopupHtml(p));
-            marker.on('click', () => {
-                selectedMarker = marker;
-                updateSelected(p);
-                bounceMarker(marker);
-            });
-        });
-        updateCounts();
-        buildSearchSuggestions();
-        enhanceExistingMarkers();
-        renderParkingList(state.parkings);
-    };
-
-    renderParkingList = function (parkings) {
-        parkingListEl.innerHTML = '';
-        parkings.forEach((p) => {
-            const li = document.createElement('li');
-            li.className = 'parking-item';
-            li.dataset.id = p.id;
-            li.innerHTML = `
-                <div class="fw-bold">${p.name}</div>
-                <div class="text-muted" style="font-size:12px;">${p.address || ''}</div>
-                <div class="d-flex align-items-center gap-2 mt-1">
-                    <span class="${p.available_slots > 0 ? 'badge-ok' : 'badge-full'}">${p.available_slots > 0 ? 'Con cho' : 'Da day'}</span>
-                    <span class="text-muted" style="font-size:12px;">Suc chua: ${p.capacity}</span>
-                </div>
-            `;
-            li.addEventListener('click', () => {
-                const marker = state.markers.get(p.id);
-                if (marker) {
-                    ensureMarkerInView(marker);
-                    openMarkerFromOutside(marker);
-                    selectedMarker = marker;
-                    updateSelected(p);
-                }
-                state.nearest = { lat: p.lat, lon: p.lng, name: p.name, distance_km: null };
-                setStatus(`Da chon bai: ${p.name}. Bam "Chi duong den bai gan nhat" de ve duong.`);
-            });
-            parkingListEl.appendChild(li);
-        });
-    };
-
-    function buildSearchSuggestions() {
-        if (!searchList) return;
-        searchList.innerHTML = '';
-        state.parkings.forEach((p) => {
-            const opt = document.createElement('option');
-            opt.value = p.name;
-            searchList.appendChild(opt);
-        });
-    }
-
-    
-    function enhanceExistingMarkers() {
-        state.parkings.forEach((p) => {
-            const marker = state.markers.get(p.id);
-            if (!marker) return;
-            ensureMarkerData(marker, p);
-            marker.bindPopup(buildPopupHtml(p));
-            marker.on('click', () => {
-                selectedMarker = marker;
-                updateSelected(p);
-                bounceMarker(marker);
-            });
-        });
-    }
-    if (searchInput) {
-        searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const query = searchInput.value.trim().toLowerCase();
-                const target = state.parkings.find(p => p.name.toLowerCase() === query) ||
-                    state.parkings.find(p => p.name.toLowerCase().includes(query));
-                if (target) {
-                    const marker = state.markers.get(target.id);
-                    if (marker) {
-                        ensureMarkerInView(marker);
-                        openMarkerFromOutside(marker);
-                        updateSelected(target);
-                        bounceMarker(marker);
-                    }
-                }
-            }
-        });
-    }
-
-    function exportGeoJson() {
-        const features = [];
-        drawnLayer.eachLayer((layer) => {
-            if (layer.toGeoJSON) features.push(layer.toGeoJSON());
-        });
-        helperLayer.eachLayer((layer) => {
-            if (layer.toGeoJSON) features.push(layer.toGeoJSON());
-        });
-        if (state.originMarker && state.originMarker.toGeoJSON) features.push(state.originMarker.toGeoJSON());
-        if (state.nearestMarker && state.nearestMarker.toGeoJSON) features.push(state.nearestMarker.toGeoJSON());
-        if (state.routeLine && state.routeLine.toGeoJSON) features.push(state.routeLine.toGeoJSON());
-        if (greatCircleLine && greatCircleLine.toGeoJSON) features.push(greatCircleLine.toGeoJSON());
-        workerCluster.eachLayer((layer) => {
-            if (layer.toGeoJSON) features.push(layer.toGeoJSON());
-        });
-        const collection = { type: 'FeatureCollection', features };
-        const blob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'parking-map.geojson';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-    }
-
-    function randomPointInBounds(bounds) {
-        const sw = bounds.getSouthWest();
-        const ne = bounds.getNorthEast();
-        const lat = sw.lat + Math.random() * (ne.lat - sw.lat);
-        const lng = sw.lng + Math.random() * (ne.lng - sw.lng);
-        return [lat, lng];
-    }
-
-    function addRandomMarker() {
-        const point = randomPointInBounds(map.getBounds());
-        const marker = L.marker(point, { draggable: true }).addTo(drawnLayer);
-        marker.bindPopup('Marker ngau nhien').openPopup();
-        bounceMarker(marker);
-    }
-
-    function createWorkerMarkers() {
-        if (!window.Worker) {
-            setStatus('Trinh duyet khong ho tro Web Worker.');
-            return;
-        }
-
-    function updateMaxDrawLabel() {
-        if (!maxDrawRange || !maxDrawLabel) return;
-        maxDrawLabel.textContent = maxDrawRange.value;
-        if (megaLayer) {
-            megaLayer.setMaxDraw(parseInt(maxDrawRange.value, 10));
-        if (map.getZoom() < 12) {
-            setStatus('Zoom >= 12 de xem 1.000.000 diem.');
-        }
-        }
-    }
-
-    function ensureMegaLayer() {
-        if (!megaLayer) {
-            const maxDraw = parseInt(maxDrawRange && maxDrawRange.value ? maxDrawRange.value : '50000', 10);
-            megaLayer = new LargePointLayer({ pane: 'megaPane', color: '#0ea5e9', radius: 2, maxDraw: maxDraw, minZoom: 12 });
-            if (megaData) {
-                megaLayer.setData(megaData, megaData.length / 2);
-            }
-        }
-        return megaLayer;
-    }
-
-    function buildMegaPoints() {
-        if (megaLoading) return;
-        megaLoading = true;
-        setStatus('Dang tao 1.000.000 diem (canvas)...');
-        if (megaWorker) {
-            megaWorker.terminate();
-        }
-        const bounds = maxBounds;
-        const workerCode = `
-            self.onmessage = function(e) {
-                const count = e.data.count;
-                const b = e.data.bounds;
-                const arr = new Float32Array(count * 2);
-                for (let i = 0; i < count; i++) {
-                    const lat = b.s + Math.random() * (b.n - b.s);
-                    const lng = b.w + Math.random() * (b.e - b.w);
-                    const idx = i * 2;
-                    arr[idx] = lat;
-                    arr[idx + 1] = lng;
-                }
-                self.postMessage({ buffer: arr.buffer, count: count }, [arr.buffer]);
-            };
-        `;
-        const blob = new Blob([workerCode], { type: 'application/javascript' });
-        megaWorker = new Worker(URL.createObjectURL(blob));
-        megaWorker.onmessage = (e) => {
-            megaData = new Float32Array(e.data.buffer);
-            megaLoading = false;
-            ensureMegaLayer();
-            megaLayer.setData(megaData, e.data.count);
-            if (toggleMega && toggleMega.checked && !map.hasLayer(megaLayer)) {
-                map.addLayer(megaLayer);
-            }
-            setStatus('Da tao 1.000.000 diem (canvas).');
-            megaWorker.terminate();
-        };
-        megaWorker.onerror = () => {
-            megaLoading = false;
-            setStatus('Loi tao 1.000.000 diem.');
-        };
-        megaWorker.postMessage({
-            count: MEGA_COUNT,
-            bounds: { s: bounds.getSouth(), n: bounds.getNorth(), w: bounds.getWest(), e: bounds.getEast() }
-        });
-    }
-
-    function setMegaVisible(show) {
-        if (!show) {
-            if (megaLayer && map.hasLayer(megaLayer)) {
-                map.removeLayer(megaLayer);
-            }
-            return;
-        }
-        if (!megaData) {
-            buildMegaPoints();
-            return;
-        }
-        ensureMegaLayer();
-        if (!map.hasLayer(megaLayer)) {
-            map.addLayer(megaLayer);
-        }
-        megaLayer.setMaxDraw(parseInt(maxDrawRange.value, 10));
-        if (map.getZoom() < 12) {
-            setStatus('Zoom >= 12 de xem 1.000.000 diem.');
-        }
-    }
-        workerCluster.clearLayers();
-        const bounds = map.getBounds();
-        const workerCode = `
-            self.onmessage = function(e) {
-                const count = e.data.count;
-                const b = e.data.bounds;
-                const points = [];
-                for (let i = 0; i < count; i++) {
-                    const lat = b.s + Math.random() * (b.n - b.s);
-                    const lng = b.w + Math.random() * (b.e - b.w);
-                    points.push([lat, lng]);
-                }
-                self.postMessage(points);
-            };
-        `;
-        const blob = new Blob([workerCode], { type: 'application/javascript' });
-        const worker = new Worker(URL.createObjectURL(blob));
-        worker.onmessage = (e) => {
-            e.data.forEach((pt) => {
-                const marker = L.marker(pt, { icon: iconByAvailability(1) });
-                workerCluster.addLayer(marker);
-            });
-            worker.terminate();
-            setStatus('Da tao marker tu Web Worker.');
-        };
-        worker.postMessage({
-            count: 300,
-            bounds: { s: bounds.getSouth(), n: bounds.getNorth(), w: bounds.getWest(), e: bounds.getEast() }
-        });
-    }
-
-    function tileBounds(latlng, zoom) {
-        const tileSize = 256;
-        const point = map.project(latlng, zoom).divideBy(tileSize).floor();
-        const nw = point.multiplyBy(tileSize);
-        const se = nw.add([tileSize, tileSize]);
-        const nwLatLng = map.unproject(nw, zoom);
-        const seLatLng = map.unproject(se, zoom);
-        return L.latLngBounds(nwLatLng, seLatLng);
-    }
-
-    function showContextMenu(point) {
-        if (!contextMenu) return;
-        contextMenu.style.display = 'block';
-        contextMenu.style.left = `${point.x}px`;
-        contextMenu.style.top = `${point.y}px`;
-    }
-
-    function hideContextMenu() {
-        if (contextMenu) contextMenu.style.display = 'none';
-    }
-
-    map.on('contextmenu', (e) => {
-        contextLatLng = e.latlng;
-        showContextMenu(e.containerPoint);
-    });
-
-    map.on('click', (e) => {
-        hideContextMenu();
-        if (e.originalEvent && e.originalEvent.altKey) {
-            cycleBaseLayer();
-        }
-        if (e.originalEvent && e.originalEvent.shiftKey) {
-            const bounds = tileBounds(e.latlng, map.getZoom());
-            const rect = L.rectangle(bounds, { color: '#6366f1', weight: 1, fillOpacity: 0.1 });
-            rect.addTo(helperLayer);
-            applyGradientToLayer(rect);
-            setStatus('Da ve o tile tai vi tri click.');
-        }
-    });
-
-    if (contextMenu) {
-        contextMenu.addEventListener('click', async (e) => {
-            const action = e.target.getAttribute('data-action');
-            if (!action) return;
-            if (action === 'add-marker' && contextLatLng) {
-                const marker = L.marker(contextLatLng, { draggable: true }).addTo(drawnLayer);
-                marker.bindPopup('Marker thu cong').openPopup();
-                bounceMarker(marker);
-            }
-            if (action === 'copy-coords' && contextLatLng) {
-                const text = `${contextLatLng.lat.toFixed(6)}, ${contextLatLng.lng.toFixed(6)}`;
-                if (navigator.clipboard) await navigator.clipboard.writeText(text);
-                setStatus(`Da copy toa do: ${text}`);
-            }
-            if (action === 'center-here' && contextLatLng) {
-                map.panTo(contextLatLng);
-            }
-            if (action === 'toggle-drag' && selectedMarker && selectedMarker.dragging) {
-                if (selectedMarker.dragging.enabled()) {
-                    selectedMarker.dragging.disable();
-                } else {
-                    selectedMarker.dragging.enable();
-                }
-            }
-            hideContextMenu();
-        });
-    }
-
-    document.addEventListener('click', (e) => {
-        if (contextMenu && !contextMenu.contains(e.target)) {
-            hideContextMenu();
-        }
-    });
-
-    map.on('mousemove', (e) => {
-        mousePos = e.latlng;
-        if (typeof updateMapInfo === 'function') {
-            updateMapInfo();
-        }
-    });
-
-    const _updateMapInfo = updateMapInfo;
-    updateMapInfo = function () {
-        _updateMapInfo();
-        const infoEl = document.getElementById('mapInfoBox');
-        if (!infoEl || !mousePos) return;
-        infoEl.innerHTML += `<br>Mouse: ${mousePos.lat.toFixed(5)}, ${mousePos.lng.toFixed(5)}`;
-    };
-
-    const _setOrigin = setOrigin;
-    setOrigin = function (lat, lon, sourceText) {
-        const ok = _setOrigin(lat, lon, sourceText);
-        if (ok && state.originMarker) {
-            slideMarker(state.originMarker, L.latLng(lat, lon));
-        }
-        return ok;
-    };
-
-    if (toggleAvailable) toggleAvailable.addEventListener('change', () => {
-        if (toggleAvailable.checked) map.addLayer(availableCluster); else map.removeLayer(availableCluster);
-    });
-    if (toggleFull) toggleFull.addEventListener('change', () => {
-        if (toggleFull.checked) map.addLayer(fullCluster); else map.removeLayer(fullCluster);
-    });
-    if (toggleRoute) toggleRoute.addEventListener('change', () => {
-        if (toggleRoute.checked) map.addLayer(routeLayer); else map.removeLayer(routeLayer);
-    });
-    if (toggleDraw) toggleDraw.addEventListener('change', () => {
-        if (toggleDraw.checked) map.addLayer(drawnLayer); else map.removeLayer(drawnLayer);
-    });
-
-    document.querySelectorAll('input[name="baseLayer"]').forEach((radio) => {
-        radio.addEventListener('change', (e) => {
-            setBaseLayer(e.target.value);
-        });
-    });
-
-    if (btnRandomMarker) btnRandomMarker.addEventListener('click', addRandomMarker);
-    if (btnExportGeo) btnExportGeo.addEventListener('click', exportGeoJson);
-    if (btnClearDraw) btnClearDraw.addEventListener('click', () => {
-        drawnLayer.clearLayers();
-        helperLayer.clearLayers();
-        workerCluster.clearLayers();
-        setStatus('Da xoa du lieu ve.');
-    });
-    if (btnWorkerMarkers) btnWorkerMarkers.addEventListener('click', createWorkerMarkers);
-    if (toggleMega) toggleMega.addEventListener('change', (e) => {
-        setMegaVisible(e.target.checked);
-    });
-    if (maxDrawRange) {
-        updateMaxDrawLabel();
-        maxDrawRange.addEventListener('input', updateMaxDrawLabel);
-    }
-
-    const _loadParkings = loadParkings;
-    loadParkings = async function () {
-        await _loadParkings();
-        updateCounts();
-        buildSearchSuggestions();
-        enhanceExistingMarkers();
-        renderParkingList(state.parkings);
-    };
-
-    setTimeout(() => {
-        updateCounts();
-        buildSearchSuggestions();
-        enhanceExistingMarkers();
-        renderParkingList(state.parkings);
-    }, 600);
-})();
-</script>
 {% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

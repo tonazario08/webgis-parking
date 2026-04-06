@@ -1,0 +1,591 @@
+[
+{
+  "model": "auth.group",
+  "fields": {
+    "name": "parking_user_creator",
+    "permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$TM2ZjU7UFID9RZrUTlEMBR$pa8kXur2/hRSUDLN8k4JE+8qmRipNYOYqR8g0CWIrBo=",
+    "last_login": "2026-02-01T09:03:51.858Z",
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-02-01T09:00:05.816Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$5L4UibXAxS7wCvu84dpZ0G$w7Lhmb+OY6F30vdSUATrJY3Aa7XJqFqeYfMRt36cGmg=",
+    "last_login": "2026-03-30T06:49:19.435Z",
+    "is_superuser": true,
+    "username": "anhbe",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-03-06T04:59:17.042Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$gKp94cP1gYJnNXZbFHCPkX$aWllXNWlrZ+H/mjVUPFUHXEJhTJE5Pf0gOIGQm7V1sw=",
+    "last_login": "2026-03-30T06:48:32.979Z",
+    "is_superuser": false,
+    "username": "nhanvien",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-03-27T01:56:16.866Z",
+    "groups": [
+      [
+        "parking_user_creator"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "0tujty3aph66iec6h4pm8mkgat4uuhgm",
+  "fields": {
+    "session_data": ".eJxVjDkOwjAQAP-yNbJ84SMlfd5g7frAAWRLcVIh_o4ipYB2ZjRvCLhvNewjr2FJMIGEyy8jjM_cDpEe2O6dxd62dSF2JOy0g8095dftbP8GFUeFCZTGzAW3gkcrpC7SOXfV5FXhRCKhcJay5yZLz7V0ymBEslqZZDX5WODzBbqNNzc:1w76R5:0cqzjRTnN32VKtffkUOtLFYoVc9QeR4rCrjJcwTMK4M",
+    "expire_date": "2026-04-13T06:49:19.453Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "248jqndbmm0qrw6a35e94di6hov0z3yl",
+  "fields": {
+    "session_data": ".eJxVjDkOwjAQAP-yNbJ84SMlfd5g7frAAWRLcVIh_o4ipYB2ZjRvCLhvNewjr2FJMIGEyy8jjM_cDpEe2O6dxd62dSF2JOy0g8095dftbP8GFUeFCZTGzAW3gkcrpC7SOXfV5FXhRCKhcJay5yZLz7V0ymBEslqZZDX5WODzBbqNNzc:1w5yT5:iDjfD2tmQ78CBBxpfoi6jYTU9BoiN5BxRxiBJF1-00g",
+    "expire_date": "2026-04-10T04:06:43.605Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "5uburnd7mvmxn1dnllrxglybneuk94kb",
+  "fields": {
+    "session_data": ".eJxVjDkOwjAQAP-yNbJ84SMlfd5g7frAAWRLcVIh_o4ipYB2ZjRvCLhvNewjr2FJMIGEyy8jjM_cDpEe2O6dxd62dSF2JOy0g8095dftbP8GFUeFCZTGzAW3gkcrpC7SOXfV5FXhRCKhcJay5yZLz7V0ymBEslqZZDX5WODzBbqNNzc:1vyQKj:xF_amoKhrH52Q-sHcLpxwDxMYhlThPYRHCKjlbI7FR4",
+    "expire_date": "2026-03-20T08:14:53.136Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "bqz01oniw4c9dcb9dyp0vmw1cmjkjmc4",
+  "fields": {
+    "session_data": ".eJxVjEEOwiAQAP-yZ0MWpBR69N43kGXZStXQpLQn499Nkx70OjOZN0TatxL3JmucMwxwhcsvS8RPqYfID6r3RfFSt3VO6kjUaZsalyyv29n-DQq1AgOYgNk7TcKIHU7eEKFHa_tkBdEFNMI4GUsiQRPn3JuEEpLuLDuRBJ8v0cU4Dw:1w5ySh:oAhtdo_nCyyDk0dCviV3Bm1Ek50rZme1pjoEZhCOOqk",
+    "expire_date": "2026-04-10T04:06:19.622Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "yfofl36swgjogqsuuurdwcct148sqv9m",
+  "fields": {
+    "session_data": ".eJxVjEEOwiAQAP-yZ0MosFB69O4bmt0FpGrapLQn499Nkx70OjOZN4y0b3XcW17HKcEAHVx-GZM883yI9KD5vihZ5m2dWB2JOm1TtyXl1_Vs_waVWoUBnHY-BBNyp9F59kbEMRWOWKzXgbEXKr1PSMWLNbqTFLPFgGgtR23g8wXKEDdB:1vmTN1:4dofHqAu0kjjyxIFjfcMHC-QiDGdGGqg4r7gmQMvrro",
+    "expire_date": "2026-02-15T09:03:51.863Z"
+  }
+},
+{
+  "model": "parking.area",
+  "pk": 1,
+  "fields": {
+    "name": "quận tân bình",
+    "description": "Tập trung vào các bãi giữ xe quy mô lớn, an toàn 24/7 phục vụ khách gửi xe dài hạn đi máy bay và nhân viên văn phòng tại các tòa nhà khu vực Cộng Hòa, Trường Chinh. Hệ thống kiểm soát hiện đại giúp bạn yên tâm di chuyển mà không lo về hạ tầng bãi đỗ.",
+    "latitude": 10.8084,
+    "longitude": 106.6468,
+    "is_deleted": false,
+    "deleted_at": null
+  }
+},
+{
+  "model": "parking.area",
+  "pk": 2,
+  "fields": {
+    "name": "quận 10",
+    "description": "Đây là khu vực \"trung tâm của trung tâm\", nơi giao thoa của các trục đường huyết mạch như Ba Tháng Hai, Lê Hồng Phong và Lý Thái Tổ. Đối với một website về bãi giữ xe, tọa độ này nằm rất gần các khu vực trọng điểm như Việt Nam Quốc Tự, Nhà hát Hòa Bình và các bệnh viện lớn, nơi nhu cầu gửi xe luôn ở mức cực kỳ cao.",
+    "latitude": 10.7719,
+    "longitude": 106.6674,
+    "is_deleted": false,
+    "deleted_at": null
+  }
+},
+{
+  "model": "parking.area",
+  "pk": 3,
+  "fields": {
+    "name": "quận 3",
+    "description": "Đây là khu vực lõi di sản và trung tâm hành chính, văn hóa của thành phố. Với hệ thống đường phố bàn cờ, nhiều biệt thự cổ và các trục đường rợp bóng cây xanh như Tú Xương, Trương Định hay Bà Huyện Thanh Quan, Quận 3 là khu vực có nhu cầu gửi xe rất cao, đặc biệt là các bãi xe an toàn dành cho ô tô tại các tòa nhà văn phòng và khu vực gần các cơ quan ngoại giao.",
+    "latitude": 10.7818,
+    "longitude": 106.6851,
+    "is_deleted": false,
+    "deleted_at": null
+  }
+},
+{
+  "model": "parking.parkinglot",
+  "pk": 1,
+  "fields": {
+    "name": "BÃI đỗ xe tự phát",
+    "address": "40 Cộng Hòa, Khu phố 8, Tân Bình, Thành phố Hồ Chí Minh, Việt Nam",
+    "area": 1,
+    "latitude": 10.8015,
+    "longitude": 106.6508,
+    "district": "quận tân bình",
+    "capacity": 20,
+    "price_per_hour": 0,
+    "is_active": true,
+    "revenue": 0,
+    "is_deleted": false,
+    "deleted_at": null
+  }
+},
+{
+  "model": "parking.parkinglot",
+  "pk": 2,
+  "fields": {
+    "name": "BÃI GIỮ XE NGUYỄN TRẦN MINH TÂN",
+    "address": "36 Đ3 Tháng 2, Phường 12, Quận 10, Thành phố Hồ Chí Minh, Việt Nam",
+    "area": 2,
+    "latitude": 10.7761,
+    "longitude": 106.6807,
+    "district": "quận 10",
+    "capacity": 50,
+    "price_per_hour": 0,
+    "is_active": true,
+    "revenue": 0,
+    "is_deleted": false,
+    "deleted_at": null
+  }
+},
+{
+  "model": "parking.parkinglot",
+  "pk": 3,
+  "fields": {
+    "name": "BÃI GIỮ XE CHÍ THÀNH",
+    "address": "370 Cách Mạng Tháng Tám, Phường 9, Quận 3, Thành phố Hồ Chí Minh 70000, Việt Nam",
+    "area": 3,
+    "latitude": 10.7774,
+    "longitude": 106.6825,
+    "district": "quận 3",
+    "capacity": 30,
+    "price_per_hour": 0,
+    "is_active": true,
+    "revenue": 0,
+    "is_deleted": false,
+    "deleted_at": null
+  }
+},
+{
+  "model": "parking.parkinglot",
+  "pk": 4,
+  "fields": {
+    "name": "BÃI GIỮ XE QUỐC TOÀN",
+    "address": "339A Đ Nam Kỳ Khởi Nghĩa, Phường, Nhiêu Lộc, Thành phố Hồ Chí Minh, Việt Nam",
+    "area": 3,
+    "latitude": 10.7894,
+    "longitude": 106.6845,
+    "district": "quận 3",
+    "capacity": 35,
+    "price_per_hour": 0,
+    "is_active": true,
+    "revenue": 0,
+    "is_deleted": false,
+    "deleted_at": null
+  }
+},
+{
+  "model": "parking.parkinglot",
+  "pk": 5,
+  "fields": {
+    "name": "BÃI đỗ xe mini",
+    "address": "373 Đ. Lý Thường Kiệt, Phường 9, Tân Bình, Thành phố Hồ Chí Minh, Việt Nam",
+    "area": 1,
+    "latitude": 10.7795,
+    "longitude": 106.6534,
+    "district": "quận tân bình",
+    "capacity": 35,
+    "price_per_hour": 0,
+    "is_active": true,
+    "revenue": 0,
+    "is_deleted": false,
+    "deleted_at": null
+  }
+},
+{
+  "model": "parking.parkinglot",
+  "pk": 6,
+  "fields": {
+    "name": "bãi xe mì gói",
+    "address": "613, Đường Lê Hồng Phong, Khu phố 26, Phường Vườn Lài, Thành phố Thủ Đức, Thành phố Hồ Chí Minh, 72406, Việt Nam",
+    "area": 2,
+    "latitude": 10.769410724238687,
+    "longitude": 106.67371737123217,
+    "district": "quận 10",
+    "capacity": 30,
+    "price_per_hour": 0,
+    "is_active": true,
+    "revenue": 0,
+    "is_deleted": false,
+    "deleted_at": null
+  }
+},
+{
+  "model": "parking.parkinglot",
+  "pk": 7,
+  "fields": {
+    "name": "BÃI XE AEON TÂN PHÚ",
+    "address": "Ngã ba Hoàng Hoa Thám, 150, Trường Chinh, Phường Bảy Hiền, Thành phố Hồ Chí Minh, 72106, Việt Nam",
+    "area": 1,
+    "latitude": 10.795792045324118,
+    "longitude": 106.6483225175259,
+    "district": "quận tân bình",
+    "capacity": 30,
+    "price_per_hour": 0,
+    "is_active": true,
+    "revenue": 0,
+    "is_deleted": false,
+    "deleted_at": null
+  }
+},
+{
+  "model": "parking.activitylog",
+  "pk": 1,
+  "fields": {
+    "user": null,
+    "action": "Xe 36A-362 vao bai BÃI đỗ xe tự phát",
+    "type": "vehicle",
+    "created_at": "2026-03-06T05:10:05.143Z"
+  }
+},
+{
+  "model": "parking.activitylog",
+  "pk": 2,
+  "fields": {
+    "user": null,
+    "action": "Xe 50A-1823 vao bai BÃI đỗ xe mini",
+    "type": "vehicle",
+    "created_at": "2026-03-06T05:39:21.731Z"
+  }
+},
+{
+  "model": "parking.activitylog",
+  "pk": 3,
+  "fields": {
+    "user": null,
+    "action": "Xe 60A-2421 vao bai BÃI GIỮ XE CHÍ THÀNH",
+    "type": "vehicle",
+    "created_at": "2026-03-06T05:39:49.256Z"
+  }
+},
+{
+  "model": "parking.activitylog",
+  "pk": 4,
+  "fields": {
+    "user": null,
+    "action": "Xe 29B-444 vao bai BÃI GIỮ XE QUỐC TOÀN",
+    "type": "vehicle",
+    "created_at": "2026-03-06T05:40:20.590Z"
+  }
+},
+{
+  "model": "parking.activitylog",
+  "pk": 5,
+  "fields": {
+    "user": null,
+    "action": "Xe 92A-9217 vao bai BÃI đỗ xe mini",
+    "type": "vehicle",
+    "created_at": "2026-03-06T05:40:58.396Z"
+  }
+},
+{
+  "model": "parking.activitylog",
+  "pk": 6,
+  "fields": {
+    "user": null,
+    "action": "Xe 50A-22 vao bai BÃI GIỮ XE CHÍ THÀNH",
+    "type": "vehicle",
+    "created_at": "2026-03-27T01:13:46.211Z"
+  }
+},
+{
+  "model": "parking.activitylog",
+  "pk": 7,
+  "fields": {
+    "user": null,
+    "action": "Xe 36A-333 vao bai BÃI GIỮ XE QUỐC TOÀN",
+    "type": "vehicle",
+    "created_at": "2026-03-27T04:05:15.990Z"
+  }
+},
+{
+  "model": "parking.activitylog",
+  "pk": 8,
+  "fields": {
+    "user": null,
+    "action": "Xe 36A-111 vao bai BÃI GIỮ XE CHÍ THÀNH",
+    "type": "vehicle",
+    "created_at": "2026-03-29T13:13:58.756Z"
+  }
+},
+{
+  "model": "parking.activitylog",
+  "pk": 9,
+  "fields": {
+    "user": null,
+    "action": "Xe 29B-432 vao bai BÃI đỗ xe mini",
+    "type": "vehicle",
+    "created_at": "2026-03-29T13:41:59.406Z"
+  }
+},
+{
+  "model": "parking.parkinguser",
+  "pk": 1,
+  "fields": {
+    "full_name": "Ben10",
+    "phone": "0902728222",
+    "email": "ben@gmail.com",
+    "email_verified": false,
+    "email_verification_token": null,
+    "email_verification_sent_at": null,
+    "address": "2 Dương Bá Trạc, Phường Rạch Ông, Quận 8, Thành phố Hồ Chí Minh, Việt Nam",
+    "license_plate": "36A-362",
+    "vehicle_type": "car",
+    "parking_lot": 1,
+    "is_active": true,
+    "is_deleted": false,
+    "deleted_at": null,
+    "created_at": "2026-03-06T05:10:05.133Z"
+  }
+},
+{
+  "model": "parking.parkinguser",
+  "pk": 2,
+  "fields": {
+    "full_name": "Meguri",
+    "phone": "0372927888",
+    "email": "1@gmail.com",
+    "email_verified": false,
+    "email_verification_token": null,
+    "email_verification_sent_at": null,
+    "address": "233A Đ. Phan Văn Trị, Phường 11, Bình Thạnh, Thành phố Hồ Chí Minh, Việt Nam",
+    "license_plate": "50A-1823",
+    "vehicle_type": "bike",
+    "parking_lot": 5,
+    "is_active": true,
+    "is_deleted": false,
+    "deleted_at": null,
+    "created_at": "2026-03-06T05:39:21.724Z"
+  }
+},
+{
+  "model": "parking.parkinguser",
+  "pk": 3,
+  "fields": {
+    "full_name": "Hoàng",
+    "phone": "0937622284",
+    "email": "thanh@gmail.com",
+    "email_verified": false,
+    "email_verification_token": null,
+    "email_verification_sent_at": null,
+    "address": "Trần Văn Ơn,Tân Sơn Nhì,Quận Tân Phú",
+    "license_plate": "60A-2421",
+    "vehicle_type": "motorbike",
+    "parking_lot": 3,
+    "is_active": true,
+    "is_deleted": false,
+    "deleted_at": null,
+    "created_at": "2026-03-06T05:39:49.248Z"
+  }
+},
+{
+  "model": "parking.parkinguser",
+  "pk": 4,
+  "fields": {
+    "full_name": "Tân",
+    "phone": "0973666182",
+    "email": "ben@gmail.com",
+    "email_verified": false,
+    "email_verification_token": null,
+    "email_verification_sent_at": null,
+    "address": "80 Đ. Nguyễn Xí, Phường 26, Bình Thạnh, Thành phố Hồ Chí Minh, Việt Nam",
+    "license_plate": "29B-444",
+    "vehicle_type": "motorbike",
+    "parking_lot": 4,
+    "is_active": true,
+    "is_deleted": false,
+    "deleted_at": null,
+    "created_at": "2026-03-06T05:40:20.576Z"
+  }
+},
+{
+  "model": "parking.parkinguser",
+  "pk": 5,
+  "fields": {
+    "full_name": "melody mark",
+    "phone": "0972682511",
+    "email": "meo@gmail.com",
+    "email_verified": false,
+    "email_verification_token": null,
+    "email_verification_sent_at": null,
+    "address": "233A Đ. Phan Văn Trị, Phường 11, Bình Thạnh, Thành phố Hồ Chí Minh, Việt Nam",
+    "license_plate": "92A-9217",
+    "vehicle_type": "car",
+    "parking_lot": 5,
+    "is_active": true,
+    "is_deleted": false,
+    "deleted_at": null,
+    "created_at": "2026-03-06T05:40:58.387Z"
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 1,
+  "fields": {
+    "parking_lot": 1,
+    "vehicle_type": "car",
+    "price_per_hour": 20000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 2,
+  "fields": {
+    "parking_lot": 1,
+    "vehicle_type": "motorbike",
+    "price_per_hour": 5000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 3,
+  "fields": {
+    "parking_lot": 1,
+    "vehicle_type": "bike",
+    "price_per_hour": 3000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 4,
+  "fields": {
+    "parking_lot": 2,
+    "vehicle_type": "car",
+    "price_per_hour": 15000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 5,
+  "fields": {
+    "parking_lot": 2,
+    "vehicle_type": "motorbike",
+    "price_per_hour": 4000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 6,
+  "fields": {
+    "parking_lot": 2,
+    "vehicle_type": "bike",
+    "price_per_hour": 3000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 7,
+  "fields": {
+    "parking_lot": 3,
+    "vehicle_type": "car",
+    "price_per_hour": 19000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 8,
+  "fields": {
+    "parking_lot": 3,
+    "vehicle_type": "motorbike",
+    "price_per_hour": 5000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 9,
+  "fields": {
+    "parking_lot": 3,
+    "vehicle_type": "bike",
+    "price_per_hour": 2000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 10,
+  "fields": {
+    "parking_lot": 4,
+    "vehicle_type": "car",
+    "price_per_hour": 25000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 11,
+  "fields": {
+    "parking_lot": 4,
+    "vehicle_type": "motorbike",
+    "price_per_hour": 4000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 12,
+  "fields": {
+    "parking_lot": 4,
+    "vehicle_type": "bike",
+    "price_per_hour": 2000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 13,
+  "fields": {
+    "parking_lot": 5,
+    "vehicle_type": "car",
+    "price_per_hour": 18000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 14,
+  "fields": {
+    "parking_lot": 5,
+    "vehicle_type": "motorbike",
+    "price_per_hour": 3000
+  }
+},
+{
+  "model": "parking.parkingprice",
+  "pk": 15,
+  "fields": {
+    "parking_lot": 5,
+    "vehicle_type": "bike",
+    "price_per_hour": 2000
+  }
+}
+]

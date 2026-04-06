@@ -11,6 +11,10 @@ def send_parking_user_verification_email(request, parking_user):
     if not email_value:
         return True, None
 
+    to_email = (getattr(settings, "MAILTRAP_TO_EMAIL", "") or "").strip()
+    if not to_email:
+        return False, "Chua cau hinh MAILTRAP_TO_EMAIL de nhan email test."
+
     token = secrets.token_urlsafe(32)
     parking_user.email_verification_token = token
     parking_user.email_verification_sent_at = timezone.now()
@@ -65,7 +69,7 @@ def send_parking_user_verification_email(request, parking_user):
             subject,
             text_body,
             settings.DEFAULT_FROM_EMAIL,
-            [email_value],
+            [to_email],
             fail_silently=False,
             html_message=html_body,
         )
@@ -73,3 +77,4 @@ def send_parking_user_verification_email(request, parking_user):
         return False, str(exc)
 
     return True, None
+

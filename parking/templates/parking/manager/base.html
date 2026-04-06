@@ -29,7 +29,9 @@
             <a class="menu-link" href="{% url 'manager_list' 'prices' %}"><i class="fas fa-tags"></i> Bang gia</a>
             <a class="menu-link" href="{% url 'manager_list' 'logs' %}"><i class="fas fa-clock-rotate-left"></i> Nhat ky</a>
             {% else %}
+            <a class="menu-link" href="{% url 'manager_list' 'parkings' %}"><i class="fas fa-warehouse"></i> Bai do xe</a>
             <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Nguoi gui xe</a>
+            <a class="menu-link" href="{% url 'manager_list' 'prices' %}"><i class="fas fa-tags"></i> Bang gia</a>
             {% endif %}
 
             <div class="sidebar-foot">
@@ -118,3 +120,4 @@
     });
 </script></body>
 </html>
+

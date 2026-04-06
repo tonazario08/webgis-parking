@@ -87,6 +87,7 @@ MANAGER_MODELS = {
 
 TRASHABLE_ENTITIES = {"areas", "parkings", "users"}
 LIMITED_MANAGER_GROUP = "parking_user_creator"
+LIMITED_MANAGER_ENTITIES = {"users", "parkings", "prices"}
 
 def _strip_accents(text):
     if not text:
@@ -511,10 +512,13 @@ def _geocode_address_full(address):
         "lon": best.get("lon"),
         "approximate": approximate,
     }
+
 class ParkingLotManagerForm(forms.ModelForm):
     address_input = forms.CharField(required=False, label="Dia chi")
     geo_lat = forms.FloatField(required=False, widget=forms.HiddenInput())
     geo_lon = forms.FloatField(required=False, widget=forms.HiddenInput())
+    polygon_geojson = forms.CharField(required=False, widget=forms.HiddenInput())
+    area_sq_m = forms.FloatField(required=False, widget=forms.HiddenInput())
 
     class Meta:
         model = ParkingLot
@@ -532,6 +536,8 @@ class ParkingLotManagerForm(forms.ModelForm):
             "revenue",
             "geo_lat",
             "geo_lon",
+            "polygon_geojson",
+            "area_sq_m",
         ])
         if "area" in self.fields:
             self.fields["area"].queryset = Area.objects.filter(is_deleted=False)
@@ -542,6 +548,10 @@ class ParkingLotManagerForm(forms.ModelForm):
                 self.fields["geo_lat"].initial = self.instance.latitude
             if self.instance.longitude is not None:
                 self.fields["geo_lon"].initial = self.instance.longitude
+            if self.instance.polygon_geojson:
+                self.fields["polygon_geojson"].initial = self.instance.polygon_geojson
+            if self.instance.area_sq_m:
+                self.fields["area_sq_m"].initial = self.instance.area_sq_m
 
     def clean(self):
         cleaned = super().clean()
@@ -571,6 +581,8 @@ class ParkingLotManagerForm(forms.ModelForm):
         address_input = self.cleaned_data.get("_address_input", "")
         geo_lat = self.cleaned_data.get("geo_lat")
         geo_lon = self.cleaned_data.get("geo_lon")
+        polygon_geojson = (self.cleaned_data.get("polygon_geojson") or "").strip()
+        area_sq_m = self.cleaned_data.get("area_sq_m")
 
         if address_input:
             address_changed = False
@@ -593,6 +605,11 @@ class ParkingLotManagerForm(forms.ModelForm):
 
         if address_input:
             instance.address = address_input
+        instance.polygon_geojson = polygon_geojson
+        if area_sq_m is not None and area_sq_m != "":
+            instance.area_sq_m = float(area_sq_m)
+        else:
+            instance.area_sq_m = 0
         if commit:
             instance.save()
         return instance
@@ -614,6 +631,10 @@ def _is_trashable(entity):
     return entity in TRASHABLE_ENTITIES
 
 
+def _limited_can_manage(entity):
+    return entity in LIMITED_MANAGER_ENTITIES
+
+
 def _manager_back_url(entity, from_trash):
     if from_trash and _is_trashable(entity):
         return reverse("manager_trash", kwargs={"entity": entity})
@@ -621,7 +642,7 @@ def _manager_back_url(entity, from_trash):
 
 
 def _limited_only_redirect(request):
-    messages.error(request, "Tai khoan chi duoc xem va them nguoi gui xe.")
+    messages.error(request, "Tai khoan chi duoc quan ly nguoi gui xe, bai do xe va bang gia.")
     return redirect("manager_list", entity="users")
 
 
@@ -776,7 +797,8 @@ def manager_list(request, entity):
         return redirect("manager_dashboard")
 
     limited_manager = _is_limited_manager(request.user)
-    if limited_manager and entity != "users":
+    limited_allowed = limited_manager and _limited_can_manage(entity)
+    if limited_manager and not limited_allowed:
         return _limited_only_redirect(request)
 
     model = config["model"]
@@ -803,8 +825,8 @@ def manager_list(request, entity):
         "trashable": trashable,
         "trash_mode": False,
         "limited_manager": limited_manager,
-        "can_manage": not limited_manager,
-        "show_trash": trashable and not limited_manager,
+        "can_manage": (not limited_manager) or limited_allowed,
+        "show_trash": trashable and ((not limited_manager) or limited_allowed),
     }
     return render(request, "parking/manager/list.html", context)
 
@@ -815,14 +837,14 @@ def manager_trash_list(request, entity):
     if not _is_trashable(entity):
         return redirect("manager_list", entity=entity)
 
-    if _is_limited_manager(request.user):
+    if _is_limited_manager(request.user) and not _limited_can_manage(entity):
         return _limited_only_redirect(request)
 
     config = MANAGER_MODELS.get(entity)
     if not config or config.get("readonly"):
         return redirect("manager_list", entity=entity)
 
-    if _is_limited_manager(request.user):
+    if _is_limited_manager(request.user) and not _limited_can_manage(entity):
         return _limited_only_redirect(request)
 
     model = config["model"]
@@ -861,7 +883,7 @@ def manager_restore(request, entity, pk):
     if not config or config.get("readonly"):
         return redirect("manager_list", entity=entity)
 
-    if _is_limited_manager(request.user):
+    if _is_limited_manager(request.user) and not _limited_can_manage(entity):
         return _limited_only_redirect(request)
 
     model = config["model"]
@@ -882,7 +904,7 @@ def manager_create(request, entity):
     if not config or config.get("readonly"):
         return redirect("manager_list", entity=entity)
 
-    if _is_limited_manager(request.user) and entity != "users":
+    if _is_limited_manager(request.user) and not _limited_can_manage(entity):
         return _limited_only_redirect(request)
 
     model = config["model"]
@@ -906,7 +928,7 @@ def manager_create(request, entity):
                         raise ValidationError({"email": f"Khong gui duoc email: {err_msg}"})
             messages.success(request, "Tao moi thanh cong.")
             if _is_limited_manager(request.user):
-                return redirect("manager_list", entity="users")
+                return redirect("manager_list", entity=entity)
             return redirect("manager_list", entity=entity)
         except ValidationError as exc:
             if hasattr(exc, "message_dict"):
@@ -934,7 +956,7 @@ def manager_edit(request, entity, pk):
     if not config or config.get("readonly"):
         return redirect("manager_list", entity=entity)
 
-    if _is_limited_manager(request.user):
+    if _is_limited_manager(request.user) and not _limited_can_manage(entity):
         return _limited_only_redirect(request)
 
     model = config["model"]
@@ -978,7 +1000,7 @@ def manager_delete(request, entity, pk):
     if not config or config.get("readonly"):
         return redirect("manager_list", entity=entity)
 
-    if _is_limited_manager(request.user):
+    if _is_limited_manager(request.user) and not _limited_can_manage(entity):
         return _limited_only_redirect(request)
 
     model = config["model"]
@@ -1091,6 +1113,16 @@ def manager_geocode_reverse(request):
         return JsonResponse({"display_name": ""})
 
     return JsonResponse({"display_name": data.get("display_name", "")})
+
+
+
+
+
+
+
+
+
+
 
 
 

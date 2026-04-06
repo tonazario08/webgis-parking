@@ -77,12 +77,18 @@ WSGI_APPLICATION = 'webgis_parking.wsgi.application'
 
 DATABASES = {
     'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+    },
+    'sqlite': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
-
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
@@ -126,8 +132,12 @@ EMAIL_HOST_USER = os.getenv("MAILTRAP_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("MAILTRAP_PASSWORD", "")
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = os.getenv("MAILTRAP_FROM_EMAIL", "no-reply@example.com")
+MAILTRAP_TO_EMAIL = os.getenv("MAILTRAP_TO_EMAIL", "")
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "")
 SENDGRID_FROM_NAME = os.getenv("SENDGRID_FROM_NAME", "Parking GIS")
 SENDGRID_VALIDATION_API_KEY = os.getenv("SENDGRID_VALIDATION_API_KEY", "")
 SENDGRID_REQUIRE_VALIDATION = os.getenv("SENDGRID_REQUIRE_VALIDATION", "true").lower() in ("1", "true", "yes")
+
+
+

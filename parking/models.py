@@ -7,7 +7,6 @@ from django.core.exceptions import ValidationError
 class Area(models.Model):
     name = models.CharField("Ten khu vuc", max_length=100)
     description = models.TextField("Mo ta", blank=True, default="")
-
     latitude = models.FloatField("Vi do", null=True, blank=True)
     longitude = models.FloatField("Kinh do", null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
@@ -32,6 +31,8 @@ class ParkingLot(models.Model):
     price_per_hour = models.PositiveIntegerField("Gia mac dinh (khong dung)", default=0)
     is_active = models.BooleanField("Dang hoat dong", default=True)
     revenue = models.PositiveIntegerField("Doanh thu", default=0)
+    polygon_geojson = models.TextField("Ranh gioi (GeoJSON)", blank=True, default="")
+    area_sq_m = models.FloatField("Dien tich (m2)", default=0)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -185,3 +186,4 @@ class ParkingPrice(models.Model):
 
     def __str__(self):
         return f"{self.parking_lot.name} - {self.get_vehicle_type_display()}"
+

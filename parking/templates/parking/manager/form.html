@@ -7,7 +7,7 @@
 <div class="panel form-panel">
     {% if entity == 'parkings' %}
     <div class="alert alert-info">
-        Nhap 1 dong dia chi (vi du: 239 Duong Tay Thanh, Tay Thanh, Tan Phu, TP.HCM). He thong se tu dong lay toa do va hien tren ban do.
+        Nhap 1 dong dia chi (vi du: 239 Duong Tay Thanh, Tay Thanh, Tan Phu, TP.HCM). He thong se tu dong lay toa do va hien tren ban do. Ve ranh gioi bai do (polygon) de tinh dien tich.
     </div>
 
         <div class="map-preview" style="margin-bottom: 1rem;">
@@ -20,6 +20,7 @@
         </div>
     </div>
         <div id="geoStatus" class="small text-danger mb-3" style="display:none;"></div>
+        <div id="polygonAreaInfo" class="small text-muted mb-3">Dien tich bai: chua ve</div>
     {% endif %}
 
     <form method="post">
@@ -27,6 +28,9 @@
         {{ form.non_field_errors }}
 
         {% for field in form %}
+        {% if field.is_hidden %}
+        {{ field }}
+        {% else %}
         <div class="mb-3 position-relative">
             <label class="form-label">{{ field.label }}</label>
             {{ field }}
@@ -39,6 +43,7 @@
             {% endif %}
             {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
         </div>
+        {% endif %}
         {% endfor %}
 
         <div class="d-flex gap-2">
@@ -69,6 +74,8 @@
     @keyframes markerJump { 0% { transform: translateY(0); } 30% { transform: translateY(-10px); } 60% { transform: translateY(0); } }
     .marker-label { background: rgba(255,255,255,0.9); border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px 6px; font-size: 11px; font-weight: 600; color: #0f172a; box-shadow: 0 2px 6px rgba(15,23,42,0.12); }
     .mega-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+    .map-draw-control { background: #fff; border: 1px solid #d7e2dc; border-radius: 10px; padding: .35rem; display: flex; flex-direction: column; gap: .35rem; box-shadow: 0 6px 14px rgba(16, 33, 36, 0.12); }
+    .map-draw-control .map-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; padding: 0; }
 </style>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -82,6 +89,9 @@
     const addressInput = document.getElementById('id_address_input');
     const latInput = document.getElementById('id_geo_lat');
     const lonInput = document.getElementById('id_geo_lon');
+    const polygonInput = document.getElementById('id_polygon_geojson');
+    const areaInput = document.getElementById('id_area_sq_m');
+    const areaInfo = document.getElementById('polygonAreaInfo');
     const suggestionBox = document.getElementById('addressSuggestions');
     const geoStatus = document.getElementById('geoStatus');
     const btnCheck = document.getElementById('btnCheckAddress');
@@ -96,15 +106,18 @@
         maxBoundsViscosity: 0.85,
         fullscreenControl: true,
     }).setView([defaultView.lat, defaultView.lng], defaultView.zoom);
+    map.on("pm:globaleditmodetoggled", () => map.invalidateSize());
+    map.on("pm:drawstart", () => map.invalidateSize());
+    map.on("pm:drawend", () => map.invalidateSize());
 
     const baseLayers = {
-        "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        "OpenStreetMap": L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             maxZoom: 19,
-            attribution: '(c) OpenStreetMap contributors'
+            attribution: '© OpenStreetMap contributors © CARTO'
         }),
-        "OSM Humanitarian": L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        "OSM Humanitarian": L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 19,
-            attribution: '(c) OpenStreetMap contributors, HOT'
+            attribution: '© OpenStreetMap contributors © CARTO'
         }),
         "Esri Imagery": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 19,
@@ -116,7 +129,7 @@
     L.control.layers(baseLayers, {}, { position: 'topright' }).addTo(map);
     L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
 
-    const miniLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    const miniLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png');
     new L.Control.MiniMap(miniLayer, { toggleDisplay: true, minimized: true, position: 'bottomright' }).addTo(map);
 
     const mapInfo = L.control({ position: 'bottomleft' });
@@ -313,6 +326,10 @@
     });
 
     map.on('click', async (e) => {
+        if (window.__parkingDrawMode && window.__parkingDrawAddPoint) {
+            window.__parkingDrawAddPoint(e.latlng);
+            return;
+        }
         clearStatus();
         const lat = e.latlng.lat;
         const lon = e.latlng.lng;
@@ -355,6 +372,188 @@
     const drawnLayer = L.featureGroup().addTo(map);
     const helperLayer = L.layerGroup().addTo(map);
     const workerCluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 60 }).addTo(map);
+    const boundaryLayer = L.featureGroup().addTo(map);
+    let boundaryLayerRef = null;
+
+    function formatAreaText(area) {
+        if (!area || area <= 0) return "Dien tich bai: chua ve";
+        if (area >= 10000) {
+            const ha = area / 10000;
+            return `Dien tich bai: ${area.toFixed(0)} m² (~${ha.toFixed(2)} ha)`;
+        }
+        return `Dien tich bai: ${area.toFixed(0)} m²`;
+    }
+
+    function ringArea(latlngs) {
+        if (!latlngs || latlngs.length < 3) return 0;
+        const d2r = Math.PI / 180;
+        let area = 0;
+        for (let i = 0; i < latlngs.length; i++) {
+            const p1 = latlngs[i];
+            const p2 = latlngs[(i + 1) % latlngs.length];
+            area += (p2.lng - p1.lng) * d2r * (2 + Math.sin(p1.lat * d2r) + Math.sin(p2.lat * d2r));
+        }
+        return (area * 6378137 * 6378137) / 2;
+    }
+
+    function polygonArea(latlngs) {
+        if (!latlngs || latlngs.length === 0) return 0;
+        if (latlngs[0] && latlngs[0].lat !== undefined) {
+            return Math.abs(ringArea(latlngs));
+        }
+        let total = 0;
+        for (let i = 0; i < latlngs.length; i++) {
+            const part = latlngs[i];
+            if (!part || part.length === 0) continue;
+            if (part[0] && part[0].lat !== undefined) {
+                total += i === 0 ? ringArea(part) : -ringArea(part);
+            } else {
+                total += polygonArea(part);
+            }
+        }
+        return Math.abs(total);
+    }
+
+    function computeLayerArea(layer) {
+        if (!layer || !(layer instanceof L.Polygon)) return 0;
+        return polygonArea(layer.getLatLngs());
+    }
+
+    function updateBoundaryInputs(layer) {
+        if (!polygonInput || !areaInput) return;
+        if (!layer) {
+            polygonInput.value = "";
+            areaInput.value = "";
+            if (areaInfo) areaInfo.textContent = formatAreaText(0);
+            return;
+        }
+        const area = computeLayerArea(layer);
+        areaInput.value = area ? area.toFixed(2) : "";
+        polygonInput.value = JSON.stringify(layer.toGeoJSON());
+        if (areaInfo) areaInfo.textContent = formatAreaText(area);
+    }
+
+    function setBoundaryLayer(layer) {
+        if (!layer) return;
+        if (boundaryLayerRef) {
+            boundaryLayer.removeLayer(boundaryLayerRef);
+        }
+        boundaryLayerRef = layer;
+        boundaryLayer.addLayer(layer);
+        applyGradientToLayer(layer);
+        updateBoundaryInputs(layer);
+    }
+
+    function clearBoundary() {
+        boundaryLayer.clearLayers();
+        boundaryLayerRef = null;
+        updateBoundaryInputs(null);
+    }
+
+    function loadBoundaryFromInput() {
+        if (!polygonInput || !polygonInput.value) return;
+        try {
+            const geo = JSON.parse(polygonInput.value);
+            const layer = L.geoJSON(geo).getLayers()[0];
+            if (layer) {
+                setBoundaryLayer(layer);
+                if (layer.getBounds) {
+                    map.fitBounds(layer.getBounds(), { padding: [20, 20], maxZoom: 18 });
+                }
+            }
+        } catch (e) {
+            // ignore invalid json
+        }
+    }
+
+    const drawVertexLayer = L.layerGroup().addTo(map);
+    let drawMode = false;
+    let drawPoints = [];
+    let tempLine = null;
+
+    function setDrawMode(active) {
+        drawMode = active;
+        window.__parkingDrawMode = active;
+    }
+
+    function addManualPoint(latlng) {
+        if (!drawMode) return;
+        drawPoints.push(latlng);
+        L.circleMarker(latlng, { radius: 4, color: "#0ea5e9", weight: 2, fillColor: "#38bdf8", fillOpacity: 0.8 }).addTo(drawVertexLayer);
+        if (tempLine) {
+            tempLine.setLatLngs(drawPoints);
+        } else {
+            tempLine = L.polyline(drawPoints, { color: "#0ea5e9", weight: 2, dashArray: "6,6" }).addTo(map);
+        }
+    }
+
+    function startManualDraw() {
+        clearBoundary();
+        drawVertexLayer.clearLayers();
+        if (tempLine) { map.removeLayer(tempLine); tempLine = null; }
+        drawPoints = [];
+        setDrawMode(true);
+        map.doubleClickZoom.disable();
+        if (areaInfo) areaInfo.textContent = "Che do ve: click de them diem, double click de ket thuc.";
+    }
+
+    function finishManualDraw() {
+        if (!drawMode) return;
+        if (drawPoints.length < 3) {
+            if (areaInfo) areaInfo.textContent = "Can it nhat 3 diem de tao polygon.";
+            return;
+        }
+        if (tempLine) { map.removeLayer(tempLine); tempLine = null; }
+        const polygon = L.polygon(drawPoints, { color: "#0ea5e9", weight: 2, fillOpacity: 0.55 });
+        setBoundaryLayer(polygon);
+        drawVertexLayer.clearLayers();
+        drawPoints = [];
+        setDrawMode(false);
+        map.doubleClickZoom.enable();
+    }
+
+    function cancelManualDraw() {
+        if (!drawMode) return;
+        if (tempLine) { map.removeLayer(tempLine); tempLine = null; }
+        drawVertexLayer.clearLayers();
+        drawPoints = [];
+        setDrawMode(false);
+        map.doubleClickZoom.enable();
+        if (areaInfo) areaInfo.textContent = formatAreaText(boundaryLayerRef ? computeLayerArea(boundaryLayerRef) : 0);
+    }
+
+    function initManualDrawControls() {
+        if (window.__parkingDrawControlsAdded) return;
+        window.__parkingDrawControlsAdded = true;
+        const control = L.control({ position: "topleft" });
+        control.onAdd = function () {
+            const div = L.DomUtil.create("div", "map-draw-control");
+            div.innerHTML = `
+                <button type="button" class="map-btn" data-action="draw-start" title="Ve polygon"><i class="fas fa-draw-polygon"></i></button>
+                <button type="button" class="map-btn" data-action="draw-finish" title="Hoan tat"><i class="fas fa-check"></i></button>
+                <button type="button" class="map-btn" data-action="draw-cancel" title="Huy"><i class="fas fa-trash"></i></button>
+            `;
+            L.DomEvent.disableClickPropagation(div);
+            return div;
+        };
+        control.addTo(map);
+        const wrap = document.querySelector(".map-draw-control");
+        if (wrap) {
+            wrap.querySelector("[data-action=draw-start]").addEventListener("click", startManualDraw);
+            wrap.querySelector("[data-action=draw-finish]").addEventListener("click", finishManualDraw);
+            wrap.querySelector("[data-action=draw-cancel]").addEventListener("click", cancelManualDraw);
+        }
+    }
+
+    window.__parkingDrawAddPoint = addManualPoint;
+    map.on("dblclick", (e) => {
+        if (drawMode) {
+            L.DomEvent.preventDefault(e);
+            finishManualDraw();
+        }
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") cancelManualDraw(); });
+    initManualDrawControls();
 
     const megaPane = map.createPane('megaPaneForm');
     megaPane.style.zIndex = 250;
@@ -680,9 +879,17 @@
         layer._path.setAttribute('stroke', '#0ea5e9');
         layer._path.setAttribute('stroke-width', '2');
     }
-    if (map.pm && map.pm.addControls) {
+    function initGeomanControls() {
+        if (!map.pm && window.L && L.PM && L.PM.Map) {
+            map.pm = new L.PM.Map(map);
+        }
+        if (!map.pm || !map.pm.addControls) {
+            if (areaInfo) areaInfo.textContent = "Su dung cong cu ve thu cong ben trai.";
+            initManualDrawControls();
+            return;
+        }
         map.pm.addControls({
-            position: 'topleft',
+            position: "topleft",
             drawMarker: true,
             drawCircle: true,
             drawPolyline: true,
@@ -694,7 +901,11 @@
             removalMode: true,
         });
         map.on('pm:create', (e) => {
-            drawnLayer.addLayer(e.layer);
+            if (e.layer instanceof L.Polygon) {
+                setBoundaryLayer(e.layer);
+            } else {
+                drawnLayer.addLayer(e.layer);
+            }
             applyGradientToLayer(e.layer);
         });
         map.on('pm:edit', (e) => {
@@ -703,7 +914,26 @@
             } else if (e && e.layer) {
                 applyGradientToLayer(e.layer);
             }
+            if (boundaryLayerRef) {
+                if (e && e.layers && e.layers.eachLayer) {
+                    e.layers.eachLayer((layer) => { if (layer === boundaryLayerRef) updateBoundaryInputs(boundaryLayerRef); });
+                } else if (e && e.layer && e.layer === boundaryLayerRef) {
+                    updateBoundaryInputs(boundaryLayerRef);
+                }
+            }
         });
+        map.on('pm:remove', (e) => {
+            if (boundaryLayerRef && e.layer === boundaryLayerRef) {
+                clearBoundary();
+            }
+        });
+    }
+
+    if (map.pm && map.pm.addControls) {
+        initGeomanControls();
+    } else {
+        initManualDrawControls();
+        if (areaInfo) areaInfo.textContent = "Su dung cong cu ve thu cong ben trai.";
     }
 
     map.on('contextmenu', (e) => {
@@ -770,6 +1000,7 @@
         drawnLayer.clearLayers();
         helperLayer.clearLayers();
         workerCluster.clearLayers();
+        clearBoundary();
     });
     if (btnWorker) btnWorker.addEventListener('click', createWorkerMarkers);
     if (btnMega) btnMega.addEventListener('click', toggleMegaLayer);
@@ -777,10 +1008,15 @@
         updateMaxDrawLabel();
         maxDrawRange.addEventListener('input', updateMaxDrawLabel);
     }
+    loadBoundaryFromInput();
 })();
 </script>
 {% endif %}
 {% endblock %}
+
+
+
+
 
 
 
