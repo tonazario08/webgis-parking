@@ -1,26 +1,26 @@
 ﻿{% extends 'parking/manager/base.html' %}
 
-{% block title %}{% if mode == 'create' %}Them{% else %}Cap nhat{% endif %} {{ title }}{% endblock %}
-{% block page_title %}{% if mode == 'create' %}Them{% else %}Cap nhat{% endif %} {{ title }}{% endblock %}
+{% block title %}{% if mode == 'create' %}Thêm{% else %}Cập nhật{% endif %} {{ title }}{% endblock %}
+{% block page_title %}{% if mode == 'create' %}Thêm{% else %}Cập nhật{% endif %} {{ title }}{% endblock %}
 
 {% block content %}
 <div class="panel form-panel">
     {% if entity == 'parkings' %}
     <div class="alert alert-info">
-        Nhap 1 dong dia chi (vi du: 239 Duong Tay Thanh, Tay Thanh, Tan Phu, TP.HCM). He thong se tu dong lay toa do va hien tren ban do. Ve ranh gioi bai do (polygon) de tinh dien tich.
+        Nhập 1 dòng địa chỉ (ví dụ: 239 Đường Tây Thạnh, Tây Thạnh, Tân Phú, TP.HCM). Hệ thống sẽ tự động lấy tọa độ và hiện trên bản đồ. Vẽ ranh giới bãi đỗ (polygon) để tính diện tích.
     </div>
 
         <div class="map-preview" style="margin-bottom: 1rem;">
         <div id="mapPreview" style="height: 280px; border-radius: 12px; overflow: hidden; border: 1px solid #d7e2dc;"></div>
         <div id="mapContextMenuForm" class="context-menu">
-            <button type="button" data-action="add-marker">Them marker tai day</button>
-            <button type="button" data-action="copy-coords">Copy toa do</button>
-            <button type="button" data-action="center-here">Can giua tai day</button>
-            <button type="button" data-action="toggle-drag">Bat/tat keo marker</button>
+            <button type="button" data-action="add-marker">Thêm marker tại đây</button>
+            <button type="button" data-action="copy-coords">Copy tọa độ</button>
+            <button type="button" data-action="center-here">Căn giữa tại đây</button>
+            <button type="button" data-action="toggle-drag">Bật/tắt kéo marker</button>
         </div>
     </div>
         <div id="geoStatus" class="small text-danger mb-3" style="display:none;"></div>
-        <div id="polygonAreaInfo" class="small text-muted mb-3">Dien tich bai: chua ve</div>
+        <div id="polygonAreaInfo" class="small text-muted mb-3">Diện tích bãi: chưa vẽ</div>
     {% endif %}
 
     <form method="post" enctype="multipart/form-data">
@@ -39,8 +39,8 @@
             {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
             {% if field.name == 'address_input' %}
             <div class="d-flex gap-2 mt-2">
-                <button id="btnCheckAddress" class="btn btn-sm btn-outline-primary" type="button">Kiem tra dia chi</button>
-                <button id="btnClearAddress" class="btn btn-sm btn-outline-secondary" type="button">Xoa dia chi</button>
+                <button id="btnCheckAddress" class="btn btn-sm btn-outline-primary" type="button">Kiểm tra địa chỉ</button>
+                <button id="btnClearAddress" class="btn btn-sm btn-outline-secondary" type="button">Xóa địa chỉ</button>
             </div>
             <div id="addressSuggestions" class="list-group position-absolute w-100" style="z-index: 5;"></div>
             {% endif %}
@@ -52,7 +52,7 @@
                         <img src="{{ image.image.url }}" alt="{{ image.parking_lot.name }}" style="width:100%; height:120px; object-fit:cover; border-radius:10px;">
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" name="{{ field.html_name }}" value="{{ image.id }}" id="remove_image_{{ image.id }}">
-                            <label class="form-check-label" for="remove_image_{{ image.id }}">Xoa anh nay</label>
+                            <label class="form-check-label" for="remove_image_{{ image.id }}">Xóa ảnh này</label>
                         </div>
                     </div>
                 </div>
@@ -65,8 +65,8 @@
         {% endfor %}
 
         <div class="d-flex gap-2">
-            <button class="btn btn-manager" type="submit">Luu</button>
-            <a class="btn btn-outline-secondary" href="{% url 'manager_list' entity %}">Huy</a>
+            <button class="btn btn-manager" type="submit">Lưu</button>
+            <a class="btn btn-outline-secondary" href="{% url 'manager_list' entity %}">Hủy</a>
         </div>
     </form>
 </div>
@@ -162,7 +162,7 @@
     homeControl.onAdd = function () {
         const btn = L.DomUtil.create('button', 'map-btn');
         btn.type = 'button';
-        btn.title = 'Ve tam mac dinh';
+        btn.title = 'Về tâm mặc định';
         btn.innerHTML = '<i class="fas fa-house"></i>';
         L.DomEvent.disableClickPropagation(btn);
         L.DomEvent.on(btn, 'click', (e) => {
@@ -223,10 +223,10 @@
                 const addr = await reverseGeocode(pos.lat, pos.lng);
                 if (addr) {
                     addressInput.value = addr;
-                    showStatus('Da cap nhat dia chi tu marker keo.', 'success');
+                    showStatus('Đã cập nhật địa chỉ từ marker kéo.', 'success');
                 }
             } catch (e) {
-                showStatus('Khong the cap nhat dia chi tu marker.', 'warning');
+                showStatus('Không thể cập nhật địa chỉ từ marker.', 'warning');
             }
         });
     }
@@ -293,19 +293,19 @@
 
     async function forwardGeocode(query) {
         if (!query || query.length < 3) {
-            showStatus('Nhap dia chi day du.', 'error');
+            showStatus('Nhập địa chỉ đầy đủ.', 'error');
             return null;
         }
         clearStatus();
         try {
             const data = await fetchJson(`{% url 'manager_geocode_forward' %}?q=${encodeURIComponent(query)}`);
             if (!data || !data.ok) {
-                showStatus((data && data.error) ? data.error : 'Khong tim thay dia chi.', 'error');
+                showStatus((data && data.error) ? data.error : 'Không tìm thấy địa chỉ.', 'error');
                 return null;
             }
             return data;
         } catch (e) {
-            showStatus('Khong the ket noi dich vu dinh vi.', 'error');
+            showStatus('Không thể kết nối dịch vụ định vị.', 'error');
             return null;
         }
     }
@@ -329,9 +329,9 @@
         addressInput.value = result.display_name || query;
         setMarker(parseFloat(result.lat), parseFloat(result.lon));
         if (result.approximate) {
-            showStatus('Khong tim thay so nha, dang dinh vi theo ten duong (gan dung).', 'warning');
+            showStatus('Không tìm thấy số nhà, đang định vị theo tên đường (gần đúng).', 'warning');
         } else {
-            showStatus('Da tim thay dia chi va dinh vi tren ban do.', 'success');
+            showStatus('Đã tìm thấy địa chỉ và định vị trên bản đồ.', 'success');
         }
     });
 
@@ -355,9 +355,9 @@
         const addr = await reverseGeocode(lat, lon);
         if (addr) {
             addressInput.value = addr;
-            showStatus('Da lay dia chi tu ban do.', 'success');
+            showStatus('Đã lấy địa chỉ từ bản đồ.', 'success');
         } else {
-            showStatus('Khong the lay dia chi tu vi tri nay. Hay thu lai.', 'error');
+            showStatus('Không thể lấy địa chỉ từ vị trí này. Hãy thử lại.', 'error');
         }
     });
 
@@ -394,12 +394,12 @@
     let boundaryLayerRef = null;
 
     function formatAreaText(area) {
-        if (!area || area <= 0) return "Dien tich bai: chua ve";
+        if (!area || area <= 0) return "Diện tích bãi: chưa vẽ";
         if (area >= 10000) {
             const ha = area / 10000;
-            return `Dien tich bai: ${area.toFixed(0)} m² (~${ha.toFixed(2)} ha)`;
+            return `Diện tích bãi: ${area.toFixed(0)} m² (~${ha.toFixed(2)} ha)`;
         }
-        return `Dien tich bai: ${area.toFixed(0)} m²`;
+        return `Diện tích bãi: ${area.toFixed(0)} m²`;
     }
 
     function ringArea(latlngs) {
@@ -512,13 +512,13 @@
         drawPoints = [];
         setDrawMode(true);
         map.doubleClickZoom.disable();
-        if (areaInfo) areaInfo.textContent = "Che do ve: click de them diem, double click de ket thuc.";
+        if (areaInfo) areaInfo.textContent = "Chế độ vẽ: click để thêm điểm, double click để kết thúc.";
     }
 
     function finishManualDraw() {
         if (!drawMode) return;
         if (drawPoints.length < 3) {
-            if (areaInfo) areaInfo.textContent = "Can it nhat 3 diem de tao polygon.";
+            if (areaInfo) areaInfo.textContent = "Cần ít nhất 3 điểm để tạo polygon.";
             return;
         }
         if (tempLine) { map.removeLayer(tempLine); tempLine = null; }
@@ -547,9 +547,9 @@
         control.onAdd = function () {
             const div = L.DomUtil.create("div", "map-draw-control");
             div.innerHTML = `
-                <button type="button" class="map-btn" data-action="draw-start" title="Ve polygon"><i class="fas fa-draw-polygon"></i></button>
-                <button type="button" class="map-btn" data-action="draw-finish" title="Hoan tat"><i class="fas fa-check"></i></button>
-                <button type="button" class="map-btn" data-action="draw-cancel" title="Huy"><i class="fas fa-trash"></i></button>
+                <button type="button" class="map-btn" data-action="draw-start" title="Vẽ polygon"><i class="fas fa-draw-polygon"></i></button>
+                <button type="button" class="map-btn" data-action="draw-finish" title="Hoàn tất"><i class="fas fa-check"></i></button>
+                <button type="button" class="map-btn" data-action="draw-cancel" title="Hủy"><i class="fas fa-trash"></i></button>
             `;
             L.DomEvent.disableClickPropagation(div);
             return div;
@@ -747,7 +747,7 @@
         if (megaLayer) {
             megaLayer.setMaxDraw(parseInt(maxDrawRange.value, 10));
             if (map.getZoom() < 14 && typeof showStatus === 'function') {
-                showStatus('Zoom >= 14 de xem 1.000.000 diem.', 'warning');
+                showStatus('Zoom >= 14 để xem 1.000.000 điểm.', 'warning');
             }
         }
     }
@@ -767,7 +767,7 @@
         if (megaLoading) return;
         megaLoading = true;
         if (typeof showStatus === 'function') {
-            showStatus('Dang tao 1.000.000 diem (canvas)...', 'warning');
+            showStatus('Đang tạo 1.000.000 điểm (canvas)...', 'warning');
         }
         if (megaWorker) {
             megaWorker.terminate();
@@ -799,14 +799,14 @@
                 map.addLayer(megaLayer);
             }
             if (typeof showStatus === 'function') {
-                showStatus('Da tao 1.000.000 diem (canvas).', 'success');
+                showStatus('Đã tạo 1.000.000 điểm (canvas).', 'success');
             }
             megaWorker.terminate();
         };
         megaWorker.onerror = () => {
             megaLoading = false;
             if (typeof showStatus === 'function') {
-                showStatus('Loi tao 1.000.000 diem.', 'error');
+                showStatus('Lỗi tạo 1.000.000 điểm.', 'error');
             }
         };
         megaWorker.postMessage({
@@ -827,7 +827,7 @@
             map.addLayer(megaLayer);
             megaLayer.setMaxDraw(parseInt(maxDrawRange.value, 10));
             if (map.getZoom() < 14 && typeof showStatus === 'function') {
-                showStatus('Zoom >= 14 de xem 1.000.000 diem.', 'warning');
+                showStatus('Zoom >= 14 để xem 1.000.000 điểm.', 'warning');
             }
         }
     }
@@ -902,7 +902,7 @@
             map.pm = new L.PM.Map(map);
         }
         if (!map.pm || !map.pm.addControls) {
-            if (areaInfo) areaInfo.textContent = "Su dung cong cu ve thu cong ben trai.";
+            if (areaInfo) areaInfo.textContent = "Sử dụng công cụ vẽ thủ công bên trái.";
             initManualDrawControls();
             return;
         }
@@ -951,7 +951,7 @@
         initGeomanControls();
     } else {
         initManualDrawControls();
-        if (areaInfo) areaInfo.textContent = "Su dung cong cu ve thu cong ben trai.";
+        if (areaInfo) areaInfo.textContent = "Sử dụng công cụ vẽ thủ công bên trái.";
     }
 
     map.on('contextmenu', (e) => {
@@ -1003,7 +1003,7 @@
     setMarker = function (lat, lon) {
         _setMarker(lat, lon);
         if (marker) {
-            marker.bindTooltip('Vi tri bai do', { permanent: true, direction: 'bottom', offset: [0, 12], className: 'marker-label' });
+            marker.bindTooltip('Vị trí bãi đỗ', { permanent: true, direction: 'bottom', offset: [0, 12], className: 'marker-label' });
             bounceMarker(marker);
             slideMarker(marker, L.latLng(lat, lon));
         }

@@ -2,22 +2,22 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold text-success"><i class="fas fa-check-circle me-2"></i>Bai do dang con trong</h3>
-    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Quay lai Dashboard</a>
+    <h3 class="fw-bold text-success"><i class="fas fa-check-circle me-2"></i>Bãi đỗ đang còn trống</h3>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Quay lại Dashboard</a>
 </div>
 
 <div class="card card-custom bg-white p-4 shadow-sm border-top border-success border-4">
-    <p class="text-muted mb-4">Danh sach bai do co the tiep nhan xe ngay lap tuc.</p>
+    <p class="text-muted mb-4">Danh sách bãi đỗ có thể tiếp nhận xe ngay lập tức.</p>
 
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Ten bai do</th>
-                    <th>Dia chi</th>
-                    <th>Trang thai</th>
-                    <th>Dang gui</th>
-                    <th>Hanh dong</th>
+                    <th>Tên bãi đỗ</th>
+                    <th>Địa chỉ</th>
+                    <th>Trạng thái</th>
+                    <th>Đang gửi</th>
+                    <th>Hành động</th>
                 </tr>
             </thead>
             <tbody>
@@ -25,15 +25,15 @@
                 <tr>
                     <td><div class="fw-bold text-dark">{{ p.name }}</div></td>
                     <td>{{ p.address }}</td>
-                    <td><span class="badge bg-success text-white px-3 py-2 rounded-pill">Dang mo</span></td>
+                    <td><span class="badge bg-success text-white px-3 py-2 rounded-pill">Đang mở</span></td>
                     <td style="width: 25%;">
                         <h5 class="fw-bold text-success mb-0">{{ p.used_slots }} / {{ p.capacity }}</h5>
-                        <small class="text-muted">Dang gui</small>
+                        <small class="text-muted">Đang gửi</small>
                     </td>
-                    <td><a href="{% url 'map_view' %}" class="btn btn-sm btn-primary"><i class="fas fa-location-arrow"></i> Chi duong</a></td>
+                    <td><a href="{% url 'map_view' %}" class="btn btn-sm btn-primary"><i class="fas fa-location-arrow"></i> Chỉ đường</a></td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="text-center text-muted py-4">Khong co bai do nao con trong.</td></tr>
+                <tr><td colspan="5" class="text-center text-muted py-4">Không có bãi đỗ nào còn trống.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

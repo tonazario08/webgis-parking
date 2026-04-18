@@ -1,30 +1,30 @@
 {% extends 'parking/manager/base.html' %}
 
-{% block title %}{% if trash_mode %}Thung rac - {{ title }}{% else %}Danh sach {{ title }}{% endif %}{% endblock %}
-{% block page_title %}{% if trash_mode %}Thung rac - {{ title }}{% else %}Danh sach {{ title }}{% endif %}{% endblock %}
+{% block title %}{% if trash_mode %}Thùng rác - {{ title }}{% else %}Danh sách {{ title }}{% endif %}{% endblock %}
+{% block page_title %}{% if trash_mode %}Thùng rác - {{ title }}{% else %}Danh sách {{ title }}{% endif %}{% endblock %}
 
 {% block content %}
 <div class="panel mb-3">
     <form method="get" class="row g-2 align-items-end">
         <div class="col-md-6">
-            <label class="form-label">Tim kiem</label>
-            <input type="text" class="form-control" name="q" value="{{ query }}" placeholder="Nhap tu khoa...">
+            <label class="form-label">Tìm kiếm</label>
+            <input type="text" class="form-control" name="q" value="{{ query }}" placeholder="Nhập từ khóa...">
         </div>
         <div class="col-md-auto">
-            <button class="btn btn-manager">Loc</button>
+            <button class="btn btn-manager">Lọc</button>
         </div>
         {% if trash_mode %}
         <div class="col-md-auto ms-md-auto">
-            <a class="btn btn-outline-secondary" href="{% url 'manager_list' entity %}">Quay lai danh sach</a>
+            <a class="btn btn-outline-secondary" href="{% url 'manager_list' entity %}">Quay lại danh sách</a>
         </div>
         {% else %}
         {% if not readonly or show_trash %}
         <div class="col-md-auto ms-md-auto d-flex gap-2">
             {% if show_trash %}
-            <a class="btn btn-outline-danger" href="{% url 'manager_trash' entity %}">Thung rac</a>
+            <a class="btn btn-outline-danger" href="{% url 'manager_trash' entity %}">Thùng rác</a>
             {% endif %}
             {% if not readonly %}
-            <a class="btn btn-success" href="{% url 'manager_create' entity %}">+ Them moi</a>
+            <a class="btn btn-success" href="{% url 'manager_create' entity %}">+ Thêm mới</a>
             {% endif %}
         </div>
         {% endif %}
@@ -38,7 +38,7 @@
             <thead>
                 <tr>
                     {% for col in columns %}<th>{{ col }}</th>{% endfor %}
-                    {% if can_manage and not readonly %}<th style="width:210px">Thao tac</th>{% endif %}
+                    {% if can_manage and not readonly %}<th style="width:210px">Thao tác</th>{% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -48,21 +48,21 @@
                     {% if can_manage and not readonly %}
                     <td>
                         {% if trash_mode %}
-                        <a class="btn btn-sm btn-outline-primary" href="{% url 'manager_restore' entity row.obj.id %}">Hoan tac</a>
-                        <a class="btn btn-sm btn-outline-danger" href="{% url 'manager_delete' entity row.obj.id %}?from=trash">Xoa vinh vien</a>
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'manager_restore' entity row.obj.id %}">Hoàn tác</a>
+                        <a class="btn btn-sm btn-outline-danger" href="{% url 'manager_delete' entity row.obj.id %}?from=trash">Xóa vĩnh viễn</a>
                         {% else %}
-                        <a class="btn btn-sm btn-outline-primary" href="{% url 'manager_edit' entity row.obj.id %}">Sua</a>
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'manager_edit' entity row.obj.id %}">Sửa</a>
                         {% if trashable %}
-                        <a class="btn btn-sm btn-outline-danger" href="{% url 'manager_delete' entity row.obj.id %}">Chuyen vao thung rac</a>
+                        <a class="btn btn-sm btn-outline-danger" href="{% url 'manager_delete' entity row.obj.id %}">Chuyển vào thùng rác</a>
                         {% else %}
-                        <a class="btn btn-sm btn-outline-danger" href="{% url 'manager_delete' entity row.obj.id %}">Xoa</a>
+                        <a class="btn btn-sm btn-outline-danger" href="{% url 'manager_delete' entity row.obj.id %}">Xóa</a>
                         {% endif %}
                         {% endif %}
                     </td>
                     {% endif %}
                 </tr>
                 {% empty %}
-                <tr><td colspan="20" class="text-muted text-center py-4">Khong co du lieu</td></tr>
+                <tr><td colspan="20" class="text-muted text-center py-4">Không có dữ liệu</td></tr>
                 {% endfor %}
             </tbody>
         </table>

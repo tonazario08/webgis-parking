@@ -1,13 +1,13 @@
 ﻿ï»¿{% extends 'parking/base.html' %}
 {% block content %}
 <div class="card p-4">
-    <h3 class="mb-3">Thong tin khach hang</h3>
-    <p><strong>Ho ten:</strong> {{ user.full_name }}</p>
-    <p><strong>So dien thoai:</strong> {{ user.phone }}</p>
-    <p><strong>Bien so:</strong> {{ user.license_plate }}</p>
-    <p><strong>Loai xe:</strong> {{ user.vehicle_type }}</p>
-    <p><strong>Bai do:</strong> {{ user.parking_lot }}</p>
-    <p><strong>Trang thai:</strong> {% if user.is_active %}Dang gui{% else %}Da roi bai{% endif %}</p>
+    <h3 class="mb-3">Thông tin khách hàng</h3>
+    <p><strong>Họ tên:</strong> {{ user.full_name }}</p>
+    <p><strong>Số điện thoại:</strong> {{ user.phone }}</p>
+    <p><strong>Biển số:</strong> {{ user.license_plate }}</p>
+    <p><strong>Loại xe:</strong> {{ user.vehicle_type }}</p>
+    <p><strong>Bãi đỗ:</strong> {{ user.parking_lot }}</p>
+    <p><strong>Trạng thái:</strong> {% if user.is_active %}Đang gửi{% else %}Đã rời bãi{% endif %}</p>
     {% if user.is_active %}
     <a href="{% url 'checkout_vehicle' user.id %}" class="btn btn-danger">Check-out</a>
     {% endif %}

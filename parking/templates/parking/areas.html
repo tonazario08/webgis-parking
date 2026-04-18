@@ -2,8 +2,8 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold text-info"><i class="fas fa-city me-2"></i>Khu vuc hoat dong</h3>
-    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Quay lai Dashboard</a>
+    <h3 class="fw-bold text-info"><i class="fas fa-city me-2"></i>Khu vực hoạt động</h3>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Quay lại Dashboard</a>
 </div>
 
 <div class="row g-4">
@@ -14,13 +14,13 @@
                 <img src="https://cdn-icons-png.flaticon.com/512/7169/7169976.png" width="60" class="me-3">
                 <div class="flex-grow-1">
                     <h5 class="fw-bold text-dark mb-1">{{ area.obj.name }}</h5>
-                    <p class="text-muted small mb-2">{{ area.obj.description|default:'Khu vuc quan ly bai do xe' }}</p>
+                    <p class="text-muted small mb-2">{{ area.obj.description|default:'Khu vực quản lý bãi đỗ xe' }}</p>
                     <div class="d-flex justify-content-between">
-                        <span class="badge bg-primary bg-opacity-10 text-primary">{{ area.parking_count }} Bai xe</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary">{{ area.parking_count }} Bãi xe</span>
                         {% if area.is_active %}
-                        <span class="badge bg-success bg-opacity-10 text-success">Dang hoat dong</span>
+                        <span class="badge bg-success bg-opacity-10 text-success">Đang hoạt động</span>
                         {% else %}
-                        <span class="badge bg-warning bg-opacity-10 text-warning">Tam dung</span>
+                        <span class="badge bg-warning bg-opacity-10 text-warning">Tạm dừng</span>
                         {% endif %}
                     </div>
                 </div>
@@ -30,7 +30,7 @@
     </div>
     {% empty %}
     <div class="col-12">
-        <div class="alert alert-secondary">Chua co khu vuc nao trong he thong.</div>
+        <div class="alert alert-secondary">Chưa có khu vực nào trong hệ thống.</div>
     </div>
     {% endfor %}
 </div>

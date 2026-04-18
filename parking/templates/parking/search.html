@@ -1,5 +1,5 @@
 ﻿ï»¿{% extends 'parking/base.html' %}
 {% block content %}
-<div class="alert alert-warning">{{ error|default:'Khong tim thay ket qua' }}</div>
-<a href="{% url 'home' %}" class="btn btn-primary">Quay lai</a>
+<div class="alert alert-warning">{{ error|default:'Không tìm thấy kết quả' }}</div>
+<a href="{% url 'home' %}" class="btn btn-primary">Quay lại</a>
 {% endblock %}

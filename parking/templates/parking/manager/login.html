@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dang nhap quan tri</title>
+    <title>Đăng nhập quản trị</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,8 +13,8 @@
 </head>
 <body class="login-body">
     <div class="login-card">
-        <h1>Quan tri bai do xe</h1>
-        <p>Dang nhap tai khoan co quyen quan tri.</p>
+        <h1>Quản trị bãi đỗ xe</h1>
+        <p>Đăng nhập tài khoản có quyền quản trị.</p>
 
         <form method="post">
             {% csrf_token %}
@@ -23,14 +23,14 @@
             {% endif %}
 
             <div class="mb-3">
-                <label class="form-label">Ten dang nhap</label>
+                <label class="form-label">Tên đăng nhập</label>
                 {{ form.username }}
             </div>
             <div class="mb-3">
-                <label class="form-label">Mat khau</label>
+                <label class="form-label">Mật khẩu</label>
                 {{ form.password }}
             </div>
-            <button class="btn btn-manager w-100" type="submit">Dang nhap</button>
+            <button class="btn btn-manager w-100" type="submit">Đăng nhập</button>
         </form>
     </div>
 </body>
