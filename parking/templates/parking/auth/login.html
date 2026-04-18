@@ -1,0 +1,81 @@
+{% extends 'parking/base.html' %}
+
+{% block title %}Dang nhap | Parking GIS{% endblock %}
+
+{% block extra_head %}
+<style>
+    .auth-wrap { max-width: 1080px; margin: 10px auto 0; }
+    .auth-panel { border: none; border-radius: 28px; overflow: hidden; box-shadow: 0 30px 60px rgba(15, 23, 42, 0.12); }
+    .auth-brand { background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%); color: #fff; min-height: 100%; padding: 48px 42px; }
+    .auth-brand h1 { font-size: 42px; font-weight: 800; line-height: 1.1; margin-bottom: 18px; }
+    .auth-brand p { color: rgba(255, 255, 255, 0.86); font-size: 16px; line-height: 1.7; margin-bottom: 28px; }
+    .auth-badge { display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 999px; padding: 10px 16px; font-weight: 700; }
+    .auth-form-shell { background: #fff; padding: 48px 42px; }
+    .auth-form-shell h2 { font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
+    .auth-form-shell p { color: #64748b; margin-bottom: 30px; }
+    .auth-form-shell label { font-weight: 700; color: #334155; margin-bottom: 8px; }
+    .auth-form-shell .form-control { border-radius: 16px; min-height: 54px; border: 1px solid #dbe3f0; padding: 14px 16px; }
+    .auth-form-shell .form-control:focus { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); }
+    .auth-submit { min-height: 54px; border-radius: 16px; font-weight: 800; letter-spacing: 0.01em; }
+    .auth-links { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+    .auth-links a { color: #2563eb; text-decoration: none; font-weight: 700; }
+    .auth-links a:hover { text-decoration: underline; }
+    @media (max-width: 991px) {
+        .auth-brand, .auth-form-shell { padding: 34px 24px; }
+        .auth-brand h1 { font-size: 34px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="card auth-panel">
+        <div class="row g-0">
+            <div class="col-lg-5">
+                <div class="auth-brand d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="auth-badge"><i class="fas fa-shield-halved"></i> He thong bai do thong minh</div>
+                        <h1 class="mt-4">Dang nhap de tiep tuc quan ly va theo doi bai do xe.</h1>
+                        <p>Trang nay phu hop cho ca tai khoan nguoi dung thong thuong va tai khoan quan tri. Neu tai khoan cua ban co quyen manager, he thong se tu dong dua den khu quan tri sau khi dang nhap.</p>
+                    </div>
+                    <div class="small text-white-50">Parking GIS • Django • Leaflet</div>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="auth-form-shell">
+                    <h2>Dang nhap</h2>
+                    <p>Nhap thong tin tai khoan de vao he thong.</p>
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger rounded-4">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label }}</label>
+                            {{ form.username }}
+                            {% if form.username.errors %}<div class="text-danger small mt-2">{{ form.username.errors|join:", " }}</div>{% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label }}</label>
+                            {{ form.password }}
+                            {% if form.password.errors %}<div class="text-danger small mt-2">{{ form.password.errors|join:", " }}</div>{% endif %}
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 auth-submit">Dang nhap</button>
+                    </form>
+
+                    <div class="auth-links">
+                        <a href="{% url 'register' %}"><i class="fas fa-user-plus me-2"></i>Dang ky tai khoan moi</a>
+                        <a href="{% url 'password_reset' %}"><i class="fas fa-key me-2"></i>Quen mat khau?</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

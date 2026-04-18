@@ -5,6 +5,17 @@ urlpatterns = [
     path("login/", manager_views.manager_login, name="manager_login"),
     path("logout/", manager_views.manager_logout, name="manager_logout"),
     path("", manager_views.manager_dashboard, name="manager_dashboard"),
+    path("registrations/", manager_views.manager_registration_list, name="manager_registrations"),
+    path(
+        "registrations/<int:pk>/approve/",
+        manager_views.manager_registration_approve,
+        name="manager_registration_approve",
+    ),
+    path(
+        "registrations/<int:pk>/reject/",
+        manager_views.manager_registration_reject,
+        name="manager_registration_reject",
+    ),
     path("geocode/suggest/", manager_views.manager_geocode_suggest, name="manager_geocode_suggest"),
     path("geocode/forward/", manager_views.manager_geocode_forward, name="manager_geocode_forward"),
     path("geocode/reverse/", manager_views.manager_geocode_reverse, name="manager_geocode_reverse"),

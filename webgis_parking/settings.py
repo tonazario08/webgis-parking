@@ -17,6 +17,24 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _load_local_env():
+    env_file = BASE_DIR / ".env"
+    if not env_file.exists():
+        return
+
+    for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+_load_local_env()
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -64,6 +82,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'parking.context_processors.auth_navigation',
             ],
         },
     },
@@ -124,15 +143,23 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.getenv("MAILTRAP_HOST", "live.smtp.mailtrap.io")
 EMAIL_PORT = int(os.getenv("MAILTRAP_PORT", "587"))
-EMAIL_HOST_USER = os.getenv("MAILTRAP_USER", "")
+EMAIL_HOST_USER = os.getenv("MAILTRAP_USER", "api")
 EMAIL_HOST_PASSWORD = os.getenv("MAILTRAP_PASSWORD", "")
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = os.getenv("MAILTRAP_FROM_EMAIL", "no-reply@example.com")
-MAILTRAP_TO_EMAIL = os.getenv("MAILTRAP_TO_EMAIL", "")
+DEFAULT_FROM_EMAIL = os.getenv("MAILTRAP_FROM_EMAIL", "no-reply@demomailtrap.co")
+MAILTRAP_TO_EMAIL = os.getenv("MAILTRAP_TO_EMAIL", "minhtien147896325@gmail.com,1250080194@sv.hcmunre.edu.vn")
+MAILTRAP_SANDBOX_HOST = os.getenv("MAILTRAP_SANDBOX_HOST", "sandbox.smtp.mailtrap.io")
+MAILTRAP_SANDBOX_PORT = int(os.getenv("MAILTRAP_SANDBOX_PORT", "587"))
+MAILTRAP_SANDBOX_USER = os.getenv("MAILTRAP_SANDBOX_USER", "")
+MAILTRAP_SANDBOX_PASSWORD = os.getenv("MAILTRAP_SANDBOX_PASSWORD", "")
+MAILTRAP_SANDBOX_FROM_EMAIL = os.getenv("MAILTRAP_SANDBOX_FROM_EMAIL", "no-reply@mailtrap.local")
+MAILTRAP_SANDBOX_TO_EMAIL = os.getenv("MAILTRAP_SANDBOX_TO_EMAIL", "")
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "")
 SENDGRID_FROM_NAME = os.getenv("SENDGRID_FROM_NAME", "Parking GIS")

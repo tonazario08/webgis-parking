@@ -153,10 +153,29 @@
         font-size: 1.1rem;
         margin: 0;
     }
+    .parking-card__media {
+        height: 190px;
+        border-radius: 16px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #dbeafe, #eff6ff);
+        border: 1px solid var(--stroke);
+    }
+    .parking-card__media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
     .parking-card__address {
         color: var(--muted);
         font-size: .92rem;
         line-height: 1.5;
+    }
+    .parking-card__summary {
+        color: var(--muted);
+        font-size: .92rem;
+        line-height: 1.65;
+        margin: 0;
     }
     .status-chip {
         border-radius: 999px;
@@ -260,6 +279,18 @@
     <div class="parking-grid">
         {% for p in parking_list %}
         <article class="parking-card card-custom">
+            <div class="parking-card__media">
+                {% if p.primary_image %}
+                <img src="{{ p.primary_image.image.url }}" alt="{{ p.name }}">
+                {% else %}
+                <div class="w-100 h-100 d-flex align-items-center justify-content-center text-primary-emphasis">
+                    <div class="text-center">
+                        <i class="fas fa-image fa-2x mb-2"></i>
+                        <div>Chua co hinh anh</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
             <div class="d-flex justify-content-between align-items-start gap-2">
                 <div>
                     <h3 class="parking-card__title">{{ p.name }}</h3>
@@ -279,6 +310,11 @@
                 <span class="meta-chip">Khu vuc: {{ p.area }}</span>
                 {% endif %}
             </div>
+            {% if p.short_description %}
+            <p class="parking-card__summary">{{ p.short_description }}</p>
+            {% elif p.long_description %}
+            <p class="parking-card__summary">{{ p.long_description|truncatechars:160 }}</p>
+            {% endif %}
             <div class="usage-bar">
                 <div class="usage-track">
                     <div class="usage-fill" style="width: {{ p.percent_used }}%"></div>

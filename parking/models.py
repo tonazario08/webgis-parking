@@ -2,43 +2,52 @@
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
+
+VEHICLE_TYPE_CHOICES = [
+    ("car", "Ô tô"),
+    ("motorbike", "Xe máy"),
+    ("bike", "Xe đạp"),
+]
 
 
 class Area(models.Model):
-    name = models.CharField("Ten khu vuc", max_length=100)
-    description = models.TextField("Mo ta", blank=True, default="")
-    latitude = models.FloatField("Vi do", null=True, blank=True)
-    longitude = models.FloatField("Kinh do", null=True, blank=True)
+    name = models.CharField("Tên khu vực", max_length=100)
+    description = models.TextField("Mô tả", blank=True, default="")
+    latitude = models.FloatField("Vĩ độ", null=True, blank=True)
+    longitude = models.FloatField("Kinh độ", null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        verbose_name = "Khu vuc"
-        verbose_name_plural = "Danh sach khu vuc"
+        verbose_name = "Khu vực"
+        verbose_name_plural = "Danh sách khu vực"
 
     def __str__(self):
         return self.name
 
 
 class ParkingLot(models.Model):
-    name = models.CharField("Ten bai xe", max_length=100)
-    address = models.CharField("Dia chi", max_length=255)
-    area = models.ForeignKey(Area, verbose_name="Khu vuc", on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField("Tên bãi xe", max_length=100)
+    address = models.CharField("Địa chỉ", max_length=255)
+    short_description = models.CharField("Mô tả ngắn", max_length=255, blank=True, default="")
+    long_description = models.TextField("Mô tả chi tiết", blank=True, default="")
+    area = models.ForeignKey(Area, verbose_name="Khu vực", on_delete=models.CASCADE, null=True, blank=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     district = models.CharField(max_length=100, blank=True, default="")
-    capacity = models.PositiveIntegerField("Suc chua")
-    price_per_hour = models.PositiveIntegerField("Gia mac dinh (khong dung)", default=0)
-    is_active = models.BooleanField("Dang hoat dong", default=True)
+    capacity = models.PositiveIntegerField("Sức chứa")
+    price_per_hour = models.PositiveIntegerField("Giá mặc định (không dùng)", default=0)
+    is_active = models.BooleanField("Đang hoạt động", default=True)
     revenue = models.PositiveIntegerField("Doanh thu", default=0)
-    polygon_geojson = models.TextField("Ranh gioi (GeoJSON)", blank=True, default="")
+    polygon_geojson = models.TextField("Ranh giới (GeoJSON)", blank=True, default="")
     area_sq_m = models.FloatField("Dien tich (m2)", default=0)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        verbose_name = "Bai do xe"
-        verbose_name_plural = "Danh sach bai do xe"
+        verbose_name = "Bãi đỗ xe"
+        verbose_name_plural = "Danh sách bãi đỗ xe"
 
     def used_slots(self):
         return self.parkinguser_set.filter(is_active=True, is_deleted=False).count()
@@ -54,29 +63,114 @@ class ParkingLot(models.Model):
     def __str__(self):
         return self.name
 
+    def primary_image(self):
+        images = list(self.images.all())
+        return images[0] if images else None
+
+
+class ParkingLotImage(models.Model):
+    parking_lot = models.ForeignKey(
+        ParkingLot,
+        on_delete=models.CASCADE,
+        related_name="images",
+        verbose_name="Bãi đỗ xe",
+    )
+    image = models.FileField(
+        "Hình ảnh",
+        upload_to="parking_images/",
+        validators=[FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp", "gif"])],
+    )
+    created_at = models.DateTimeField("Thời gian tạo", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Hình ảnh bãi đỗ xe"
+        verbose_name_plural = "Hình ảnh bãi đỗ xe"
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"Anh {self.parking_lot.name} #{self.pk}"
+
+
+class ParkingRegistrationRequest(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Chờ duyệt"),
+        (STATUS_APPROVED, "Đã duyệt"),
+        (STATUS_REJECTED, "Không duyệt"),
+    ]
+
+    full_name = models.CharField("Họ và tên", max_length=100)
+    phone = models.CharField("Số điện thoại", max_length=15)
+    email = models.EmailField("Email", blank=True)
+    address = models.CharField("Địa chỉ", max_length=255, blank=True)
+    license_plate = models.CharField("Biển số xe", max_length=20)
+    vehicle_type = models.CharField("Loại xe", max_length=20, choices=VEHICLE_TYPE_CHOICES)
+    parking_lot = models.ForeignKey(
+        ParkingLot,
+        verbose_name="Bãi đỗ xe mong muốn",
+        on_delete=models.CASCADE,
+        related_name="registration_requests",
+    )
+    note = models.TextField("Ghi chú", blank=True, default="")
+    status = models.CharField(
+        "Trạng thái",
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+    )
+    reviewed_note = models.CharField("Ghi chú duyệt", max_length=255, blank=True, default="")
+    created_by = models.ForeignKey(
+        User,
+        verbose_name="Tài khoản gửi đơn",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="parking_registration_requests",
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        verbose_name="Người xử lý",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_parking_registration_requests",
+    )
+    reviewed_at = models.DateTimeField("Thời gian xử lý", null=True, blank=True)
+    created_at = models.DateTimeField("Thời gian gửi", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Đơn đăng ký gửi xe"
+        verbose_name_plural = "Đơn đăng ký gửi xe"
+        ordering = ["status", "-created_at"]
+
+    def __str__(self):
+        return f"{self.full_name} - {self.license_plate} ({self.get_status_display()})"
+
 
 class ActivityLog(models.Model):
     ACTION_CHOICES = [
-        ("system", "He thong"),
+        ("system", "Hệ thống"),
         ("vehicle", "Xe"),
     ]
 
     user = models.ForeignKey(
         User,
-        verbose_name="Nguoi thuc hien",
+        verbose_name="Người thực hiện",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
     )
 
-    action = models.CharField("Hanh dong", max_length=255)
-    type = models.CharField("Loai hoat dong", max_length=20, choices=ACTION_CHOICES, default="system")
+    action = models.CharField("Hành động", max_length=255)
+    type = models.CharField("Loại hoạt động", max_length=20, choices=ACTION_CHOICES, default="system")
 
-    created_at = models.DateTimeField("Thoi gian", auto_now_add=True)
+    created_at = models.DateTimeField("Thời gian", auto_now_add=True)
 
     class Meta:
-        verbose_name = "Nhat ky hoat dong"
-        verbose_name_plural = "Nhat ky hoat dong"
+        verbose_name = "Nhật ký hoạt động"
+        verbose_name_plural = "Nhật ký hoạt động"
         ordering = ["-created_at"]
 
     def __str__(self):
@@ -84,43 +178,39 @@ class ActivityLog(models.Model):
 
 
 class ParkingUser(models.Model):
-    VEHICLE_TYPES = [
-        ("car", "O to"),
-        ("motorbike", "Xe may"),
-        ("bike", "Xe dap"),
-    ]
+    VEHICLE_TYPES = VEHICLE_TYPE_CHOICES
 
-    full_name = models.CharField("Ho va ten", max_length=100)
-    phone = models.CharField("So dien thoai", max_length=15, unique=True)
+    full_name = models.CharField("Họ và tên", max_length=100)
+    phone = models.CharField("Số điện thoại", max_length=15, unique=True)
     email = models.EmailField("Email", blank=True)
-    email_verified = models.BooleanField("Email da xac thuc", default=False)
+    email_verified = models.BooleanField("Email đã xác thực", default=False)
     email_verification_token = models.CharField("Email token", max_length=64, blank=True, null=True)
-    email_verification_sent_at = models.DateTimeField("Thoi gian gui xac thuc", null=True, blank=True)
-    address = models.CharField("Dia chi", max_length=255, blank=True)
+    email_verification_sent_at = models.DateTimeField("Thời gian gửi xác thực", null=True, blank=True)
+    address = models.CharField("Địa chỉ", max_length=255, blank=True)
 
-    license_plate = models.CharField("Bien so xe", max_length=20, unique=True)
-    vehicle_type = models.CharField("Loai xe", max_length=20, choices=VEHICLE_TYPES)
+    license_plate = models.CharField("Biển số xe", max_length=20, unique=True)
+    vehicle_type = models.CharField("Loại xe", max_length=20, choices=VEHICLE_TYPES)
 
     parking_lot = models.ForeignKey(
         ParkingLot,
-        verbose_name="Bai do xe",
+        verbose_name="Bãi đỗ xe",
         on_delete=models.CASCADE,
     )
 
-    is_active = models.BooleanField("Dang do", default=True)
+    is_active = models.BooleanField("Đang đỗ", default=True)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField("Thoi gian vao bai", auto_now_add=True)
+    created_at = models.DateTimeField("Thời gian vào bãi", auto_now_add=True)
 
     class Meta:
-        verbose_name = "Nguoi su dung do xe"
-        verbose_name_plural = "Danh sach nguoi su dung do xe"
+        verbose_name = "Người sử dụng đỗ xe"
+        verbose_name_plural = "Danh sách người sử dụng đỗ xe"
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
 
         if is_new and self.parking_lot.available_slots() <= 0:
-            raise ValidationError("Bai xe da het cho")
+            raise ValidationError("Bãi xe đã hết chỗ")
 
         super().save(*args, **kwargs)
 
@@ -159,30 +249,30 @@ class ParkingUser(models.Model):
 
 class ParkingPrice(models.Model):
     VEHICLE_CHOICES = [
-        ("car", "O to"),
-        ("motorbike", "Xe may"),
-        ("bike", "Xe dap"),
+        ("car", "Ô tô"),
+        ("motorbike", "Xe máy"),
+        ("bike", "Xe đạp"),
     ]
 
     parking_lot = models.ForeignKey(
         ParkingLot,
         on_delete=models.CASCADE,
         related_name="prices",
-        verbose_name="Bai do xe",
+        verbose_name="Bãi đỗ xe",
     )
 
     vehicle_type = models.CharField(
-        "Loai xe",
+        "Loại xe",
         max_length=20,
         choices=VEHICLE_CHOICES,
     )
 
-    price_per_hour = models.PositiveIntegerField("Gia / gio (VND)")
+    price_per_hour = models.PositiveIntegerField("Giá / giờ (VND)")
 
     class Meta:
         unique_together = ("parking_lot", "vehicle_type")
-        verbose_name = "Gia gui xe"
-        verbose_name_plural = "Bang gia gui xe"
+        verbose_name = "Giá gửi xe"
+        verbose_name_plural = "Bảng giá gửi xe"
 
     def __str__(self):
         return f"{self.parking_lot.name} - {self.get_vehicle_type_display()}"

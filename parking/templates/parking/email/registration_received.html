@@ -1,0 +1,21 @@
+<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
+    <h2 style="margin-bottom: 12px;">Da tiep nhan don dang ky gui xe</h2>
+    <p>Xin chao <strong>{{ registration.full_name }}</strong>,</p>
+    <p>He thong Parking GIS da tiep nhan don dang ky gui xe cua ban. Don dang o trang thai <strong>cho duyet</strong> va se duoc xu ly trong manager.</p>
+
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 18px 0;">
+        <p style="margin: 0 0 10px;"><strong>Thong tin ban da gui</strong></p>
+        <ul style="padding-left: 18px; margin: 0;">
+            <li>Ho va ten: {{ registration.full_name }}</li>
+            <li>So dien thoai: {{ registration.phone }}</li>
+            <li>Email: {{ registration.email|default:"Chua nhap" }}</li>
+            <li>Dia chi: {{ registration.address|default:"Chua nhap" }}</li>
+            <li>Bien so xe: {{ registration.license_plate }}</li>
+            <li>Loai xe: {{ registration.get_vehicle_type_display }}</li>
+            <li>Bai do mong muon: {{ registration.parking_lot.name }}</li>
+            <li>Ghi chu: {{ registration.note|default:"Khong co" }}</li>
+        </ul>
+    </div>
+
+    <p>Cam on ban da su dung Parking GIS.</p>
+</div>

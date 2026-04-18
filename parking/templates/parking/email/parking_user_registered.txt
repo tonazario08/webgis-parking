@@ -1,0 +1,17 @@
+Xin chao {{ parking_user.full_name }},
+
+Thong tin dang ky gui xe cua ban da duoc tao thanh cong trong he thong Parking GIS.
+
+Thong tin dang ky:
+- Ho va ten: {{ parking_user.full_name }}
+- So dien thoai: {{ parking_user.phone }}
+- Email: {{ parking_user.email|default:"Chua nhap" }}
+- Dia chi: {{ parking_user.address|default:"Chua nhap" }}
+- Bien so xe: {{ parking_user.license_plate }}
+- Loai xe: {{ parking_user.get_vehicle_type_display }}
+- Bai do xe: {{ parking_user.parking_lot.name }}
+
+Vui long xac thuc email tai day:
+{{ verify_url }}
+
+Cam on ban da su dung Parking GIS.

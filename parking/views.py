@@ -1,13 +1,117 @@
-﻿from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
-from django.views.decorators.http import require_GET
 from django.contrib import messages
-from django.utils import timezone
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_GET
 import requests
 
-from .models import ParkingLot, Area, ActivityLog, ParkingUser, ParkingPrice
-from .utils.gis import haversine_distance, find_nearest_parking
+from .auth_utils import is_manager_user
+from .forms import ParkingRegistrationRequestForm, PublicLoginForm, PublicRegisterForm
+from .models import ActivityLog, Area, ParkingLot, ParkingPrice, ParkingRegistrationRequest, ParkingUser
+from .utils.gis import find_nearest_parking, haversine_distance
+from .utils.email import send_registration_request_received_email
+
+
+def public_login(request):
+    if request.user.is_authenticated:
+        if is_manager_user(request.user):
+            return redirect("manager_dashboard")
+        return redirect("home")
+
+    form = PublicLoginForm(request, data=request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        user = form.get_user()
+        login(request, user)
+        next_url = request.POST.get("next") or request.GET.get("next")
+        if next_url:
+            return redirect(next_url)
+        if is_manager_user(user):
+            return redirect("manager_dashboard")
+        return redirect("home")
+
+    return render(request, "parking/auth/login.html", {"form": form})
+
+
+def public_register(request):
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    form = PublicRegisterForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        login(request, user)
+        messages.success(request, "Đăng ký thành công. Bạn đã được đăng nhập.")
+        return redirect("home")
+
+    return render(request, "parking/auth/register.html", {"form": form})
+
+
+def public_logout(request):
+    logout(request)
+    messages.success(request, "Bạn đã đăng xuất.")
+    return redirect("home")
+
+
+@login_required(login_url="login")
+def parking_registration_create(request):
+    form = ParkingRegistrationRequestForm(request.POST or None, user=request.user)
+
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            registration = form.save(commit=False)
+            registration.created_by = request.user
+            registration.save()
+            ActivityLog.objects.create(
+                action=f"Đơn đăng ký mới {registration.full_name} cho bãi {registration.parking_lot.name}",
+                type="system",
+            )
+        mail_result = send_registration_request_received_email(registration)
+        if mail_result.get("skipped"):
+            messages.success(
+                request,
+                "Đã gửi đơn đăng ký gửi xe thành công.",
+            )
+        elif mail_result.get("live_sent") and mail_result.get("sandbox_sent"):
+            messages.success(
+                request,
+                "Đã gửi đơn đăng ký gửi xe. Email xác nhận đã được gửi đến người đăng ký và đồng thời lưu vào Mailtrap Sandbox.",
+            )
+        elif mail_result.get("ok"):
+            messages.warning(
+                request,
+                "Đã gửi đơn đăng ký gửi xe. Tuy nhiên email mới chỉ gửi được một phần, hãy kiểm tra cấu hình Mailtrap nếu bạn cần đồng bộ cả live và sandbox.",
+            )
+        else:
+            messages.warning(
+                request,
+                "Đã lưu đơn đăng ký gửi xe, nhưng chưa gửi được email thông báo. Hãy kiểm tra cấu hình Mailtrap.",
+            )
+        return redirect("parking_registration_create")
+
+    return render(
+        request,
+        "parking/parking_registration_form.html",
+        {"form": form},
+    )
+
+
+@login_required(login_url="login")
+def parking_registration_history(request):
+    registrations = ParkingRegistrationRequest.objects.select_related("parking_lot").filter(
+        created_by=request.user
+    ).order_by("-created_at")
+
+    return render(
+        request,
+        "parking/parking_registration_history.html",
+        {"registrations": registrations},
+    )
 
 
 def home(request):
@@ -16,7 +120,6 @@ def home(request):
     total_available = 0
     total_revenue = 0
     active_users = ParkingUser.objects.filter(is_active=True, is_deleted=False)
-
 
     for p in parkings_all:
         available = p.available_slots()
@@ -68,7 +171,6 @@ def home(request):
         "active_areas": Area.objects.filter(is_deleted=False).count(),
         "parking_data": parking_data,
         "parking_page": parkings_page,
-        "activities": ActivityLog.objects.all()[:5],
     }
 
     return render(request, "parking/home.html", context)
@@ -80,7 +182,7 @@ def map_view(request):
 
 
 def parking_list(request):
-    parkings = ParkingLot.objects.filter(is_deleted=False)
+    parkings = ParkingLot.objects.filter(is_deleted=False).prefetch_related("images")
     parking_items = []
     total_capacity = 0
     total_available = 0
@@ -106,6 +208,9 @@ def parking_list(request):
                 "available": available,
                 "percent_used": p.usage_percent(),
                 "used": used,
+                "short_description": p.short_description,
+                "long_description": p.long_description,
+                "primary_image": p.primary_image(),
             }
         )
 
@@ -119,9 +224,17 @@ def parking_list(request):
     }
 
     return render(request, "parking/parking_list.html", context)
+
+
 def parking_available(request):
-    parking_lots = [p for p in ParkingLot.objects.filter(is_active=True, is_deleted=False) if p.available_slots() > 0]
+    parking_lots = [
+        p
+        for p in ParkingLot.objects.filter(is_active=True, is_deleted=False)
+        if p.available_slots() > 0
+    ]
     return render(request, "parking/parking_available.html", {"parking_lots": parking_lots})
+
+
 def revenue_view(request):
     now = timezone.now()
     total_revenue = 0
@@ -155,7 +268,13 @@ def revenue_view(request):
             }
         )
 
-    return render(request, "parking/revenue.html", {"total_revenue": total_revenue, "parking_data": parking_data})
+    return render(
+        request,
+        "parking/revenue.html",
+        {"total_revenue": total_revenue, "parking_data": parking_data},
+    )
+
+
 def areas_view(request):
     data = []
     for a in Area.objects.filter(is_deleted=False):
@@ -172,7 +291,7 @@ def areas_view(request):
 
 
 def parking_detail(request, id):
-    parking = get_object_or_404(ParkingLot, id=id, is_deleted=False)
+    parking = get_object_or_404(ParkingLot.objects.prefetch_related("images"), id=id, is_deleted=False)
 
     available = parking.available_slots()
     used = parking.capacity - available
@@ -184,6 +303,8 @@ def parking_detail(request, id):
         "used": used,
         "is_full": available <= 0,
         "price_list": price_list,
+        "images": parking.images.all(),
+        "primary_image": parking.primary_image(),
     }
 
     return render(request, "parking/parking_detail.html", context)
@@ -203,7 +324,6 @@ def nearest_parking_page(request):
 
     results = []
     for p in ParkingLot.objects.filter(is_deleted=False):
-
         lat = p.latitude if p.latitude is not None else (p.area.latitude if p.area else None)
         lon = p.longitude if p.longitude is not None else (p.area.longitude if p.area else None)
         if lat is None or lon is None:
@@ -223,11 +343,13 @@ def api_find_nearest_parking(request):
         lat = float(request.GET.get("lat"))
         lon = float(request.GET.get("lon"))
     except (TypeError, ValueError):
-        return JsonResponse({"error": "Thieu lat/lon"}, status=400)
+        return JsonResponse({"error": "Thiếu lat/lon"}, status=400)
 
     parkings = ParkingLot.objects.filter(is_deleted=False, is_active=True)
     nearest = find_nearest_parking(parkings, lat, lon, only_available=True)
-    return JsonResponse(nearest or {"message": "Khong co bai do phu hop"})
+    return JsonResponse(nearest or {"message": "Không có bãi đỗ phù hợp"})
+
+
 def api_route(request):
     try:
         start_lat = float(request.GET.get("start_lat"))
@@ -235,7 +357,7 @@ def api_route(request):
         end_lat = float(request.GET.get("end_lat"))
         end_lon = float(request.GET.get("end_lon"))
     except (TypeError, ValueError):
-        return JsonResponse({"error": "Thieu toa do"}, status=400)
+        return JsonResponse({"error": "Thiếu tọa độ"}, status=400)
 
     url = (
         f"http://router.project-osrm.org/route/v1/driving/"
@@ -247,10 +369,10 @@ def api_route(request):
         res = requests.get(url, timeout=10)
         data = res.json()
     except requests.RequestException:
-        return JsonResponse({"error": "Khong ket noi duoc dich vu dan duong"}, status=502)
+        return JsonResponse({"error": "Không kết nối được dịch vụ dẫn đường"}, status=502)
 
     if "routes" not in data:
-        return JsonResponse({"error": "Khong tim duoc duong di"}, status=400)
+        return JsonResponse({"error": "Không tìm được đường đi"}, status=400)
 
     return JsonResponse(data["routes"][0]["geometry"])
 
@@ -264,7 +386,7 @@ def search_by_phone(request):
     user = ParkingUser.objects.filter(phone=phone, is_deleted=False).first()
 
     if not user:
-        return render(request, "parking/search.html", {"error": "Khong tim thay khach hang"})
+        return render(request, "parking/search.html", {"error": "Không tìm thấy khách hàng"})
 
     return redirect("parking_user_detail", user.id)
 
@@ -279,7 +401,7 @@ def checkout_vehicle(request, user_id):
 
     if user.is_active:
         user.exit_parking()
-        messages.success(request, "Xe da duoc check-out thanh cong")
+        messages.success(request, "Xe đã được check-out thành công")
 
     return redirect("customer_detail", user_id=user.id)
 
@@ -318,21 +440,23 @@ def verify_parking_user_email(request, user_id, token):
 
     if not parking_user.email_verification_token:
         status = "error"
-        message = "Email da duoc xac thuc hoac lien ket khong hop le."
+        message = "Email đã được xác thực hoặc liên kết không hợp lệ."
     elif token != parking_user.email_verification_token:
         status = "error"
-        message = "Lien ket xac thuc khong hop le hoac da het han."
+        message = "Liên kết xác thực không hợp lệ hoặc đã hết hạn."
     else:
         parking_user.email_verified = True
         parking_user.email_verification_token = None
         parking_user.email_verification_sent_at = None
-        parking_user.save(update_fields=[
-            "email_verified",
-            "email_verification_token",
-            "email_verification_sent_at",
-        ])
+        parking_user.save(
+            update_fields=[
+                "email_verified",
+                "email_verification_token",
+                "email_verification_sent_at",
+            ]
+        )
         status = "success"
-        message = "Xac thuc email thanh cong."
+        message = "Xác thực email thành công."
 
     return render(
         request,

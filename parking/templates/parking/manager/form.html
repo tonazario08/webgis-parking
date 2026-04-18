@@ -23,7 +23,7 @@
         <div id="polygonAreaInfo" class="small text-muted mb-3">Dien tich bai: chua ve</div>
     {% endif %}
 
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.non_field_errors }}
 
@@ -33,13 +33,31 @@
         {% else %}
         <div class="mb-3 position-relative">
             <label class="form-label">{{ field.label }}</label>
+            {% if field.name != 'remove_images' or not existing_images %}
             {{ field }}
+            {% endif %}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
             {% if field.name == 'address_input' %}
             <div class="d-flex gap-2 mt-2">
                 <button id="btnCheckAddress" class="btn btn-sm btn-outline-primary" type="button">Kiem tra dia chi</button>
                 <button id="btnClearAddress" class="btn btn-sm btn-outline-secondary" type="button">Xoa dia chi</button>
             </div>
             <div id="addressSuggestions" class="list-group position-absolute w-100" style="z-index: 5;"></div>
+            {% endif %}
+            {% if field.name == 'remove_images' and existing_images %}
+            <div class="row g-3 mt-2">
+                {% for image in existing_images %}
+                <div class="col-md-3 col-sm-4">
+                    <div class="border rounded-3 p-2 h-100 bg-white">
+                        <img src="{{ image.image.url }}" alt="{{ image.parking_lot.name }}" style="width:100%; height:120px; object-fit:cover; border-radius:10px;">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="{{ field.html_name }}" value="{{ image.id }}" id="remove_image_{{ image.id }}">
+                            <label class="form-check-label" for="remove_image_{{ image.id }}">Xoa anh nay</label>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
             {% endif %}
             {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
         </div>

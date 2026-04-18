@@ -1,0 +1,16 @@
+Xin chao {{ registration.full_name }},
+
+He thong Parking GIS da tiep nhan don dang ky gui xe cua ban.
+Don dang o trang thai cho duyet va se duoc xu ly trong manager.
+
+Thong tin ban da gui:
+- Ho va ten: {{ registration.full_name }}
+- So dien thoai: {{ registration.phone }}
+- Email: {{ registration.email|default:"Chua nhap" }}
+- Dia chi: {{ registration.address|default:"Chua nhap" }}
+- Bien so xe: {{ registration.license_plate }}
+- Loai xe: {{ registration.get_vehicle_type_display }}
+- Bai do mong muon: {{ registration.parking_lot.name }}
+- Ghi chu: {{ registration.note|default:"Khong co" }}
+
+Cam on ban da su dung Parking GIS.

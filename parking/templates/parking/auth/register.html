@@ -1,0 +1,79 @@
+{% extends 'parking/base.html' %}
+
+{% block title %}Dang ky | Parking GIS{% endblock %}
+
+{% block extra_head %}
+<style>
+    .auth-wrap { max-width: 960px; margin: 10px auto 0; }
+    .register-card { border: none; border-radius: 28px; box-shadow: 0 26px 60px rgba(15, 23, 42, 0.12); overflow: hidden; }
+    .register-head { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 45%, #fff7ed 100%); padding: 36px 40px 24px; border-bottom: 1px solid rgba(148, 163, 184, 0.2); }
+    .register-head h1 { font-size: 34px; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
+    .register-head p { color: #475569; margin-bottom: 0; }
+    .register-body { padding: 36px 40px 40px; background: #fff; }
+    .register-body label { font-weight: 700; color: #334155; margin-bottom: 8px; }
+    .register-body .form-control { border-radius: 16px; min-height: 54px; border: 1px solid #dbe3f0; padding: 14px 16px; }
+    .register-body .form-control:focus { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); }
+    .register-submit { min-height: 54px; border-radius: 16px; font-weight: 800; }
+    .register-foot { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 18px; }
+    .register-foot a { text-decoration: none; font-weight: 700; color: #2563eb; }
+    @media (max-width: 767px) {
+        .register-head, .register-body { padding: 26px 20px; }
+        .register-foot { flex-direction: column; align-items: flex-start; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="card register-card">
+        <div class="register-head">
+            <h1>Tao tai khoan moi</h1>
+            <p>Dang ky nhanh de su dung he thong Parking GIS. Sau khi tao xong, he thong se dang nhap cho ban ngay.</p>
+        </div>
+        <div class="register-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger rounded-4">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.first_name.id_for_label }}" class="form-label">{{ form.first_name.label }}</label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}<div class="text-danger small mt-2">{{ form.first_name.errors|join:", " }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label }}</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}<div class="text-danger small mt-2">{{ form.username.errors|join:", " }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}<div class="text-danger small mt-2">{{ form.email.errors|join:", " }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.password1.id_for_label }}" class="form-label">{{ form.password1.label }}</label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}<div class="text-danger small mt-2">{{ form.password1.errors|join:", " }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.password2.id_for_label }}" class="form-label">{{ form.password2.label }}</label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}<div class="text-danger small mt-2">{{ form.password2.errors|join:", " }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 register-submit mt-4">Dang ky tai khoan</button>
+            </form>
+
+            <div class="register-foot">
+                <a href="{% url 'login' %}"><i class="fas fa-right-to-bracket me-2"></i>Da co tai khoan? Dang nhap</a>
+                <a href="{% url 'password_reset' %}"><i class="fas fa-key me-2"></i>Quen mat khau</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

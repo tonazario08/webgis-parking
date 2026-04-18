@@ -4,7 +4,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.forms import modelform_factory
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -14,7 +14,15 @@ import re
 import requests
 import unicodedata
 
-from .models import ActivityLog, Area, ParkingLot, ParkingPrice, ParkingUser
+from .models import (
+    ActivityLog,
+    Area,
+    ParkingLot,
+    ParkingLotImage,
+    ParkingPrice,
+    ParkingRegistrationRequest,
+    ParkingUser,
+)
 from .utils.email import send_parking_user_verification_email
 
 
@@ -513,27 +521,63 @@ def _geocode_address_full(address):
         "approximate": approximate,
     }
 
+
+class MultipleImageInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleImageField(forms.FileField):
+    widget = MultipleImageInput
+
+    def clean(self, data, initial=None):
+        single_clean = super().clean
+        if not data:
+            return []
+        if isinstance(data, (list, tuple)):
+            return [single_clean(item, initial) for item in data]
+        return [single_clean(data, initial)]
+
 class ParkingLotManagerForm(forms.ModelForm):
     address_input = forms.CharField(required=False, label="Dia chi")
     geo_lat = forms.FloatField(required=False, widget=forms.HiddenInput())
     geo_lon = forms.FloatField(required=False, widget=forms.HiddenInput())
     polygon_geojson = forms.CharField(required=False, widget=forms.HiddenInput())
     area_sq_m = forms.FloatField(required=False, widget=forms.HiddenInput())
+    new_images = MultipleImageField(required=False, label="Hinh anh bai xe")
+    remove_images = forms.ModelMultipleChoiceField(
+        queryset=ParkingLotImage.objects.none(),
+        required=False,
+        label="Xoa hinh dang co",
+        widget=forms.CheckboxSelectMultiple,
+    )
 
     class Meta:
         model = ParkingLot
-        fields = ["name", "area", "district", "capacity", "is_active", "revenue"]
+        fields = [
+            "name",
+            "short_description",
+            "long_description",
+            "area",
+            "district",
+            "capacity",
+            "is_active",
+            "revenue",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.order_fields([
             "name",
+            "short_description",
+            "long_description",
             "address_input",
             "area",
             "district",
             "capacity",
             "is_active",
             "revenue",
+            "new_images",
+            "remove_images",
             "geo_lat",
             "geo_lon",
             "polygon_geojson",
@@ -541,9 +585,23 @@ class ParkingLotManagerForm(forms.ModelForm):
         ])
         if "area" in self.fields:
             self.fields["area"].queryset = Area.objects.filter(is_deleted=False)
+        self.fields["short_description"].required = False
+        self.fields["long_description"].required = False
+        self.fields["short_description"].widget.attrs["placeholder"] = "Mo ta ngan de gioi thieu bai xe"
+        self.fields["long_description"].widget = forms.Textarea(attrs={
+            "rows": 5,
+            "placeholder": "Nhap mo ta chi tiet, tien ich, uu diem, huong dan gui xe...",
+        })
+        self.fields["new_images"].widget.attrs.update({
+            "accept": "image/*",
+            "multiple": True,
+        })
+        self.fields["new_images"].help_text = "Co the chon nhieu hinh cung luc."
+        self.fields["remove_images"].queryset = ParkingLotImage.objects.none()
         if self.instance and self.instance.pk and self.instance.address:
             self.fields["address_input"].initial = self.instance.address
         if self.instance and self.instance.pk:
+            self.fields["remove_images"].queryset = self.instance.images.all()
             if self.instance.latitude is not None:
                 self.fields["geo_lat"].initial = self.instance.latitude
             if self.instance.longitude is not None:
@@ -552,6 +610,19 @@ class ParkingLotManagerForm(forms.ModelForm):
                 self.fields["polygon_geojson"].initial = self.instance.polygon_geojson
             if self.instance.area_sq_m:
                 self.fields["area_sq_m"].initial = self.instance.area_sq_m
+        if not self.instance or not self.instance.pk:
+            self.fields["remove_images"].widget = forms.MultipleHiddenInput()
+
+    def clean_new_images(self):
+        files = self.cleaned_data.get("new_images") or []
+        allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+        for file in files:
+            if getattr(file, "size", 0) > 8 * 1024 * 1024:
+                raise ValidationError(f"Hinh {file.name} vuot qua 8MB.")
+            content_type = getattr(file, "content_type", "")
+            if content_type and content_type not in allowed_types:
+                raise ValidationError(f"Tep {file.name} khong phai hinh hop le.")
+        return files
 
     def clean(self):
         cleaned = super().clean()
@@ -612,6 +683,13 @@ class ParkingLotManagerForm(forms.ModelForm):
             instance.area_sq_m = 0
         if commit:
             instance.save()
+            remove_images = self.cleaned_data.get("remove_images")
+            if remove_images:
+                for image in remove_images:
+                    image.image.delete(save=False)
+                    image.delete()
+            for upload in self.cleaned_data.get("new_images") or []:
+                ParkingLotImage.objects.create(parking_lot=instance, image=upload)
         return instance
 
 
@@ -644,6 +722,28 @@ def _manager_back_url(entity, from_trash):
 def _limited_only_redirect(request):
     messages.error(request, "Tai khoan chi duoc quan ly nguoi gui xe, bai do xe va bang gia.")
     return redirect("manager_list", entity="users")
+
+
+def _notify_registration_email_result(request, result, success_message):
+    if result.get("skipped"):
+        messages.success(
+            request,
+            f"{success_message} Chua co email nen he thong khong gui thong bao.",
+        )
+        return
+    if result.get("live_sent") and result.get("sandbox_sent"):
+        messages.success(request, success_message)
+        return
+    if result.get("ok"):
+        messages.warning(
+            request,
+            f"{success_message} Tuy nhien email moi chi gui duoc mot phan, hay kiem tra Mailtrap neu ban can dong bo live va sandbox.",
+        )
+        return
+    messages.warning(
+        request,
+        f"{success_message} Du lieu da luu nhung email chua gui duoc. Hay kiem tra cau hinh Mailtrap.",
+    )
 
 
 def _soft_delete_entity(entity, instance):
@@ -774,6 +874,113 @@ def manager_dashboard(request):
         "recent_logs": ActivityLog.objects.order_by("-created_at")[:8],
     }
     return render(request, "parking/manager/dashboard.html", context)
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_manager, login_url="manager_login")
+def manager_registration_list(request):
+    pending_requests = ParkingRegistrationRequest.objects.select_related(
+        "parking_lot",
+        "created_by",
+        "reviewed_by",
+    ).filter(status=ParkingRegistrationRequest.STATUS_PENDING).order_by("-created_at")
+
+    processed_requests = ParkingRegistrationRequest.objects.select_related(
+        "parking_lot",
+        "created_by",
+        "reviewed_by",
+    ).exclude(status=ParkingRegistrationRequest.STATUS_PENDING).order_by("-reviewed_at", "-created_at")[:20]
+
+    return render(
+        request,
+        "parking/manager/registrations.html",
+        {
+            "pending_requests": pending_requests,
+            "processed_requests": processed_requests,
+        },
+    )
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_manager, login_url="manager_login")
+def manager_registration_approve(request, pk):
+    if request.method != "POST":
+        return redirect("manager_registrations")
+
+    registration = get_object_or_404(ParkingRegistrationRequest, pk=pk)
+    if registration.status != ParkingRegistrationRequest.STATUS_PENDING:
+        messages.info(request, "Don nay da duoc xu ly truoc do.")
+        return redirect("manager_registrations")
+
+    try:
+        parking_user = None
+        with transaction.atomic():
+            phone = (registration.phone or "").strip()
+            license_plate = (registration.license_plate or "").strip().upper()
+
+            if ParkingUser.objects.filter(phone=phone, is_deleted=False).exists():
+                raise ValidationError("So dien thoai nay da co trong danh sach nguoi gui xe.")
+            if ParkingUser.objects.filter(license_plate__iexact=license_plate, is_deleted=False).exists():
+                raise ValidationError("Bien so xe nay da co trong he thong.")
+
+            parking_user = ParkingUser.objects.create(
+                full_name=registration.full_name.strip(),
+                phone=phone,
+                email=(registration.email or "").strip().lower(),
+                address=(registration.address or "").strip(),
+                license_plate=license_plate,
+                vehicle_type=registration.vehicle_type,
+                parking_lot=registration.parking_lot,
+                is_active=True,
+            )
+
+            registration.status = ParkingRegistrationRequest.STATUS_APPROVED
+            registration.reviewed_note = "Da duyet"
+            registration.reviewed_by = request.user
+            registration.reviewed_at = timezone.now()
+            registration.save(
+                update_fields=["status", "reviewed_note", "reviewed_by", "reviewed_at"]
+            )
+
+        mail_result = send_parking_user_verification_email(
+            request,
+            parking_user,
+            source_label="online_approved",
+        )
+        _notify_registration_email_result(
+            request,
+            mail_result,
+            "Da duyet don va them nguoi gui xe moi vao he thong.",
+        )
+    except (ValidationError, IntegrityError) as exc:
+        if hasattr(exc, "messages") and exc.messages:
+            messages.error(request, exc.messages[0])
+        else:
+            messages.error(request, "Khong the duyet don nay vi thong tin dang bi trung hoac khong hop le.")
+
+    return redirect("manager_registrations")
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_manager, login_url="manager_login")
+def manager_registration_reject(request, pk):
+    if request.method != "POST":
+        return redirect("manager_registrations")
+
+    registration = get_object_or_404(ParkingRegistrationRequest, pk=pk)
+    if registration.status != ParkingRegistrationRequest.STATUS_PENDING:
+        messages.info(request, "Don nay da duoc xu ly truoc do.")
+        return redirect("manager_registrations")
+
+    registration.status = ParkingRegistrationRequest.STATUS_REJECTED
+    registration.reviewed_note = "Khong duyet"
+    registration.reviewed_by = request.user
+    registration.reviewed_at = timezone.now()
+    registration.save(
+        update_fields=["status", "reviewed_note", "reviewed_by", "reviewed_at"]
+    )
+    messages.success(request, "Da tu choi don dang ky gui xe.")
+    return redirect("manager_registrations")
 
 
 def _build_rows(queryset, columns):
@@ -913,20 +1120,28 @@ def manager_create(request, entity):
     else:
         FormClass = modelform_factory(model, fields=config["fields"])
 
-    form = FormClass(request.POST or None)
+    form = FormClass(request.POST or None, request.FILES or None)
     _style_form(form)
     if entity in ("users", "prices") and "parking_lot" in form.fields:
         form.fields["parking_lot"].queryset = ParkingLot.objects.filter(is_deleted=False)
 
     if request.method == "POST" and form.is_valid():
         try:
+            instance = None
             with transaction.atomic():
                 instance = form.save()
-                if entity == "users":
-                    ok, err_msg = send_parking_user_verification_email(request, instance)
-                    if not ok:
-                        raise ValidationError({"email": f"Khong gui duoc email: {err_msg}"})
-            messages.success(request, "Tao moi thanh cong.")
+            if entity == "users":
+                mail_result = send_parking_user_verification_email(
+                    request,
+                    instance,
+                    source_label="manager",
+                )
+            else:
+                mail_result = None
+            if entity == "users":
+                _notify_registration_email_result(request, mail_result, "Tao moi thanh cong.")
+            else:
+                messages.success(request, "Tao moi thanh cong.")
             if _is_limited_manager(request.user):
                 return redirect("manager_list", entity=entity)
             return redirect("manager_list", entity=entity)
@@ -945,6 +1160,7 @@ def manager_create(request, entity):
             "title": config["title"],
             "form": form,
             "mode": "create",
+            "existing_images": [],
         },
     )
 
@@ -967,7 +1183,7 @@ def manager_edit(request, entity, pk):
     else:
         FormClass = modelform_factory(model, fields=config["fields"])
 
-    form = FormClass(request.POST or None, instance=instance)
+    form = FormClass(request.POST or None, request.FILES or None, instance=instance)
     _style_form(form)
     if entity in ("users", "prices") and "parking_lot" in form.fields:
         form.fields["parking_lot"].queryset = ParkingLot.objects.filter(is_deleted=False)
@@ -989,6 +1205,7 @@ def manager_edit(request, entity, pk):
             "form": form,
             "mode": "edit",
             "instance": instance,
+            "existing_images": instance.images.all() if entity == "parkings" else [],
         },
     )
 

@@ -1,80 +1,155 @@
-﻿import secrets
+import secrets
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core import mail
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
 
-def send_parking_user_verification_email(request, parking_user):
-    email_value = (parking_user.email or "").strip()
-    if not email_value:
+def _split_emails(value):
+    if not value:
+        return []
+    return [email.strip() for email in str(value).replace(";", ",").split(",") if email.strip()]
+
+
+def _send_message(connection, subject, text_body, html_body, recipients, from_email):
+    if not recipients:
+        return False, "Khong co nguoi nhan."
+
+    try:
+        message = EmailMultiAlternatives(
+            subject=subject,
+            body=text_body,
+            from_email=from_email,
+            to=recipients,
+            connection=connection,
+        )
+        if html_body:
+            message.attach_alternative(html_body, "text/html")
+        message.send(fail_silently=False)
         return True, None
+    except Exception as exc:
+        return False, str(exc)
 
-    to_email = (getattr(settings, "MAILTRAP_TO_EMAIL", "") or "").strip()
-    if not to_email:
-        return False, "Chua cau hinh MAILTRAP_TO_EMAIL de nhan email test."
 
+def _send_sandbox_copy(subject, text_body, html_body, recipients):
+    host = (getattr(settings, "MAILTRAP_SANDBOX_HOST", "") or "").strip()
+    user = (getattr(settings, "MAILTRAP_SANDBOX_USER", "") or "").strip()
+    password = (getattr(settings, "MAILTRAP_SANDBOX_PASSWORD", "") or "").strip()
+    if not host or not user or not password or not recipients:
+        return False, "Chua cau hinh sandbox."
+
+    sandbox_recipients = list(dict.fromkeys(recipients + _split_emails(getattr(settings, "MAILTRAP_SANDBOX_TO_EMAIL", ""))))
+    from_email = (getattr(settings, "MAILTRAP_SANDBOX_FROM_EMAIL", "") or "no-reply@mailtrap.local").strip()
+
+    connection = mail.get_connection(
+        host=host,
+        port=getattr(settings, "MAILTRAP_SANDBOX_PORT", 587),
+        username=user,
+        password=password,
+        use_tls=True,
+    )
+    return _send_message(connection, subject, text_body, html_body, sandbox_recipients, from_email)
+
+
+def _send_live_email(subject, text_body, html_body, recipients):
+    host = (getattr(settings, "EMAIL_HOST", "") or "").strip()
+    password = (getattr(settings, "EMAIL_HOST_PASSWORD", "") or "").strip()
+    user = (getattr(settings, "EMAIL_HOST_USER", "") or "api").strip()
+    from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@demomailtrap.co").strip()
+
+    if not host or not password:
+        return False, "Chua cau hinh SMTP live (MAILTRAP_PASSWORD)."
+
+    connection = mail.get_connection(
+        host=host,
+        port=getattr(settings, "EMAIL_PORT", 587),
+        username=user,
+        password=password,
+        use_tls=getattr(settings, "EMAIL_USE_TLS", True),
+    )
+    return _send_message(connection, subject, text_body, html_body, recipients, from_email)
+
+
+def _delivery_result(live_ok, live_error, sandbox_ok, sandbox_error):
+    return {
+        "ok": live_ok or sandbox_ok,
+        "live_sent": live_ok,
+        "live_error": live_error,
+        "sandbox_sent": sandbox_ok,
+        "sandbox_error": sandbox_error,
+    }
+
+
+def _build_verify_url(request, parking_user):
     token = secrets.token_urlsafe(32)
     parking_user.email_verification_token = token
     parking_user.email_verification_sent_at = timezone.now()
     parking_user.email_verified = False
-    parking_user.save(update_fields=[
-        "email_verification_token",
-        "email_verification_sent_at",
-        "email_verified",
-    ])
-
-    verify_url = request.build_absolute_uri(
+    parking_user.save(
+        update_fields=[
+            "email_verification_token",
+            "email_verification_sent_at",
+            "email_verified",
+        ]
+    )
+    return request.build_absolute_uri(
         reverse("parking_user_verify_email", args=[parking_user.id, token])
     )
 
-    subject = "Xac thuc email - Parking Manager"
-    text_body = (
-        "Xin chao {name},\n\n"
-        "Ban vua duoc dang ky gui xe tai he thong Parking Manager.\n"
-        "Vui long nhan vao link ben duoi de xac thuc email:\n"
-        "{url}\n\n"
-        "Thong tin dang ky:\n"
-        "- Bien so xe: {plate}\n"
-        "- Bai do xe: {lot}\n\n"
-        "Cam on!"
-    ).format(
-        name=parking_user.full_name,
-        url=verify_url,
-        plate=parking_user.license_plate,
-        lot=parking_user.parking_lot.name,
+
+def _send_dual_delivery_email(subject, text_body, html_body, recipient_email):
+    recipients = [recipient_email.strip()]
+    live_ok, live_error = _send_live_email(subject, text_body, html_body, recipients)
+    sandbox_ok, sandbox_error = _send_sandbox_copy(subject, text_body, html_body, recipients)
+    return _delivery_result(live_ok, live_error, sandbox_ok, sandbox_error)
+
+
+def send_parking_user_verification_email(request, parking_user, *, source_label="manager"):
+    email_value = (parking_user.email or "").strip().lower()
+    if not email_value:
+        return {"ok": True, "live_sent": False, "sandbox_sent": False, "skipped": True}
+
+    verify_url = _build_verify_url(request, parking_user)
+    context = {
+        "parking_user": parking_user,
+        "source_label": source_label,
+        "verify_url": verify_url,
+    }
+
+    subject = render_to_string(
+        "parking/email/parking_user_registered_subject.txt",
+        context,
+    ).strip()
+    text_body = render_to_string(
+        "parking/email/parking_user_registered.txt",
+        context,
     )
-
-    html_body = (
-        "<p>Xin chao <strong>{name}</strong>,</p>"
-        "<p>Ban vua duoc dang ky gui xe tai he thong Parking Manager.</p>"
-        "<p>Vui long nhan vao link ben duoi de xac thuc email:</p>"
-        "<p><a href=\"{url}\">{url}</a></p>"
-        "<p>Thong tin dang ky:</p>"
-        "<ul>"
-        "<li>Bien so xe: {plate}</li>"
-        "<li>Bai do xe: {lot}</li>"
-        "</ul>"
-        "<p>Cam on!</p>"
-    ).format(
-        name=parking_user.full_name,
-        url=verify_url,
-        plate=parking_user.license_plate,
-        lot=parking_user.parking_lot.name,
+    html_body = render_to_string(
+        "parking/email/parking_user_registered.html",
+        context,
     )
+    return _send_dual_delivery_email(subject, text_body, html_body, email_value)
 
-    try:
-        send_mail(
-            subject,
-            text_body,
-            settings.DEFAULT_FROM_EMAIL,
-            [to_email],
-            fail_silently=False,
-            html_message=html_body,
-        )
-    except Exception as exc:
-        return False, str(exc)
 
-    return True, None
+def send_registration_request_received_email(registration):
+    email_value = (registration.email or "").strip().lower()
+    if not email_value:
+        return {"ok": True, "live_sent": False, "sandbox_sent": False, "skipped": True}
 
+    context = {"registration": registration}
+    subject = render_to_string(
+        "parking/email/registration_received_subject.txt",
+        context,
+    ).strip()
+    text_body = render_to_string(
+        "parking/email/registration_received.txt",
+        context,
+    )
+    html_body = render_to_string(
+        "parking/email/registration_received.html",
+        context,
+    )
+    return _send_dual_delivery_email(subject, text_body, html_body, email_value)
