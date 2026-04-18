@@ -74,6 +74,7 @@ Data model usage:
 Behavior:
 - List users (search optional)
 - Show each user’s current groups
+- Validate submitted group IDs/names against existing assignable groups before update
 - Submit selected groups to update `user.groups.set(...)`
 - Write activity log entry for audit visibility
 
@@ -148,8 +149,11 @@ Target components:
 
 - Manager permission management endpoints must enforce full-manager checks on both GET and POST.
 - Never allow limited manager to escalate privileges.
+- Validate group input strictly (reject unknown/invalid group values; never silently accept malformed payloads).
+- Block self-escalation paths in manager permission UI (e.g., disallow editing own high-privilege assignments through this shortcut screen).
 - Use POST + CSRF for permission updates.
 - Revenue data must not remain publicly reachable from old route.
+- Revenue API endpoints (if any exist/currently public) must be hidden from public surface and protected by manager auth.
 
 ## 5) Error handling behavior
 
@@ -164,9 +168,13 @@ Target components:
   - manager permission page inaccessible to anonymous users
   - manager permission page inaccessible to limited manager
   - manager permission page accessible to full manager
+- Permission update safety tests:
+  - invalid/non-existent group input is rejected with safe error
+  - self-escalation attempt via manager permission UI is blocked
 - Revenue surface tests:
   - old public revenue URL is absent/not reachable
   - manager revenue URL requires manager auth
+  - revenue API endpoint is not publicly accessible (requires manager auth or is removed)
 - 404 tests:
   - unknown public URL renders public 404 template
   - unknown manager URL renders manager 404 template
