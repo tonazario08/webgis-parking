@@ -46,6 +46,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+MANAGER_URL_PREFIX = "manager/"
 
 # Application definition
 

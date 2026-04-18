@@ -21,3 +21,16 @@ class NotFoundTemplateTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "parking/manager/404.html")
+
+    @override_settings(FORCE_SCRIPT_NAME="/webgis")
+    def test_manager_not_found_uses_manager_template_under_script_prefix(self):
+        response = self.client.get("/manager/khong-ton-tai/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "parking/manager/404.html")
+
+    def test_manager_like_prefix_uses_public_template(self):
+        response = self.client.get("/managerx/khong-ton-tai/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")

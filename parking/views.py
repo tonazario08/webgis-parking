@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -17,7 +18,8 @@ from .utils.email import send_registration_request_received_email
 
 
 def custom_not_found(request, exception):
-    template_name = "parking/manager/404.html" if request.path.startswith("/manager/") else "404.html"
+    manager_prefix = f"/{settings.MANAGER_URL_PREFIX.strip('/')}/"
+    template_name = "parking/manager/404.html" if request.path_info.startswith(manager_prefix) else "404.html"
     return render(request, template_name, status=404)
 
 
