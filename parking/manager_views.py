@@ -1,10 +1,12 @@
 ﻿from django import forms
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.forms import modelform_factory
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -96,6 +98,7 @@ MANAGER_MODELS = {
 TRASHABLE_ENTITIES = {"areas", "parkings", "users"}
 LIMITED_MANAGER_GROUP = "parking_user_creator"
 LIMITED_MANAGER_ENTITIES = {"users", "parkings", "prices"}
+ASSIGNABLE_GROUPS = {LIMITED_MANAGER_GROUP}
 
 def _strip_accents(text):
     if not text:
@@ -746,6 +749,23 @@ def _notify_registration_email_result(request, result, success_message):
     )
 
 
+def _allowed_groups_queryset():
+    return Group.objects.filter(name__in=ASSIGNABLE_GROUPS).order_by("name")
+
+
+def _parse_group_ids(raw_group_ids):
+    cleaned = [value for value in raw_group_ids if value and value.strip()]
+    if not cleaned:
+        return []
+    parsed_ids = []
+    for value in cleaned:
+        token = value.strip()
+        if not token.isdigit():
+            raise ValidationError("Nhóm quyền không hợp lệ.")
+        parsed_ids.append(int(token))
+    return parsed_ids
+
+
 def _soft_delete_entity(entity, instance):
     now = timezone.now()
     if entity == "areas":
@@ -906,7 +926,7 @@ def manager_revenue(request):
                 "name": lot.name,
                 "month": f"{now.month}/{now.year}",
                 "revenue": lot_revenue,
-                "status": "Da quyet toan" if lot_revenue > 0 else "Chua doi soat",
+                "status": "Đã quyết toán" if lot_revenue > 0 else "Chưa đối soát",
             }
         )
 
@@ -915,6 +935,87 @@ def manager_revenue(request):
         "parking/manager/revenue.html",
         {"total_revenue": total_revenue, "parking_data": parking_data},
     )
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_full_manager, login_url="manager_login")
+def manager_permissions(request):
+    query = request.GET.get("q", "").strip()
+    users_qs = get_user_model().objects.all().order_by("username")
+    if query:
+        users_qs = users_qs.filter(
+            Q(username__icontains=query)
+            | Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+            | Q(email__icontains=query)
+        )
+
+    assignable_groups = list(_allowed_groups_queryset())
+    assignable_ids = {group.id for group in assignable_groups}
+    rows = []
+    for user in users_qs:
+        selected_group_ids = list(
+            user.groups.filter(id__in=assignable_ids).values_list("id", flat=True)
+        )
+        rows.append(
+            {
+                "user": user,
+                "selected_group_ids": selected_group_ids,
+                "is_self": user.id == request.user.id,
+            }
+        )
+
+    return render(
+        request,
+        "parking/manager/permissions.html",
+        {
+            "rows": rows,
+            "assignable_groups": assignable_groups,
+            "query": query,
+        },
+    )
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_full_manager, login_url="manager_login")
+def manager_permissions_update(request, user_id):
+    if request.method != "POST":
+        return redirect("manager_permissions")
+
+    if request.user.id == user_id:
+        messages.error(request, "Ban khong the tu cap nhat phan quyen cua chinh minh.")
+        return redirect("manager_permissions")
+
+    target_user = get_object_or_404(get_user_model(), pk=user_id)
+
+    try:
+        selected_ids = _parse_group_ids(request.POST.getlist("group_ids"))
+        allowed_groups = list(_allowed_groups_queryset())
+        allowed_ids = {group.id for group in allowed_groups}
+
+        if any(group_id not in allowed_ids for group_id in selected_ids):
+            raise ValidationError("Nhóm quyền không hợp lệ.")
+
+        target_user.groups.remove(*allowed_groups)
+        if selected_ids:
+            target_user.groups.add(*Group.objects.filter(id__in=selected_ids))
+
+        selected_names = list(
+            target_user.groups.filter(id__in=allowed_ids).values_list("name", flat=True)
+        )
+        ActivityLog.objects.create(
+            user=request.user,
+            action=(
+                f"Cập nhật phân quyền cho {target_user.username}: "
+                f"{', '.join(selected_names) if selected_names else 'không có nhóm'}"
+            ),
+            type="system",
+        )
+        messages.success(request, f"Da cap nhat phan quyen cho {target_user.username}.")
+    except ValidationError as exc:
+        messages.error(request, exc.messages[0] if exc.messages else "Nhóm quyền không hợp lệ.")
+
+    return redirect("manager_permissions")
 
 
 @login_required(login_url="manager_login")

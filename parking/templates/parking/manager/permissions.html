@@ -1,0 +1,60 @@
+{% extends 'parking/manager/base.html' %}
+
+{% block title %}Phân quyền tài khoản | Quản trị{% endblock %}
+{% block page_title %}Phân quyền tài khoản{% endblock %}
+
+{% block content %}
+<div class="panel mb-3">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-6">
+            <label class="form-label">Tìm kiếm tài khoản</label>
+            <input type="text" class="form-control" name="q" value="{{ query }}" placeholder="Nhập username, email hoặc họ tên...">
+        </div>
+        <div class="col-md-auto">
+            <button class="btn btn-manager">Lọc</button>
+        </div>
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Tài khoản</th>
+                    <th>Email</th>
+                    <th>Nhóm phân quyền</th>
+                    <th style="width: 220px;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td class="fw-bold">{{ row.user.username }}</td>
+                    <td>{{ row.user.email|default:"-" }}</td>
+                    <td>
+                        {% if row.is_self %}
+                        <span class="text-muted">Không cho phép tự cập nhật quyền.</span>
+                        {% else %}
+                        <form method="post" action="{% url 'manager_permissions_update' row.user.id %}" class="d-flex gap-2">
+                            {% csrf_token %}
+                            <select name="group_ids" class="form-select" multiple size="3">
+                                {% for group in assignable_groups %}
+                                <option value="{{ group.id }}" {% if group.id in row.selected_group_ids %}selected{% endif %}>{{ group.name }}</option>
+                                {% endfor %}
+                            </select>
+                    </td>
+                    <td>
+                            <button type="submit" class="btn btn-sm btn-primary">Lưu nhóm</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-4">Không có tài khoản phù hợp.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

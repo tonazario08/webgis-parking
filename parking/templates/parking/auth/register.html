@@ -1,6 +1,6 @@
 {% extends 'parking/base.html' %}
 
-{% block title %}Dang ky | Parking GIS{% endblock %}
+{% block title %}Đăng ký | Parking GIS{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -27,8 +27,8 @@
 <div class="auth-wrap">
     <div class="card register-card">
         <div class="register-head">
-            <h1>Tao tai khoan moi</h1>
-            <p>Dang ky nhanh de su dung he thong Parking GIS. Sau khi tao xong, he thong se dang nhap cho ban ngay.</p>
+            <h1>Tạo tài khoản mới</h1>
+            <p>Đăng ký nhanh để sử dụng hệ thống Parking GIS. Sau khi tạo xong, hệ thống sẽ đăng nhập cho bạn ngay.</p>
         </div>
         <div class="register-body">
             <form method="post" novalidate>
@@ -66,12 +66,12 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100 register-submit mt-4">Dang ky tai khoan</button>
+                <button type="submit" class="btn btn-primary w-100 register-submit mt-4">Đăng ký tài khoản</button>
             </form>
 
             <div class="register-foot">
-                <a href="{% url 'login' %}"><i class="fas fa-right-to-bracket me-2"></i>Da co tai khoan? Dang nhap</a>
-                <a href="{% url 'password_reset' %}"><i class="fas fa-key me-2"></i>Quen mat khau</a>
+                <a href="{% url 'login' %}"><i class="fas fa-right-to-bracket me-2"></i>Đã có tài khoản? Đăng nhập</a>
+                <a href="{% url 'password_reset' %}"><i class="fas fa-key me-2"></i>Quên mật khẩu</a>
             </div>
         </div>
     </div>

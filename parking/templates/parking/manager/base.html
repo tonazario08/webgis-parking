@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Quan tri he thong{% endblock %}</title>
+    <title>{% block title %}Quản trị hệ thống{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -54,32 +54,33 @@
                 <span>Parking Manager</span>
             </a>
 
-            <div class="menu-label">Chuc nang</div>
+            <div class="menu-label">Chức năng</div>
             {% if request.user.is_staff or request.user.is_superuser %}
-            <a class="menu-link" href="{% url 'manager_dashboard' %}"><i class="fas fa-chart-line"></i> Tong quan</a>
-            <a class="menu-link" href="{% url 'manager_list' 'areas' %}"><i class="fas fa-map"></i> Khu vuc</a>
-            <a class="menu-link" href="{% url 'manager_list' 'parkings' %}"><i class="fas fa-warehouse"></i> Bai do xe</a>
-            <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Nguoi gui xe</a>
-            <a class="menu-link" href="{% url 'manager_list' 'prices' %}"><i class="fas fa-tags"></i> Bang gia</a>
+            <a class="menu-link" href="{% url 'manager_dashboard' %}"><i class="fas fa-chart-line"></i> Tổng quan</a>
+            <a class="menu-link" href="{% url 'manager_list' 'areas' %}"><i class="fas fa-map"></i> Khu vực</a>
+            <a class="menu-link" href="{% url 'manager_list' 'parkings' %}"><i class="fas fa-warehouse"></i> Bãi đỗ xe</a>
+            <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Người gửi xe</a>
+            <a class="menu-link" href="{% url 'manager_list' 'prices' %}"><i class="fas fa-tags"></i> Bảng giá</a>
             <a class="menu-link" href="{% url 'manager_revenue' %}"><i class="fas fa-chart-line"></i> Doanh thu</a>
-            <a class="menu-link" href="{% url 'manager_list' 'logs' %}"><i class="fas fa-clock-rotate-left"></i> Nhat ky</a>
+            <a class="menu-link" href="{% url 'manager_permissions' %}"><i class="fas fa-user-shield"></i> Phân quyền</a>
+            <a class="menu-link" href="{% url 'manager_list' 'logs' %}"><i class="fas fa-clock-rotate-left"></i> Nhật ký</a>
             {% else %}
-            <a class="menu-link" href="{% url 'manager_list' 'parkings' %}"><i class="fas fa-warehouse"></i> Bai do xe</a>
-            <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Nguoi gui xe</a>
-            <a class="menu-link" href="{% url 'manager_list' 'prices' %}"><i class="fas fa-tags"></i> Bang gia</a>
+            <a class="menu-link" href="{% url 'manager_list' 'parkings' %}"><i class="fas fa-warehouse"></i> Bãi đỗ xe</a>
+            <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Người gửi xe</a>
+            <a class="menu-link" href="{% url 'manager_list' 'prices' %}"><i class="fas fa-tags"></i> Bảng giá</a>
             {% endif %}
 
             <div class="sidebar-foot">
-                <a href="{% url 'home' %}" class="btn btn-light btn-sm w-100 mb-2">Ve trang he thong</a>
-                <a href="{% url 'manager_logout' %}" class="btn btn-danger btn-sm w-100">Dang xuat</a>
+                <a href="{% url 'home' %}" class="btn btn-light btn-sm w-100 mb-2">Về trang hệ thống</a>
+                <a href="{% url 'manager_logout' %}" class="btn btn-danger btn-sm w-100">Đăng xuất</a>
             </div>
         </aside>
 
         <main class="main-content">
             <header class="topbar">
-                <h1>{% block page_title %}Bang dieu khien{% endblock %}</h1>
+                <h1>{% block page_title %}Bảng điều khiển{% endblock %}</h1>
                 <div class="topbar-actions">
-                    <a href="{% url 'manager_registrations' %}" class="bell-link" title="Don dang ky gui xe">
+                    <a href="{% url 'manager_registrations' %}" class="bell-link" title="Đơn đăng ký gửi xe">
                         <i class="fas fa-bell"></i>
                         {% if pending_registration_count %}
                         <span class="bell-badge">{{ pending_registration_count }}</span>
