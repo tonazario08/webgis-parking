@@ -1,4 +1,5 @@
-from django.test import SimpleTestCase, override_settings
+from django.contrib.auth import get_user_model
+from django.test import SimpleTestCase, TestCase, override_settings
 
 urlpatterns = []
 handler404 = "parking.views.custom_not_found"
@@ -34,3 +35,35 @@ class NotFoundTemplateTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
+
+
+class RevenueAccessTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.full_manager = user_model.objects.create_user(
+            username="full_manager",
+            password="testpass123",
+            is_staff=True,
+        )
+
+    def test_public_revenue_route_not_available(self):
+        response = self.client.get("/revenue/")
+
+        self.assertIn(response.status_code, (404, 410))
+
+    def test_manager_revenue_requires_login(self):
+        response = self.client.get("/manager/revenue/")
+
+        self.assertIn(response.status_code, (302, 403))
+
+    def test_manager_revenue_accessible_for_full_manager(self):
+        self.client.force_login(self.full_manager)
+
+        response = self.client.get("/manager/revenue/")
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_api_revenue_not_public(self):
+        response = self.client.get("/api/revenue/")
+
+        self.assertIn(response.status_code, (404, 403))

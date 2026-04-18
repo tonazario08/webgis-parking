@@ -19,6 +19,7 @@ urlpatterns = [
     path("geocode/suggest/", manager_views.manager_geocode_suggest, name="manager_geocode_suggest"),
     path("geocode/forward/", manager_views.manager_geocode_forward, name="manager_geocode_forward"),
     path("geocode/reverse/", manager_views.manager_geocode_reverse, name="manager_geocode_reverse"),
+    path("revenue/", manager_views.manager_revenue, name="manager_revenue"),
     path("<str:entity>/", manager_views.manager_list, name="manager_list"),
     path("trash/<str:entity>/", manager_views.manager_trash_list, name="manager_trash"),
     path("trash/<str:entity>/<int:pk>/restore/", manager_views.manager_restore, name="manager_restore"),

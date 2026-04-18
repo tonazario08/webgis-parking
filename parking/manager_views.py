@@ -877,6 +877,47 @@ def manager_dashboard(request):
 
 
 @login_required(login_url="manager_login")
+@user_passes_test(_is_full_manager, login_url="manager_login")
+def manager_revenue(request):
+    now = timezone.now()
+    total_revenue = 0
+    parking_data = []
+
+    for lot in ParkingLot.objects.filter(is_deleted=False):
+        users = ParkingUser.objects.filter(parking_lot=lot, is_deleted=False)
+
+        lot_revenue = 0
+        for parking_user in users:
+            price = ParkingPrice.objects.filter(
+                parking_lot=lot,
+                vehicle_type=parking_user.vehicle_type,
+            ).first()
+            if price:
+                lot_revenue += price.price_per_hour
+            elif lot.price_per_hour:
+                lot_revenue += lot.price_per_hour
+
+        if lot_revenue == 0 and lot.revenue:
+            lot_revenue = lot.revenue
+
+        total_revenue += lot_revenue
+        parking_data.append(
+            {
+                "name": lot.name,
+                "month": f"{now.month}/{now.year}",
+                "revenue": lot_revenue,
+                "status": "Da quyet toan" if lot_revenue > 0 else "Chua doi soat",
+            }
+        )
+
+    return render(
+        request,
+        "parking/manager/revenue.html",
+        {"total_revenue": total_revenue, "parking_data": parking_data},
+    )
+
+
+@login_required(login_url="manager_login")
 @user_passes_test(_is_manager, login_url="manager_login")
 def manager_registration_list(request):
     pending_requests = ParkingRegistrationRequest.objects.select_related(

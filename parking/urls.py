@@ -48,7 +48,6 @@ urlpatterns = [
     path("map/", views.map_view, name="map_view"),
     path("list/", views.parking_list, name="parking_list"),
     path("available/", views.parking_available, name="parking_available"),
-    path("revenue/", views.revenue_view, name="revenue_view"),
     path("areas/", views.areas_view, name="areas_view"),
     path("activity/", views.activity_log_view, name="activity_log_view"),
     path("search/", views.search_by_phone, name="search_by_phone"),
