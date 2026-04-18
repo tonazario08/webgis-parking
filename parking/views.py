@@ -16,6 +16,11 @@ from .utils.gis import find_nearest_parking, haversine_distance
 from .utils.email import send_registration_request_received_email
 
 
+def custom_not_found(request, exception):
+    template_name = "parking/manager/404.html" if request.path.startswith("/manager/") else "404.html"
+    return render(request, template_name, status=404)
+
+
 def public_login(request):
     if request.user.is_authenticated:
         if is_manager_user(request.user):
