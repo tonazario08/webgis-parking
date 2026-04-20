@@ -25,6 +25,14 @@ def custom_not_found(request, exception):
     return render(request, template_name, status=404)
 
 
+def preview_404(request):
+    """Xem trước trang 404 khi DEBUG=True. Xóa URL này trước khi lên production."""
+    which = request.GET.get("type", "public")
+    if which == "manager":
+        return render(request, "parking/manager/404.html", status=200)
+    return render(request, "parking/404.html", status=200)
+
+
 def public_login(request):
     if request.user.is_authenticated:
         if is_manager_user(request.user):
@@ -511,6 +519,6 @@ def verify_parking_user_email(request, user_id, token):
     )
 
 
-def custom_page_not_found(request, _exception):
+def custom_page_not_found(request, exception=None):
     template_name = "parking/manager/404.html" if request.path.startswith("/manager/") else "parking/404.html"
     return render(request, template_name, status=404)

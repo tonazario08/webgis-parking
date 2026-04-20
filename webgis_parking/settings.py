@@ -46,9 +46,9 @@ _load_local_env()
 SECRET_KEY = 'django-insecure-wjzinukcg5wkl*g)3r(xv(8*0d7f=(dkn=zdyd-tv+-ri!nu_d'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True       
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 MANAGER_URL_PREFIX = "manager/"
 
@@ -62,7 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    'parking',  # <--- THÃŠM DÃ’NG NÃ€Y VÃ€O (Nhá»› cÃ³ dáº¥u pháº©y cuá»‘i cÃ¹ng)
+    'parking', 
 ]
 
 MIDDLEWARE = [
