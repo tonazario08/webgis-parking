@@ -3,11 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
-<<<<<<< HEAD
-from django.contrib.auth.models import Group
-=======
 from django.contrib.auth.models import Group, User
->>>>>>> eda105b0db87622609486429b6382cb93e7f4761
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -100,14 +96,8 @@ MANAGER_MODELS = {
 }
 
 TRASHABLE_ENTITIES = {"areas", "parkings", "users"}
-<<<<<<< HEAD
-LIMITED_MANAGER_GROUP = "parking_user_creator"
-LIMITED_MANAGER_ENTITIES = {"users", "parkings", "prices"}
-ASSIGNABLE_GROUPS = {LIMITED_MANAGER_GROUP}
-=======
 NHAN_VIEN_GROUP = "nhan_vien"
 NHAN_VIEN_ENTITIES = {"users", "parkings", "prices"}
->>>>>>> eda105b0db87622609486429b6382cb93e7f4761
 
 def _strip_accents(text):
     if not text:
