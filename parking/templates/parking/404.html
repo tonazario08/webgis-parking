@@ -4,89 +4,124 @@
 
 {% block extra_head %}
 <style>
-    .public-404-wrap {
+    .p404-wrap {
         min-height: calc(100vh - 220px);
         display: grid;
         place-items: center;
-        padding: 24px 0;
+        padding: 32px 16px;
     }
 
-    .public-404-card {
-        width: min(640px, 100%);
-        background: #ffffff;
-        border-radius: 22px;
-        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
-        padding: 48px 32px;
+    .p404-card {
+        width: min(620px, 100%);
+        background: #fff;
+        border-radius: 24px;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.10);
+        padding: 52px 40px 44px;
         text-align: center;
         border: 1px solid #e5e7eb;
+        animation: p404-in .5s cubic-bezier(.22,.61,.36,1) both;
     }
 
-    .public-404-code {
-        margin: 0;
-        font-size: clamp(72px, 14vw, 150px);
-        line-height: 0.9;
+    @keyframes p404-in {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* SVG illustration */
+    .p404-svg { width: 180px; height: auto; margin-bottom: 20px; }
+
+    .p404-code {
+        font-size: clamp(72px, 14vw, 130px);
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: 4px;
+        background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0 0 8px;
+    }
+
+    .p404-title {
+        font-size: clamp(20px, 3vw, 26px);
         font-weight: 800;
-        color: #0d6efd;
-        letter-spacing: 2px;
-    }
-
-    .public-404-title {
-        margin: 20px 0 10px;
-        font-size: clamp(22px, 3.2vw, 30px);
-        font-weight: 700;
         color: #0f172a;
+        margin: 0 0 10px;
     }
 
-    .public-404-desc {
-        margin: 0 auto;
-        max-width: 520px;
-        color: #475569;
-        font-size: 16px;
+    .p404-desc {
+        color: #64748b;
+        font-size: 15px;
+        max-width: 460px;
+        margin: 0 auto 32px;
+        line-height: 1.7;
     }
 
-    .public-404-actions {
-        margin-top: 28px;
+    .p404-actions {
         display: flex;
         justify-content: center;
         gap: 12px;
         flex-wrap: wrap;
     }
 
-    .public-404-btn {
-        min-width: 150px;
+    .p404-btn {
+        min-width: 160px;
         border-radius: 999px;
-        padding: 10px 18px;
+        padding: 11px 22px;
         font-weight: 700;
+        font-size: 15px;
+        transition: transform .15s, box-shadow .15s;
+    }
+    .p404-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(13, 110, 253, 0.22);
     }
 
     @media (max-width: 575px) {
-        .public-404-card {
-            padding: 36px 18px;
-            border-radius: 18px;
-        }
-
-        .public-404-actions {
-            flex-direction: column;
-        }
-
-        .public-404-btn {
-            width: 100%;
-        }
+        .p404-card { padding: 36px 20px 32px; }
+        .p404-actions { flex-direction: column; }
+        .p404-btn { width: 100%; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="public-404-wrap" aria-labelledby="public-404-title">
-    <div class="public-404-card">
-        <p class="public-404-code" aria-hidden="true">404</p>
-        <h1 id="public-404-title" class="public-404-title">Trang bạn tìm không tồn tại</h1>
-        <p class="public-404-desc">Liên kết có thể đã thay đổi hoặc bị xóa. Bạn có thể quay về trang chủ hoặc dùng chức năng tìm kiếm để tiếp tục.</p>
+<section class="p404-wrap" aria-labelledby="p404-title">
+    <div class="p404-card">
 
-        <div class="public-404-actions">
-            <a class="btn btn-primary public-404-btn" href="{% url 'home' %}">Về trang chủ</a>
-            <a class="btn btn-outline-primary public-404-btn" href="{% url 'search_by_phone' %}">Tìm kiếm</a>
+        <!-- SVG minh họa bản đồ lạc đường -->
+        <svg class="p404-svg" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <ellipse cx="100" cy="140" rx="70" ry="12" fill="#f1f5f9"/>
+            <!-- Biển báo -->
+            <rect x="90" y="30" width="6" height="80" rx="3" fill="#cbd5e1"/>
+            <rect x="70" y="15" width="46" height="30" rx="8" fill="#2563eb"/>
+            <text x="93" y="35" font-size="16" font-weight="900" fill="white" text-anchor="middle" dominant-baseline="middle">?</text>
+            <!-- Xe hơi nhỏ -->
+            <rect x="30" y="110" width="48" height="24" rx="6" fill="#3b82f6"/>
+            <rect x="36" y="102" width="36" height="16" rx="4" fill="#60a5fa"/>
+            <circle cx="42" cy="136" r="6" fill="#1e293b"/>
+            <circle cx="42" cy="136" r="3" fill="#94a3b8"/>
+            <circle cx="68" cy="136" r="6" fill="#1e293b"/>
+            <circle cx="68" cy="136" r="3" fill="#94a3b8"/>
+            <!-- Dấu chấm hỏi bay -->
+            <text x="148" y="75" font-size="28" fill="#fbbf24" font-weight="900" opacity=".8">?</text>
+            <text x="162" y="50" font-size="16" fill="#f87171" font-weight="900" opacity=".6">!</text>
+        </svg>
+
+        <p class="p404-code" aria-hidden="true">404</p>
+        <h1 id="p404-title" class="p404-title">Trang không tồn tại</h1>
+        <p class="p404-desc">Địa chỉ bạn truy cập không chính xác hoặc đã bị di chuyển. Hãy quay về trang chủ hoặc dùng chức năng tìm kiếm.</p>
+
+        <div class="p404-actions">
+            <a class="btn btn-primary p404-btn" href="{% url 'home' %}">
+                <i class="fas fa-home me-2"></i>Về trang chủ
+            </a>
+            <a class="btn btn-outline-primary p404-btn" href="{% url 'search_by_phone' %}">
+                <i class="fas fa-search me-2"></i>Tìm kiếm
+            </a>
         </div>
+
     </div>
 </section>
 {% endblock %}
+
