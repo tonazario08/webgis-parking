@@ -3,7 +3,11 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
+<<<<<<< HEAD
 from django.contrib.auth.models import Group
+=======
+from django.contrib.auth.models import Group, User
+>>>>>>> eda105b0db87622609486429b6382cb93e7f4761
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -96,9 +100,14 @@ MANAGER_MODELS = {
 }
 
 TRASHABLE_ENTITIES = {"areas", "parkings", "users"}
+<<<<<<< HEAD
 LIMITED_MANAGER_GROUP = "parking_user_creator"
 LIMITED_MANAGER_ENTITIES = {"users", "parkings", "prices"}
 ASSIGNABLE_GROUPS = {LIMITED_MANAGER_GROUP}
+=======
+NHAN_VIEN_GROUP = "nhan_vien"
+NHAN_VIEN_ENTITIES = {"users", "parkings", "prices"}
+>>>>>>> eda105b0db87622609486429b6382cb93e7f4761
 
 def _strip_accents(text):
     if not text:
@@ -701,7 +710,7 @@ def _is_full_manager(user):
 
 
 def _is_limited_manager(user):
-    return user.is_authenticated and user.groups.filter(name=LIMITED_MANAGER_GROUP).exists()
+    return user.is_authenticated and not _is_full_manager(user) and user.groups.filter(name=NHAN_VIEN_GROUP).exists()
 
 
 def _is_manager(user):
@@ -713,7 +722,7 @@ def _is_trashable(entity):
 
 
 def _limited_can_manage(entity):
-    return entity in LIMITED_MANAGER_ENTITIES
+    return entity in NHAN_VIEN_ENTITIES
 
 
 def _manager_back_url(entity, from_trash):
@@ -723,7 +732,7 @@ def _manager_back_url(entity, from_trash):
 
 
 def _limited_only_redirect(request):
-    messages.error(request, "Tai khoan chi duoc quan ly nguoi gui xe, bai do xe va bang gia.")
+    messages.error(request, "Tài khoản nhân viên chỉ được quản lý người gửi xe, bãi đỗ xe và bảng giá.")
     return redirect("manager_list", entity="users")
 
 
@@ -1473,6 +1482,66 @@ def manager_geocode_reverse(request):
 
     return JsonResponse({"display_name": data.get("display_name", "")})
 
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_full_manager, login_url="manager_login")
+def manager_roles(request):
+    """Danh sách tài khoản Django kèm role hiện tại — chỉ admin."""
+    nhan_vien_group, _ = Group.objects.get_or_create(name=NHAN_VIEN_GROUP)
+    nhan_vien_ids = set(nhan_vien_group.user_set.values_list("id", flat=True))
+
+    django_users = (
+        User.objects.exclude(is_superuser=True)
+        .order_by("username")
+    )
+
+    rows = []
+    for u in django_users:
+        if u.is_staff:
+            role = "admin"
+        elif u.id in nhan_vien_ids:
+            role = "nhan_vien"
+        else:
+            role = "nguoi_gui_xe"
+        rows.append({"user": u, "role": role})
+
+    return render(request, "parking/manager/roles.html", {"rows": rows})
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_full_manager, login_url="manager_login")
+def manager_assign_role(request, user_id):
+    """Gán role cho một tài khoản Django — chỉ admin."""
+    if request.method != "POST":
+        return redirect("manager_roles")
+
+    target = get_object_or_404(User, pk=user_id)
+    if target.is_superuser:
+        messages.error(request, "Không thể thay đổi role của superuser.")
+        return redirect("manager_roles")
+
+    new_role = request.POST.get("role", "")
+    nhan_vien_group, _ = Group.objects.get_or_create(name=NHAN_VIEN_GROUP)
+
+    if new_role == "admin":
+        target.is_staff = True
+        target.save(update_fields=["is_staff"])
+        target.groups.remove(nhan_vien_group)
+        messages.success(request, f"Đã cấp quyền Admin cho {target.username}.")
+    elif new_role == "nhan_vien":
+        target.is_staff = False
+        target.save(update_fields=["is_staff"])
+        target.groups.add(nhan_vien_group)
+        messages.success(request, f"Đã cấp quyền Nhân viên cho {target.username}.")
+    elif new_role == "nguoi_gui_xe":
+        target.is_staff = False
+        target.save(update_fields=["is_staff"])
+        target.groups.remove(nhan_vien_group)
+        messages.success(request, f"Đã đặt lại quyền Người gửi xe cho {target.username}.")
+    else:
+        messages.error(request, "Role không hợp lệ.")
+
+    return redirect("manager_roles")
 
 
 

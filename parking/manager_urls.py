@@ -19,6 +19,7 @@ urlpatterns = [
     path("geocode/suggest/", manager_views.manager_geocode_suggest, name="manager_geocode_suggest"),
     path("geocode/forward/", manager_views.manager_geocode_forward, name="manager_geocode_forward"),
     path("geocode/reverse/", manager_views.manager_geocode_reverse, name="manager_geocode_reverse"),
+<<<<<<< HEAD
     path("revenue/", manager_views.manager_revenue, name="manager_revenue"),
     path("permissions/", manager_views.manager_permissions, name="manager_permissions"),
     path(
@@ -26,6 +27,10 @@ urlpatterns = [
         manager_views.manager_permissions_update,
         name="manager_permissions_update",
     ),
+=======
+    path("roles/", manager_views.manager_roles, name="manager_roles"),
+    path("roles/<int:user_id>/assign/", manager_views.manager_assign_role, name="manager_assign_role"),
+>>>>>>> eda105b0db87622609486429b6382cb93e7f4761
     path("<str:entity>/", manager_views.manager_list, name="manager_list"),
     path("trash/<str:entity>/", manager_views.manager_trash_list, name="manager_trash"),
     path("trash/<str:entity>/<int:pk>/restore/", manager_views.manager_restore, name="manager_restore"),

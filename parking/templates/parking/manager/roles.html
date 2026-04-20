@@ -1,0 +1,99 @@
+{% extends 'parking/manager/base.html' %}
+
+{% block title %}Phân quyền tài khoản{% endblock %}
+{% block page_title %}Phân quyền tài khoản{% endblock %}
+
+{% block content %}
+<style>
+    .role-badge {
+        display: inline-block;
+        padding: 3px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .role-admin    { background: #fee2e2; color: #b91c1c; }
+    .role-nhanvien { background: #dbeafe; color: #1d4ed8; }
+    .role-user     { background: #f0fdf4; color: #15803d; }
+
+    .roles-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .roles-table th {
+        background: #f8fafc;
+        padding: 11px 14px;
+        text-align: left;
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 600;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .roles-table td {
+        padding: 12px 14px;
+        font-size: 14px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+    .roles-table tr:last-child td { border-bottom: none; }
+    .roles-table tr:hover td { background: #f8fafc; }
+
+    .role-select {
+        padding: 5px 10px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 14px;
+        background: #fff;
+        color: #0f172a;
+        cursor: pointer;
+    }
+    .role-save-btn {
+        padding: 5px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 13px;
+    }
+</style>
+
+<div class="panel" style="overflow-x:auto;">
+    <table class="roles-table">
+        <thead>
+            <tr>
+                <th>Tài khoản</th>
+                <th>Email</th>
+                <th>Role hiện tại</th>
+                <th>Gán role mới</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+            <tr>
+                <td><strong>{{ row.user.username }}</strong>
+                    {% if row.user.get_full_name %}<br><span style="color:#64748b;font-size:12px;">{{ row.user.get_full_name }}</span>{% endif %}
+                </td>
+                <td style="color:#475569;">{{ row.user.email|default:"—" }}</td>
+                <td>
+                    {% if row.role == "admin" %}
+                        <span class="role-badge role-admin"><i class="fas fa-shield-halved me-1"></i>Admin</span>
+                    {% elif row.role == "nhan_vien" %}
+                        <span class="role-badge role-nhanvien"><i class="fas fa-user-tie me-1"></i>Nhân viên</span>
+                    {% else %}
+                        <span class="role-badge role-user"><i class="fas fa-user me-1"></i>Người gửi xe</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" action="{% url 'manager_assign_role' row.user.id %}" style="display:flex;gap:8px;align-items:center;">
+                        {% csrf_token %}
+                        <select name="role" class="role-select">
+                            <option value="admin"        {% if row.role == "admin" %}selected{% endif %}>Admin</option>
+                            <option value="nhan_vien"    {% if row.role == "nhan_vien" %}selected{% endif %}>Nhân viên</option>
+                            <option value="nguoi_gui_xe" {% if row.role == "nguoi_gui_xe" %}selected{% endif %}>Người gửi xe</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary role-save-btn">Lưu</button>
+                    </form>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:32px;">Không có tài khoản nào.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

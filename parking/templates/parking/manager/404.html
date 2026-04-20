@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -12,3 +13,54 @@
     </main>
 </body>
 </html>
+=======
+{% extends 'parking/manager/base.html' %}
+
+{% block title %}404 - Không tìm thấy trang quản trị{% endblock %}
+{% block page_title %}Không tìm thấy trang{% endblock %}
+
+{% block content %}
+<style>
+    .manager-404 {
+        max-width: 720px;
+        padding: 10px 0 6px;
+    }
+
+    .manager-404-code {
+        margin: 0 0 8px;
+        font-size: clamp(52px, 9vw, 86px);
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1;
+        letter-spacing: 1px;
+    }
+
+    .manager-404-title {
+        margin: 0 0 10px;
+        font-size: 28px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .manager-404-desc {
+        margin: 0 0 18px;
+        color: #475569;
+        font-size: 15px;
+        max-width: 620px;
+    }
+
+    .manager-404-btn {
+        border-radius: 10px;
+        font-weight: 700;
+        padding: 10px 16px;
+    }
+</style>
+
+<section class="manager-404" aria-labelledby="manager-404-title">
+    <p class="manager-404-code" aria-hidden="true">404</p>
+    <h2 id="manager-404-title" class="manager-404-title">Trang quản trị không tồn tại</h2>
+    <p class="manager-404-desc">Đường dẫn bạn truy cập không hợp lệ hoặc đã được thay đổi. Hãy quay lại trang quản trị để tiếp tục thao tác.</p>
+    <a class="btn btn-primary manager-404-btn" href="/manager/">Quay lại khu quản trị</a>
+</section>
+{% endblock %}
+>>>>>>> eda105b0db87622609486429b6382cb93e7f4761

@@ -1,6 +1,6 @@
 {% extends 'parking/base.html' %}
 
-{% block title %}Lich su dang ky gui xe{% endblock %}
+{% block title %}Lịch sử đăng ký gửi xe{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -8,17 +8,17 @@
         <div class="card card-custom bg-white p-4 p-lg-5">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
                 <div>
-                    <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill mb-3">Tai khoan cua ban</span>
-                    <h2 class="fw-bold text-dark mb-2">Lich su don dang ky gui xe</h2>
+                    <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill mb-3">Tài khoản của bạn</span>
+                    <h2 class="fw-bold text-dark mb-2">Lịch sử đơn đăng ký gửi xe</h2>
                     <p class="text-muted mb-0">
-                        Danh sach cac don dang ky ma tai khoan <strong>{{ request.user.username }}</strong> da gui tu truoc den nay.
+                        Danh sách các đơn đăng ký mà tài khoản <strong>{{ request.user.username }}</strong> đã gửi từ trước đến nay.
                     </p>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="{% url 'parking_registration_create' %}" class="btn btn-primary btn-primary-custom">
-                        <i class="fas fa-plus me-2"></i>Tao don moi
+                        <i class="fas fa-plus me-2"></i>Tạo đơn mới
                     </a>
-                    <a href="{% url 'home' %}" class="btn btn-light border">Ve trang chu</a>
+                    <a href="{% url 'home' %}" class="btn btn-light border">Về trang chủ</a>
                 </div>
             </div>
 
@@ -26,12 +26,12 @@
                 <table class="table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>Thoi gian gui</th>
-                            <th>Bai do</th>
-                            <th>Bien so</th>
-                            <th>Loai xe</th>
-                            <th>Trang thai</th>
-                            <th>Ghi chu</th>
+                            <th>Thời gian gửi</th>
+                            <th>Bãi đỗ</th>
+                            <th>Biển số</th>
+                            <th>Loại xe</th>
+                            <th>Trạng thái</th>
+                            <th>Ghi chú</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -46,27 +46,27 @@
                             <td>{{ item.get_vehicle_type_display }}</td>
                             <td>
                                 {% if item.status == 'pending' %}
-                                <span class="badge rounded-pill text-bg-warning">Cho duyet</span>
+                                <span class="badge rounded-pill text-bg-warning">Chờ duyệt</span>
                                 {% elif item.status == 'approved' %}
-                                <span class="badge rounded-pill text-bg-success">Da duyet</span>
+                                <span class="badge rounded-pill text-bg-success">Đã duyệt</span>
                                 {% else %}
-                                <span class="badge rounded-pill text-bg-secondary">Khong duyet</span>
+                                <span class="badge rounded-pill text-bg-secondary">Không duyệt</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if item.status == 'approved' %}
-                                    Da duyet luc {{ item.reviewed_at|date:'d/m/Y H:i'|default:'-' }}
+                                    Đã duyệt lúc {{ item.reviewed_at|date:'d/m/Y H:i'|default:'-' }}
                                 {% elif item.status == 'rejected' %}
-                                    {{ item.reviewed_note|default:'Khong duyet' }}
+                                    {{ item.reviewed_note|default:'Không duyệt' }}
                                 {% else %}
-                                    {{ item.note|default:'Dang cho xu ly' }}
+                                    {{ item.note|default:'Đang chờ xử lý' }}
                                 {% endif %}
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
                             <td colspan="6" class="text-center py-5 text-muted">
-                                Ban chua gui don dang ky nao.
+                                Bạn chưa gửi đơn đăng ký nào.
                             </td>
                         </tr>
                         {% endfor %}

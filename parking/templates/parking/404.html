@@ -1,0 +1,92 @@
+{% extends 'parking/base.html' %}
+
+{% block title %}404 - Không tìm thấy trang{% endblock %}
+
+{% block extra_head %}
+<style>
+    .public-404-wrap {
+        min-height: calc(100vh - 220px);
+        display: grid;
+        place-items: center;
+        padding: 24px 0;
+    }
+
+    .public-404-card {
+        width: min(640px, 100%);
+        background: #ffffff;
+        border-radius: 22px;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+        padding: 48px 32px;
+        text-align: center;
+        border: 1px solid #e5e7eb;
+    }
+
+    .public-404-code {
+        margin: 0;
+        font-size: clamp(72px, 14vw, 150px);
+        line-height: 0.9;
+        font-weight: 800;
+        color: #0d6efd;
+        letter-spacing: 2px;
+    }
+
+    .public-404-title {
+        margin: 20px 0 10px;
+        font-size: clamp(22px, 3.2vw, 30px);
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .public-404-desc {
+        margin: 0 auto;
+        max-width: 520px;
+        color: #475569;
+        font-size: 16px;
+    }
+
+    .public-404-actions {
+        margin-top: 28px;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .public-404-btn {
+        min-width: 150px;
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-weight: 700;
+    }
+
+    @media (max-width: 575px) {
+        .public-404-card {
+            padding: 36px 18px;
+            border-radius: 18px;
+        }
+
+        .public-404-actions {
+            flex-direction: column;
+        }
+
+        .public-404-btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="public-404-wrap" aria-labelledby="public-404-title">
+    <div class="public-404-card">
+        <p class="public-404-code" aria-hidden="true">404</p>
+        <h1 id="public-404-title" class="public-404-title">Trang bạn tìm không tồn tại</h1>
+        <p class="public-404-desc">Liên kết có thể đã thay đổi hoặc bị xóa. Bạn có thể quay về trang chủ hoặc dùng chức năng tìm kiếm để tiếp tục.</p>
+
+        <div class="public-404-actions">
+            <a class="btn btn-primary public-404-btn" href="{% url 'home' %}">Về trang chủ</a>
+            <a class="btn btn-outline-primary public-404-btn" href="{% url 'search_by_phone' %}">Tìm kiếm</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,32 +1,32 @@
 ﻿{% extends 'parking/manager/base.html' %}
 
-{% block title %}Tong quan quan tri{% endblock %}
-{% block page_title %}Tong quan he thong{% endblock %}
+{% block title %}Tổng quan quản trị{% endblock %}
+{% block page_title %}Tổng quan hệ thống{% endblock %}
 
 {% block content %}
 <div class="row g-3 mb-4">
-    <div class="col-sm-6 col-xl-3"><div class="stat-card"><div class="label">Khu vuc</div><div class="value">{{ total_areas }}</div></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="stat-card"><div class="label">Bai do xe</div><div class="value">{{ total_parkings }}</div></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="stat-card"><div class="label">Nguoi dang gui</div><div class="value">{{ active_users }}</div></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="stat-card"><div class="label">Gia cuoc</div><div class="value">{{ total_prices }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card"><div class="label">Khu vực</div><div class="value">{{ total_areas }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card"><div class="label">Bãi đỗ xe</div><div class="value">{{ total_parkings }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card"><div class="label">Người đang gửi</div><div class="value">{{ active_users }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card"><div class="label">Giá cước</div><div class="value">{{ total_prices }}</div></div></div>
 </div>
 
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         <div class="panel">
-            <h5>Cong suat</h5>
-            <p class="mb-1">Tong suc chua: <strong>{{ total_capacity }}</strong></p>
-            <p class="mb-0">Cho trong hien tai: <strong>{{ total_available }}</strong></p>
+            <h5>Công suất</h5>
+            <p class="mb-1">Tổng sức chứa: <strong>{{ total_capacity }}</strong></p>
+            <p class="mb-0">Chỗ trống hiện tại: <strong>{{ total_available }}</strong></p>
         </div>
     </div>
     <div class="col-md-6">
         <div class="panel">
-            <h5>Nhanh chuc nang</h5>
+            <h5>Nhanh chức năng</h5>
             <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-manager btn-sm" href="{% url 'manager_create' 'areas' %}">Them khu vuc</a>
-                <a class="btn btn-manager btn-sm" href="{% url 'manager_create' 'parkings' %}">Them bai do</a>
-                <a class="btn btn-manager btn-sm" href="{% url 'manager_create' 'users' %}">Them nguoi gui</a>
-                <a class="btn btn-manager btn-sm" href="{% url 'manager_create' 'prices' %}">Them bang gia</a>
+                <a class="btn btn-manager btn-sm" href="{% url 'manager_create' 'areas' %}">Thêm khu vực</a>
+                <a class="btn btn-manager btn-sm" href="{% url 'manager_create' 'parkings' %}">Thêm bãi đỗ</a>
+                <a class="btn btn-manager btn-sm" href="{% url 'manager_create' 'users' %}">Thêm người gửi</a>
+                <a class="btn btn-manager btn-sm" href="{% url 'manager_create' 'prices' %}">Thêm bảng giá</a>
             </div>
         </div>
     </div>
@@ -35,15 +35,15 @@
 <div class="row g-3">
     <div class="col-lg-6">
         <div class="panel">
-            <h5>Nguoi gui xe moi</h5>
+            <h5>Người gửi xe mới</h5>
             <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0">
-                    <thead><tr><th>Ho ten</th><th>Bien so</th><th>Bai do</th></tr></thead>
+                    <thead><tr><th>Họ tên</th><th>Biển số</th><th>Bãi đỗ</th></tr></thead>
                     <tbody>
                         {% for u in recent_users %}
                         <tr><td>{{ u.full_name }}</td><td>{{ u.license_plate }}</td><td>{{ u.parking_lot }}</td></tr>
                         {% empty %}
-                        <tr><td colspan="3" class="text-muted">Chua co du lieu</td></tr>
+                        <tr><td colspan="3" class="text-muted">Chưa có dữ liệu</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -52,12 +52,12 @@
     </div>
     <div class="col-lg-6">
         <div class="panel">
-            <h5>Nhat ky gan day</h5>
+            <h5>Nhật ký gần đây</h5>
             <ul class="activity-list">
                 {% for log in recent_logs %}
                 <li><span>{{ log.action }}</span><small>{{ log.created_at|date:'d/m/Y H:i' }}</small></li>
                 {% empty %}
-                <li><span class="text-muted">Chua co du lieu</span></li>
+                <li><span class="text-muted">Chưa có dữ liệu</span></li>
                 {% endfor %}
             </ul>
         </div>

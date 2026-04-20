@@ -37,9 +37,9 @@
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold text-primary"><i class="fas fa-parking me-2"></i>Chi tiet bai do xe</h3>
+    <h3 class="fw-bold text-primary"><i class="fas fa-parking me-2"></i>Chi tiết bãi đỗ xe</h3>
     <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-arrow-left me-1"></i> Quay lai
+        <i class="fas fa-arrow-left me-1"></i> Quay lại
     </a>
 </div>
 
@@ -53,9 +53,9 @@
                 </div>
                 <div>
                     {% if parking.is_active %}
-                        <span class="badge bg-success bg-opacity-10 text-success fs-6 px-3 py-2">Dang hoat dong</span>
+                        <span class="badge bg-success bg-opacity-10 text-success fs-6 px-3 py-2">Đang hoạt động</span>
                     {% else %}
-                        <span class="badge bg-danger bg-opacity-10 text-danger fs-6 px-3 py-2">Da day cho</span>
+                        <span class="badge bg-danger bg-opacity-10 text-danger fs-6 px-3 py-2">Đã đầy chỗ</span>
                     {% endif %}
                 </div>
             </div>
@@ -63,29 +63,29 @@
 
             {% if parking.short_description %}
             <div class="mb-3">
-                <h5 class="fw-bold">Mo ta ngan</h5>
+                <h5 class="fw-bold">Mô tả ngắn</h5>
                 <p class="text-muted mb-0">{{ parking.short_description }}</p>
             </div>
             {% endif %}
 
             {% if parking.long_description %}
             <div class="mb-3">
-                <h5 class="fw-bold">Mo ta chi tiet</h5>
+                <h5 class="fw-bold">Mô tả chi tiết</h5>
                 <div class="text-muted" style="white-space: pre-line;">{{ parking.long_description }}</div>
             </div>
             {% endif %}
 
             <div class="row mt-4 text-center">
                 <div class="col-4 border-end">
-                    <p class="text-muted mb-1">Suc chua</p>
+                    <p class="text-muted mb-1">Sức chứa</p>
                     <h3 class="fw-bold">{{ parking.capacity }}</h3>
                 </div>
                 <div class="col-4 border-end">
-                    <p class="text-muted mb-1">Con trong</p>
+                    <p class="text-muted mb-1">Còn trống</p>
                     <h3 class="fw-bold text-success">{{ available }}</h3>
                 </div>
                 <div class="col-4">
-                    <p class="text-muted mb-1">Gia/gio</p>
+                    <p class="text-muted mb-1">Giá/giờ</p>
                     {% if price_list %}
                         <h3 class="fw-bold text-warning">{{ price_list.0.price_per_hour }}đ</h3>
                     {% else %}
@@ -96,13 +96,13 @@
 
             {% if price_list %}
             <div class="mt-4">
-                <h5 class="fw-bold">Bang gia theo loai xe</h5>
+                <h5 class="fw-bold">Bảng giá theo loại xe</h5>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle">
                         <thead>
                             <tr>
-                                <th>Loai xe</th>
-                                <th>Gia/gio</th>
+                                <th>Loại xe</th>
+                                <th>Giá/giờ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -119,17 +119,17 @@
             {% endif %}
 
             <div class="mt-4">
-                <h5 class="fw-bold">Tien ich</h5>
+                <h5 class="fw-bold">Tiện ích</h5>
                 <div class="d-flex gap-2 mt-2 flex-wrap">
-                    <span class="badge bg-light text-dark border"><i class="fas fa-wifi text-primary"></i> Wifi mien phi</span>
+                    <span class="badge bg-light text-dark border"><i class="fas fa-wifi text-primary"></i> Wifi miễn phí</span>
                     <span class="badge bg-light text-dark border"><i class="fas fa-camera text-primary"></i> Camera 24/7</span>
-                    <span class="badge bg-light text-dark border"><i class="fas fa-wheelchair text-primary"></i> Loi di rieng</span>
+                    <span class="badge bg-light text-dark border"><i class="fas fa-wheelchair text-primary"></i> Lối đi riêng</span>
                 </div>
             </div>
 
             {% if images %}
             <div class="mt-4">
-                <h5 class="fw-bold">Thu vien hinh anh</h5>
+                <h5 class="fw-bold">Thư viện hình ảnh</h5>
                 <div class="parking-gallery">
                     {% for item in images %}
                     <div class="parking-gallery__item">
@@ -150,8 +150,8 @@
                 {% else %}
                 <div class="text-center text-muted">
                     <i class="fas fa-map-marked-alt fa-3x mb-3"></i>
-                    <p>Vi tri tren ban do</p>
-                    <a href="{% url 'map_view' %}" class="btn btn-sm btn-outline-primary">Mo ban do lon</a>
+                    <p>Vị trí trên bản đồ</p>
+                    <a href="{% url 'map_view' %}" class="btn btn-sm btn-outline-primary">Mở bản đồ lớn</a>
                 </div>
                 {% endif %}
             </div>

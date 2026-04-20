@@ -2,8 +2,8 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold text-warning"><i class="fas fa-chart-line me-2"></i>Bao cao doanh thu</h3>
-    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Quay lai Dashboard</a>
+    <h3 class="fw-bold text-warning"><i class="fas fa-chart-line me-2"></i>Báo cáo doanh thu</h3>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Quay lại Dashboard</a>
 </div>
 
 <div class="row mb-4">
@@ -12,7 +12,7 @@
             <div class="d-flex align-items-center">
                 <div class="bg-warning text-white p-3 rounded-circle me-3"><i class="fas fa-money-bill-wave fa-2x"></i></div>
                 <div>
-                    <p class="text-muted mb-0 fw-bold">TONG DOANH THU THANG NAY</p>
+                    <p class="text-muted mb-0 fw-bold">TỔNG DOANH THU THÁNG NÀY</p>
                     <h1 class="fw-bold text-dark mb-0">{{ total_revenue }}</h1>
                 </div>
             </div>
@@ -21,15 +21,15 @@
 </div>
 
 <div class="card card-custom bg-white p-4 shadow-sm">
-    <h5 class="fw-bold mb-4">Chi tiet theo tung bai xe</h5>
+    <h5 class="fw-bold mb-4">Chi tiết theo từng bãi xe</h5>
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Bai do xe</th>
-                    <th>Thang/Nam</th>
+                    <th>Bãi đỗ xe</th>
+                    <th>Tháng/Năm</th>
                     <th>Doanh thu</th>
-                    <th>Trang thai</th>
+                    <th>Trạng thái</th>
                 </tr>
             </thead>
             <tbody>
@@ -47,7 +47,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="4" class="text-center text-muted py-4">Chua co du lieu doanh thu.</td></tr>
+                <tr><td colspan="4" class="text-center text-muted py-4">Chưa có dữ liệu doanh thu.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
