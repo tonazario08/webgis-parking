@@ -10,6 +10,7 @@ urlpatterns = [
     path("lich-su-dang-ky/", views.parking_registration_history, name="parking_registration_history"),
     path("login/", views.public_login, name="login"),
     path("register/", views.public_register, name="register"),
+    path("register/verify-otp/", views.verify_otp, name="verify_otp"),
     path("logout/", views.public_logout, name="logout"),
     path(
         "forgot-password/",

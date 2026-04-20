@@ -2,19 +2,21 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET
+import random
 import requests
 
 from .auth_utils import is_manager_user
 from .forms import ParkingRegistrationRequestForm, PublicLoginForm, PublicRegisterForm
-from .models import ActivityLog, Area, ParkingLot, ParkingPrice, ParkingRegistrationRequest, ParkingUser
+from .models import ActivityLog, Area, OtpCode, ParkingLot, ParkingPrice, ParkingRegistrationRequest, ParkingUser
 from .utils.gis import find_nearest_parking, haversine_distance
-from .utils.email import send_registration_request_received_email
+from .utils.email import send_registration_request_received_email, send_otp_email
 
 
 def custom_not_found(request, exception):
@@ -51,12 +53,85 @@ def public_register(request):
     form = PublicRegisterForm(request.POST or None)
 
     if request.method == "POST" and form.is_valid():
-        user = form.save()
-        login(request, user)
-        messages.success(request, "Đăng ký thành công. Bạn đã được đăng nhập.")
-        return redirect("home")
+        # Lưu data vào session, chưa tạo user
+        request.session["pending_registration"] = {
+            "username": form.cleaned_data["username"],
+            "email": form.cleaned_data["email"],
+            "first_name": form.cleaned_data["first_name"],
+            "password": form.cleaned_data["password1"],
+        }
+        # Tạo OTP 6 số
+        otp_code = f"{random.randint(0, 999999):06d}"
+        OtpCode.objects.filter(email=form.cleaned_data["email"], is_used=False).update(is_used=True)
+        OtpCode.objects.create(
+            email=form.cleaned_data["email"],
+            code=otp_code,
+            expires_at=timezone.now() + timezone.timedelta(minutes=10),
+        )
+        send_otp_email(form.cleaned_data["email"], otp_code)
+        return redirect("verify_otp")
 
     return render(request, "parking/auth/register.html", {"form": form})
+
+
+def verify_otp(request):
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    pending = request.session.get("pending_registration")
+    if not pending:
+        return redirect("register")
+
+    error = None
+
+    if request.method == "POST":
+        action = request.POST.get("action", "verify")
+
+        if action == "resend":
+            otp_code = f"{random.randint(0, 999999):06d}"
+            OtpCode.objects.filter(email=pending["email"], is_used=False).update(is_used=True)
+            OtpCode.objects.create(
+                email=pending["email"],
+                code=otp_code,
+                expires_at=timezone.now() + timezone.timedelta(minutes=10),
+            )
+            send_otp_email(pending["email"], otp_code)
+            messages.success(request, "Đã gửi lại mã OTP. Vui lòng kiểm tra email.")
+            return redirect("verify_otp")
+
+        entered = (request.POST.get("otp_code") or "").strip()
+        otp = OtpCode.objects.filter(
+            email=pending["email"],
+            code=entered,
+            is_used=False,
+        ).order_by("-created_at").first()
+
+        if not otp:
+            error = "Mã OTP không đúng. Vui lòng kiểm tra lại."
+        elif otp.is_expired():
+            error = "Mã OTP đã hết hạn. Hãy nhấn Gửi lại để nhận mã mới."
+        else:
+            otp.is_used = True
+            otp.save(update_fields=["is_used"])
+
+            if User.objects.filter(username=pending["username"]).exists():
+                error = "Tên đăng nhập đã tồn tại. Vui lòng quay lại đăng ký."
+            else:
+                user = User.objects.create_user(
+                    username=pending["username"],
+                    email=pending["email"],
+                    password=pending["password"],
+                    first_name=pending["first_name"],
+                )
+                del request.session["pending_registration"]
+                login(request, user)
+                messages.success(request, "Đăng ký thành công. Chào mừng bạn!")
+                return redirect("home")
+
+    return render(request, "parking/auth/verify_otp.html", {
+        "email": pending["email"],
+        "error": error,
+    })
 
 
 def public_logout(request):
