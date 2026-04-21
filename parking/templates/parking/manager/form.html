@@ -36,6 +36,9 @@
             {% if field.name != 'remove_images' or not existing_images %}
             {{ field }}
             {% endif %}
+            {% if field.name == 'new_images' %}
+            <div id="image-preview-container" class="row g-2 mt-2" style="display:none!important;"></div>
+            {% endif %}
             {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
             {% if field.name == 'address_input' %}
             <div class="d-flex gap-2 mt-2">
@@ -1030,6 +1033,38 @@
 })();
 </script>
 {% endif %}
+
+<script>
+(function () {
+    const input = document.getElementById('id_new_images');
+    const container = document.getElementById('image-preview-container');
+    if (!input || !container) return;
+
+    input.addEventListener('change', function () {
+        container.innerHTML = '';
+        const files = Array.from(this.files);
+        if (!files.length) { container.style.display = 'none'; return; }
+        container.style.removeProperty('display');
+
+        files.forEach(function (file) {
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const col = document.createElement('div');
+                col.className = 'col-6 col-sm-4 col-md-3';
+                col.innerHTML = `
+                    <div class="border rounded-3 p-1 bg-white">
+                        <img src="${e.target.result}" alt="${file.name}"
+                             style="width:100%;height:110px;object-fit:cover;border-radius:8px;">
+                        <p class="text-muted small mb-0 mt-1 text-truncate px-1" title="${file.name}">${file.name}</p>
+                    </div>`;
+                container.appendChild(col);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+})();
+</script>
 {% endblock %}
 
 
