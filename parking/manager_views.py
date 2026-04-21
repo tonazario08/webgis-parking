@@ -8,7 +8,18 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.forms import modelform_factory
-from django.http import JsonResponse
+from datetime import date
+from django.http import Http404, HttpResponse, JsonResponse
+from parking.utils.excel import (
+    export_parkinglots_xlsx,
+    export_parkingusers_xlsx,
+    export_revenue_xlsx,
+    export_registrations_xlsx,
+    get_parkinglots_template_xlsx,
+    get_parkingusers_template_xlsx,
+    import_parkinglots_xlsx,
+    import_parkingusers_xlsx,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.urls import reverse
@@ -1534,6 +1545,95 @@ def manager_assign_role(request, user_id):
     return redirect("manager_roles")
 
 
+_EXCEL_EXPORT_ITEMS = [
+    ("parkinglots", "Bãi đỗ xe", "fas fa-parking"),
+    ("parkingusers", "Xe đang gửi", "fas fa-car"),
+    ("revenue", "Doanh thu", "fas fa-chart-line"),
+    ("registrations", "Đơn đăng ký", "fas fa-file-alt"),
+]
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_manager, login_url="manager_login")
+def manager_excel_page(request):
+    return render(request, "parking/manager/excel.html", {"export_items": _EXCEL_EXPORT_ITEMS})
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_manager, login_url="manager_login")
+def manager_excel_template(request, entity):
+    templates = {
+        "parkinglots": ("parkinglots_mau.xlsx", get_parkinglots_template_xlsx),
+        "parkingusers": ("parkingusers_mau.xlsx", get_parkingusers_template_xlsx),
+    }
+    if entity not in templates:
+        raise Http404
+
+    filename, fn = templates[entity]
+    response = HttpResponse(
+        fn(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_full_manager, login_url="manager_login")
+def manager_excel_import(request, entity):
+    importers = {
+        "parkinglots": import_parkinglots_xlsx,
+        "parkingusers": import_parkingusers_xlsx,
+    }
+    if entity not in importers:
+        raise Http404
+
+    if request.method != "POST":
+        return redirect("manager_excel")
+
+    upload = request.FILES.get("file")
+    if not upload:
+        messages.error(request, "Vui lòng chọn file Excel để import.")
+        return redirect("manager_excel")
+
+    filename = upload.name or ""
+    if not filename.lower().endswith(".xlsx"):
+        messages.error(request, "Chỉ chấp nhận file Excel (.xlsx).")
+        return redirect("manager_excel")
+
+    errors = importers[entity](upload.read())
+    if errors:
+        return render(request, "parking/manager/excel.html", {
+            "import_errors": errors,
+            "import_entity": entity,
+            "export_items": _EXCEL_EXPORT_ITEMS,
+        })
+
+    label = "Bãi đỗ xe" if entity == "parkinglots" else "Xe đang gửi"
+    messages.success(request, f"Import {label} thành công.")
+    return redirect("manager_excel")
+
+
+@login_required(login_url="manager_login")
+@user_passes_test(_is_manager, login_url="manager_login")
+def manager_excel_export(request, entity):
+    exporters = {
+        "parkinglots": ("parkinglots", export_parkinglots_xlsx),
+        "parkingusers": ("parkingusers", export_parkingusers_xlsx),
+        "revenue": ("doanh_thu", export_revenue_xlsx),
+        "registrations": ("don_dang_ky", export_registrations_xlsx),
+    }
+    if entity not in exporters:
+        raise Http404
+
+    slug, fn = exporters[entity]
+    filename = f"{slug}_{date.today().strftime('%Y-%m-%d')}.xlsx"
+    response = HttpResponse(
+        fn(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
 
 
 
