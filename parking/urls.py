@@ -6,6 +6,7 @@ from .forms import PublicPasswordResetForm, PublicSetPasswordForm
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("gioi-thieu/", views.about, name="about"),
     # URL xem trước trang 404 trong môi trường dev (DEBUG=True)
     path("preview-404/", views.preview_404, name="preview_404"),
     path("dang-ky-gui-xe/", views.parking_registration_create, name="parking_registration_create"),
