@@ -1,6 +1,6 @@
 {% extends 'parking/base.html' %}
 
-{% block title %}Dang ky gui xe{% endblock %}
+{% block title %}Đăng ký gửi xe{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -8,13 +8,13 @@
         <div class="card card-custom bg-white p-4 p-lg-5">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
                 <div>
-                    <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill mb-3">Dang ky gui xe</span>
-                    <h2 class="fw-bold text-dark mb-2">Gui thong tin dang ky bai do</h2>
+                    <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill mb-3">Đăng ký gửi xe</span>
+                    <h2 class="fw-bold text-dark mb-2">Gửi thông tin đăng ký bãi đỗ</h2>
                     <p class="text-muted mb-0">
-                        Dien day du thong tin de he thong ghi nhan don. Quan tri vien se xem xet va duyet truoc khi them vao danh sach nguoi gui xe.
+                        Điền đầy đủ thông tin để hệ thống ghi nhận đơn. Quản trị viên sẽ xem xét và duyệt trước khi thêm vào danh sách người gửi xe.
                     </p>
                 </div>
-                <a href="{% url 'home' %}" class="btn btn-light border">Ve trang chu</a>
+                <a href="{% url 'home' %}" class="btn btn-light border">Về trang chủ</a>
             </div>
 
             <form method="post" class="row g-4">
@@ -40,15 +40,15 @@
 
                 <div class="col-12">
                     <div class="rounded-4 border bg-light p-3 text-muted small">
-                        Sau khi gui, don se vao danh sach cho duyet trong manager. Khi duyet, he thong se tao moi nguoi gui xe tu dong.
+                        Sau khi gửi, đơn sẽ vào danh sách chờ duyệt trong khu quản trị. Khi duyệt, hệ thống sẽ tạo mới người gửi xe tự động.
                     </div>
                 </div>
 
                 <div class="col-12 d-flex flex-wrap gap-2">
                     <button type="submit" class="btn btn-primary btn-primary-custom">
-                        <i class="fas fa-paper-plane me-2"></i>Gui dang ky
+                        <i class="fas fa-paper-plane me-2"></i>Gửi đăng ký
                     </button>
-                    <a href="{% url 'parking_list' %}" class="btn btn-outline-secondary">Xem cac bai do</a>
+                    <a href="{% url 'parking_list' %}" class="btn btn-outline-secondary">Xem các bãi đỗ</a>
                 </div>
             </form>
         </div>

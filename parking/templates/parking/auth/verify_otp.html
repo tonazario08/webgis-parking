@@ -1,0 +1,149 @@
+{% extends 'parking/base.html' %}
+
+{% block title %}Xác nhận OTP | Parking GIS{% endblock %}
+
+{% block extra_head %}
+<style>
+    .otp-wrap { max-width: 520px; margin: 40px auto 0; }
+    .otp-card { border: none; border-radius: 28px; box-shadow: 0 26px 60px rgba(15,23,42,0.12); overflow: hidden; }
+    .otp-head {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 45%, #fff7ed 100%);
+        padding: 36px 40px 24px;
+        border-bottom: 1px solid rgba(148,163,184,0.2);
+    }
+    .otp-head h1 { font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+    .otp-head p  { color: #475569; margin-bottom: 0; font-size: 15px; }
+    .otp-head .email-highlight {
+        font-weight: 700; color: #2563eb;
+        word-break: break-all;
+    }
+    .otp-body { padding: 36px 40px 40px; background: #fff; }
+
+    .otp-inputs { display: flex; gap: 10px; justify-content: center; margin: 24px 0; }
+    .otp-digit {
+        width: 52px; height: 62px;
+        border: 2px solid #dbe3f0;
+        border-radius: 14px;
+        font-size: 28px; font-weight: 800; text-align: center;
+        color: #0f172a;
+        transition: border-color .2s, box-shadow .2s;
+        outline: none;
+    }
+    .otp-digit:focus { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,0.12); }
+
+    .otp-submit { min-height: 52px; border-radius: 14px; font-weight: 800; width: 100%; }
+    .otp-resend { margin-top: 20px; text-align: center; }
+    .otp-resend button {
+        background: none; border: none; color: #2563eb; font-weight: 700;
+        cursor: pointer; padding: 0; font-size: 14px;
+    }
+    .otp-resend button:hover { text-decoration: underline; }
+    .otp-back { margin-top: 14px; text-align: center; }
+    .otp-back a { color: #94a3b8; font-size: 13px; text-decoration: none; }
+    .otp-back a:hover { color: #475569; }
+
+    @media (max-width: 575px) {
+        .otp-head, .otp-body { padding: 26px 20px; }
+        .otp-digit { width: 42px; height: 54px; font-size: 22px; border-radius: 10px; }
+        .otp-inputs { gap: 7px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="otp-wrap">
+    <div class="card otp-card">
+        <div class="otp-head">
+            <h1><i class="fas fa-envelope-open-text me-2"></i>Nhập mã xác nhận</h1>
+            <p>Mã OTP 6 số đã được gửi đến <span class="email-highlight">{{ email }}</span>. Mã có hiệu lực trong 10 phút.</p>
+        </div>
+        <div class="otp-body">
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} rounded-4 mb-3">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            {% if error %}
+                <div class="alert alert-danger rounded-4 mb-3">{{ error }}</div>
+            {% endif %}
+
+            <form method="post" id="otp-form" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="action" value="verify" id="form-action">
+                <input type="hidden" name="otp_code" id="otp-hidden">
+
+                <div class="otp-inputs" aria-label="Nhập mã OTP">
+                    {% for i in "123456" %}
+                    <input type="text"
+                           class="otp-digit"
+                           maxlength="1"
+                           inputmode="numeric"
+                           pattern="[0-9]"
+                           autocomplete="one-time-code"
+                           aria-label="Chữ số {{ forloop.counter }}">
+                    {% endfor %}
+                </div>
+
+                <button type="submit" class="btn btn-primary otp-submit">Xác nhận</button>
+            </form>
+
+            <div class="otp-resend">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="resend">
+                    <button type="submit">Chưa nhận được mã? Gửi lại OTP</button>
+                </form>
+            </div>
+
+            <div class="otp-back">
+                <a href="{% url 'register' %}"><i class="fas fa-arrow-left me-1"></i>Quay lại đăng ký</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const digits = document.querySelectorAll('.otp-digit');
+    const hidden = document.getElementById('otp-hidden');
+    const form   = document.getElementById('otp-form');
+
+    digits.forEach((el, idx) => {
+        el.addEventListener('input', () => {
+            el.value = el.value.replace(/\D/g, '').slice(-1);
+            if (el.value && idx < digits.length - 1) digits[idx + 1].focus();
+            syncHidden();
+        });
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !el.value && idx > 0) digits[idx - 1].focus();
+        });
+        el.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+            pasted.split('').slice(0, 6).forEach((ch, i) => { if (digits[i]) digits[i].value = ch; });
+            const last = Math.min(pasted.length, 5);
+            digits[last].focus();
+            syncHidden();
+        });
+    });
+
+    function syncHidden() {
+        hidden.value = Array.from(digits).map(d => d.value).join('');
+    }
+
+    form.addEventListener('submit', (e) => {
+        syncHidden();
+        if (hidden.value.length < 6) {
+            e.preventDefault();
+            digits[0].focus();
+        }
+    });
+
+    if (digits[0]) digits[0].focus();
+})();
+</script>
+{% endblock %}

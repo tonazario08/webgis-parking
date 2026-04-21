@@ -153,3 +153,29 @@ def send_registration_request_received_email(registration):
         context,
     )
     return _send_dual_delivery_email(subject, text_body, html_body, email_value)
+
+
+def send_otp_email(email, otp_code):
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[OTP] {email} → {otp_code}")
+
+    subject = "Mã xác nhận đăng ký tài khoản Parking GIS"
+    text_body = (
+        f"Mã OTP của bạn là: {otp_code}\n"
+        f"Mã có hiệu lực trong 10 phút. Không chia sẻ mã này cho người khác."
+    )
+    html_body = f"""
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;border:1px solid #e2e8f0;border-radius:16px;">
+        <h2 style="color:#0f172a;margin-bottom:8px;">Xác nhận đăng ký</h2>
+        <p style="color:#475569;">Nhập mã sau để hoàn tất đăng ký tài khoản:</p>
+        <div style="font-size:42px;font-weight:800;letter-spacing:10px;color:#2563eb;text-align:center;padding:24px 0;">
+            {otp_code}
+        </div>
+        <p style="color:#94a3b8;font-size:13px;text-align:center;">Mã có hiệu lực trong <strong>10 phút</strong>. Không chia sẻ mã này cho người khác.</p>
+    </div>
+    """
+    result = _send_dual_delivery_email(subject, text_body, html_body, email.strip().lower())
+    if not result.get("ok"):
+        logger.warning(f"[OTP] Gửi email thất bại cho {email}: {result}")
+    return result

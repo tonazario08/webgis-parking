@@ -239,39 +239,39 @@
 <div class="listing-page">
     <div class="listing-hero js-hero">
         <div>
-            <div class="listing-hero__eyebrow"><i class="fas fa-parking"></i> He thong bai do xe</div>
-            <h1 class="listing-hero__title">Tong quan he thong bai do xe thong minh</h1>
-            <p class="listing-hero__desc">Trang nay gioi thieu cac bai do xe hien co, tinh trang hoat dong va suc chua. Chon bai de xem chi tiet hoac xem vi tri tren ban do.</p>
+            <div class="listing-hero__eyebrow"><i class="fas fa-parking"></i> Hệ thống bãi đỗ xe</div>
+            <h1 class="listing-hero__title">Tổng quan hệ thống bãi đỗ xe thông minh</h1>
+            <p class="listing-hero__desc">Trang này giới thiệu các bãi đỗ xe hiện có, tình trạng hoạt động và sức chứa. Chọn bãi để xem chi tiết hoặc xem vị trí trên bản đồ.</p>
             <div class="stats-row">
                 <div class="stat-tile">
-                    <div class="stat-tile__label">Tong so bai</div>
+                    <div class="stat-tile__label">Tổng số bãi</div>
                     <div class="stat-tile__value">{{ parking_total }}</div>
                 </div>
                 <div class="stat-tile">
-                    <div class="stat-tile__label">Dang hoat dong</div>
+                    <div class="stat-tile__label">Đang hoạt động</div>
                     <div class="stat-tile__value">{{ parking_active }}</div>
                 </div>
                 <div class="stat-tile">
-                    <div class="stat-tile__label">Suc chua</div>
+                    <div class="stat-tile__label">Sức chứa</div>
                     <div class="stat-tile__value">{{ parking_capacity }}</div>
                 </div>
                 <div class="stat-tile">
-                    <div class="stat-tile__label">Cho con trong</div>
+                    <div class="stat-tile__label">Chỗ còn trống</div>
                     <div class="stat-tile__value">{{ parking_available }}</div>
                 </div>
             </div>
             <div class="listing-actions">
-                <a href="{% url 'map_view' %}" class="btn-hero primary"><i class="fas fa-globe-asia me-2"></i>Xem ban do tong quan</a>
-                <a href="{% url 'home' %}" class="btn-hero outline"><i class="fas fa-arrow-left me-2"></i>Quay lai Dashboard</a>
+                <a href="{% url 'map_view' %}" class="btn-hero primary"><i class="fas fa-globe-asia me-2"></i>Xem bản đồ tổng quan</a>
+                <a href="{% url 'home' %}" class="btn-hero outline"><i class="fas fa-arrow-left me-2"></i>Quay lại Dashboard</a>
             </div>
         </div>
         <div class="hero-panel">
-            <div class="hero-panel__pill">Cap nhat theo thoi gian thuc</div>
-            <h4>Tram thong tin bai do</h4>
-            <p class="mb-0" style="color: #cbd5f5;">Du lieu duoc tong hop tu he thong quan ly bai do. Su dung de dinh huong nhanh cac bai gan ban.</p>
+            <div class="hero-panel__pill">Cập nhật theo thời gian thực</div>
+            <h4>Trạm thông tin bãi đỗ</h4>
+            <p class="mb-0" style="color: #cbd5f5;">Dữ liệu được tổng hợp từ hệ thống quản lý bãi đỗ. Sử dụng để định hướng nhanh các bãi gần bạn.</p>
             <div class="meta-row">
-                <span class="meta-chip" style="background: rgba(59,130,246,0.18); color: #bfdbfe; border-color: rgba(148,163,184,0.3);">{{ parking_used }} xe dang gui</span>
-                <span class="meta-chip" style="background: rgba(14,165,233,0.2); color: #bae6fd; border-color: rgba(148,163,184,0.3);">{{ parking_available }} cho con</span>
+                <span class="meta-chip" style="background: rgba(59,130,246,0.18); color: #bfdbfe; border-color: rgba(148,163,184,0.3);">{{ parking_used }} xe đang gửi</span>
+                <span class="meta-chip" style="background: rgba(14,165,233,0.2); color: #bae6fd; border-color: rgba(148,163,184,0.3);">{{ parking_available }} chỗ còn</span>
             </div>
         </div>
     </div>
@@ -286,7 +286,7 @@
                 <div class="w-100 h-100 d-flex align-items-center justify-content-center text-primary-emphasis">
                     <div class="text-center">
                         <i class="fas fa-image fa-2x mb-2"></i>
-                        <div>Chua co hinh anh</div>
+                        <div>Chưa có hình ảnh</div>
                     </div>
                 </div>
                 {% endif %}
@@ -297,17 +297,17 @@
                     <div class="parking-card__address">{{ p.address }}</div>
                 </div>
                 {% if p.is_active %}
-                <span class="status-chip status-open"><i class="fas fa-circle"></i> Dang mo</span>
+                <span class="status-chip status-open"><i class="fas fa-circle"></i> Đang mở</span>
                 {% else %}
-                <span class="status-chip status-close"><i class="fas fa-circle"></i> Tam dung</span>
+                <span class="status-chip status-close"><i class="fas fa-circle"></i> Tạm dừng</span>
                 {% endif %}
             </div>
             <div class="meta-row">
-                <span class="meta-chip">Suc chua: {{ p.capacity }}</span>
-                <span class="meta-chip">Da gui: {{ p.used }}</span>
-                <span class="meta-chip">Con trong: {{ p.available }}</span>
+                <span class="meta-chip">Sức chứa: {{ p.capacity }}</span>
+                <span class="meta-chip">Đã gửi: {{ p.used }}</span>
+                <span class="meta-chip">Còn trống: {{ p.available }}</span>
                 {% if p.area %}
-                <span class="meta-chip">Khu vuc: {{ p.area }}</span>
+                <span class="meta-chip">Khu vực: {{ p.area }}</span>
                 {% endif %}
             </div>
             {% if p.short_description %}
@@ -322,12 +322,12 @@
                 <div class="text-muted small">{{ p.used }}/{{ p.capacity }}</div>
             </div>
             <div class="card-actions">
-                <a href="{% url 'parking_detail' p.id %}" class="btn btn-outline-primary btn-sm"><i class="fas fa-info-circle me-1"></i>Chi tiet</a>
-                <a href="{% url 'map_view' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-map-marker-alt me-1"></i>Vi tri</a>
+                <a href="{% url 'parking_detail' p.id %}" class="btn btn-outline-primary btn-sm"><i class="fas fa-info-circle me-1"></i>Chi tiết</a>
+                <a href="{% url 'map_view' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-map-marker-alt me-1"></i>Vị trí</a>
             </div>
         </article>
         {% empty %}
-        <div class="empty-state">Chua co bai do nao trong he thong.</div>
+        <div class="empty-state">Chưa có bãi đỗ nào trong hệ thống.</div>
         {% endfor %}
     </div>
 </div>

@@ -1,17 +1,17 @@
 {% extends 'parking/manager/base.html' %}
 
-{% block title %}Don dang ky gui xe{% endblock %}
-{% block page_title %}Don dang ky gui xe{% endblock %}
+{% block title %}Đơn đăng ký gửi xe{% endblock %}
+{% block page_title %}Đơn đăng ký gửi xe{% endblock %}
 
 {% block content %}
 <div class="panel mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
-            <h5 class="mb-1">Don cho duyet</h5>
-            <p class="text-muted mb-0">Moi don dang ky moi se hien o day. Ban co the duyet de tao nguoi gui xe moi, hoac tu choi neu thong tin khong phu hop.</p>
+            <h5 class="mb-1">Đơn chờ duyệt</h5>
+            <p class="text-muted mb-0">Mỗi đơn đăng ký mới sẽ hiện ở đây. Bạn có thể duyệt để tạo người gửi xe mới, hoặc từ chối nếu thông tin không phù hợp.</p>
         </div>
         <div class="badge rounded-pill text-bg-danger px-3 py-2">
-            {{ pending_requests|length }} don cho xu ly
+            {{ pending_requests|length }} đơn chờ xử lý
         </div>
     </div>
 </div>
@@ -24,33 +24,33 @@
                 <div>
                     <h5 class="mb-1">{{ item.full_name }}</h5>
                     <div class="text-muted small">
-                        Gui luc {{ item.created_at|date:'d/m/Y H:i' }} • Bai yeu cau: <strong>{{ item.parking_lot.name }}</strong>
-                        {% if item.created_by %}• Tai khoan: <strong>{{ item.created_by.username }}</strong>{% endif %}
+                        Gửi lúc {{ item.created_at|date:'d/m/Y H:i' }} • Bãi yêu cầu: <strong>{{ item.parking_lot.name }}</strong>
+                        {% if item.created_by %}• Tài khoản: <strong>{{ item.created_by.username }}</strong>{% endif %}
                     </div>
                 </div>
                 <span class="badge rounded-pill text-bg-warning px-3 py-2">{{ item.get_status_display }}</span>
             </div>
 
             <div class="row g-3">
-                <div class="col-md-4"><strong>So dien thoai:</strong> {{ item.phone }}</div>
-                <div class="col-md-4"><strong>Email:</strong> {{ item.email|default:'Chua nhap' }}</div>
-                <div class="col-md-4"><strong>Loai xe:</strong> {{ item.get_vehicle_type_display }}</div>
-                <div class="col-md-6"><strong>Bien so xe:</strong> {{ item.license_plate }}</div>
-                <div class="col-md-6"><strong>Dia chi:</strong> {{ item.address|default:'Chua nhap' }}</div>
-                <div class="col-12"><strong>Ghi chu:</strong> {{ item.note|default:'Khong co ghi chu' }}</div>
+                <div class="col-md-4"><strong>Số điện thoại:</strong> {{ item.phone }}</div>
+                <div class="col-md-4"><strong>Email:</strong> {{ item.email|default:'Chưa nhập' }}</div>
+                <div class="col-md-4"><strong>Loại xe:</strong> {{ item.get_vehicle_type_display }}</div>
+                <div class="col-md-6"><strong>Biển số xe:</strong> {{ item.license_plate }}</div>
+                <div class="col-md-6"><strong>Địa chỉ:</strong> {{ item.address|default:'Chưa nhập' }}</div>
+                <div class="col-12"><strong>Ghi chú:</strong> {{ item.note|default:'Không có ghi chú' }}</div>
             </div>
 
             <div class="d-flex flex-wrap gap-2 mt-4">
                 <form method="post" action="{% url 'manager_registration_approve' item.id %}">
                     {% csrf_token %}
                     <button class="btn btn-success">
-                        <i class="fas fa-check me-2"></i>Duyet
+                        <i class="fas fa-check me-2"></i>Duyệt
                     </button>
                 </form>
                 <form method="post" action="{% url 'manager_registration_reject' item.id %}">
                     {% csrf_token %}
                     <button class="btn btn-outline-danger">
-                        <i class="fas fa-xmark me-2"></i>Khong duyet
+                        <i class="fas fa-xmark me-2"></i>Không duyệt
                     </button>
                 </form>
             </div>
@@ -59,25 +59,25 @@
     {% empty %}
     <div class="col-12">
         <div class="panel text-center py-5">
-            <h5 class="mb-2">Hien khong co don nao cho duyet</h5>
-            <p class="text-muted mb-0">Khi co nguoi gui form dang ky tu trang ngoai, chuong thong bao se hien so don o day.</p>
+            <h5 class="mb-2">Hiện không có đơn nào chờ duyệt</h5>
+            <p class="text-muted mb-0">Khi có người gửi form đăng ký từ trang ngoài, chuông thông báo sẽ hiện số đơn ở đây.</p>
         </div>
     </div>
     {% endfor %}
 </div>
 
 <div class="panel">
-    <h5 class="mb-3">Don da xu ly gan day</h5>
+    <h5 class="mb-3">Đơn đã xử lý gần đây</h5>
     <div class="table-responsive">
         <table class="table align-middle mb-0">
             <thead>
                 <tr>
-                    <th>Ho ten</th>
-                    <th>Bai do</th>
-                    <th>Bien so</th>
-                    <th>Trang thai</th>
-                    <th>Nguoi xu ly</th>
-                    <th>Thoi gian</th>
+                    <th>Họ tên</th>
+                    <th>Bãi đỗ</th>
+                    <th>Biển số</th>
+                    <th>Trạng thái</th>
+                    <th>Người xử lý</th>
+                    <th>Thời gian</th>
                 </tr>
             </thead>
             <tbody>
@@ -98,7 +98,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">Chua co don nao da xu ly.</td>
+                    <td colspan="6" class="text-center text-muted py-4">Chưa có đơn nào đã xử lý.</td>
                 </tr>
                 {% endfor %}
             </tbody>

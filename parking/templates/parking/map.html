@@ -68,97 +68,97 @@
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="fw-bold mb-0"><i class="fas fa-map-location-dot text-primary me-2"></i>Ban do bai do xe</h4>
-    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Ve Dashboard</a>
+    <h4 class="fw-bold mb-0"><i class="fas fa-map-location-dot text-primary me-2"></i>Bản đồ bãi đỗ xe</h4>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Về Dashboard</a>
 </div>
 
 <div class="map-page">
     <aside class="map-panel">
-        <div class="ctl-title">Dieu khien ban do</div>
-        <div class="ctl-sub">Nhap vi do/kinh do bat ky, tim bai do gan nhat va ve lo trinh ngan nhat theo du lieu duong thuc te.</div>
+        <div class="ctl-title">Điều khiển bản đồ</div>
+        <div class="ctl-sub">Nhập vĩ độ/kinh độ bất kỳ, tìm bãi đỗ gần nhất và vẽ lộ trình ngắn nhất theo dữ liệu đường thực tế.</div>
 
-        <div id="statusBox" class="status">San sang tai du lieu ban do...</div>
+        <div id="statusBox" class="status">Sẵn sàng tải dữ liệu bản đồ...</div>
 
         <details class="route-box" open>
-            <summary class="ctl-title mb-2">Nhap toa do cua ban</summary>
+            <summary class="ctl-title mb-2">Nhập tọa độ của bạn</summary>
             <div class="route-body">
                 <div class="route-grid mb-2">
-                    <input id="originLat" type="number" step="any" placeholder="Vi do (lat)">
-                    <input id="originLon" type="number" step="any" placeholder="Kinh do (lon)">
+                    <input id="originLat" type="number" step="any" placeholder="Vĩ độ (lat)">
+                    <input id="originLon" type="number" step="any" placeholder="Kinh độ (lon)">
                 </div>
                 <div class="route-address">
-                    <input id="originAddress" type="text" placeholder="Nhap dia chi cua ban (1 dong)">
+                    <input id="originAddress" type="text" placeholder="Nhập địa chỉ của bạn (1 dòng)">
                     <div class="d-flex gap-2">
-                        <button id="btnGeocodeAddress" class="btn btn-sm btn-outline-primary" type="button">Kiem tra dia chi</button>
-                        <button id="btnClearAddress" class="btn btn-sm btn-outline-secondary" type="button">Xoa dia chi</button>
+                        <button id="btnGeocodeAddress" class="btn btn-sm btn-outline-primary" type="button">Kiểm tra địa chỉ</button>
+                        <button id="btnClearAddress" class="btn btn-sm btn-outline-secondary" type="button">Xóa địa chỉ</button>
                     </div>
                     <div id="addressSuggestions" class="list-group" style="z-index: 5;"></div>
                 </div>
                 <div class="d-grid gap-2 mt-2">
-                    <button id="btnApplyCoord" class="btn btn-sm btn-primary">Dong y toa do</button>
-                    <button id="btnLocate" class="btn btn-sm btn-outline-primary">Lay vi tri hien tai</button>
+                    <button id="btnApplyCoord" class="btn btn-sm btn-primary">Đồng ý tọa độ</button>
+                    <button id="btnLocate" class="btn btn-sm btn-outline-primary">Lấy vị trí hiện tại</button>
                 </div>
             </div>
         </details>
 
         <div class="d-grid gap-2 mb-3">
-            <button id="btnNearest" class="btn btn-success btn-sm"><i class="fas fa-compass me-1"></i>Tim bai gan nhat</button>
-            <button id="btnRouteNearest" class="btn btn-warning btn-sm"><i class="fas fa-route me-1"></i>Chi duong den bai gan nhat</button>
-            <button id="btnReset" class="btn btn-outline-secondary btn-sm"><i class="fas fa-rotate-left me-1"></i>Dat lai ban do</button>
+            <button id="btnNearest" class="btn btn-success btn-sm"><i class="fas fa-compass me-1"></i>Tìm bãi gần nhất</button>
+            <button id="btnRouteNearest" class="btn btn-warning btn-sm"><i class="fas fa-route me-1"></i>Chỉ đường đến bãi gần nhất</button>
+            <button id="btnReset" class="btn btn-outline-secondary btn-sm"><i class="fas fa-rotate-left me-1"></i>Đặt lại bản đồ</button>
         </div>
 
-        <div class="ctl-title">Thong tin nhanh</div>
-        <div id="markerCountBox" class="status">Tong bai: 0 • Con cho: 0 • Da day: 0</div>
-        <div id="selectedInfo" class="status">Chon 1 bai do de xem chi tiet.</div>
+        <div class="ctl-title">Thông tin nhanh</div>
+        <div id="markerCountBox" class="status">Tổng bãi: 0 • Còn chỗ: 0 • Đã đầy: 0</div>
+        <div id="selectedInfo" class="status">Chọn 1 bãi đỗ để xem chi tiết.</div>
 
         <details class="route-box" open>
-            <summary class="ctl-title mb-2">Tim theo ban kinh</summary>
+            <summary class="ctl-title mb-2">Tìm theo bán kính</summary>
             <div class="route-body">
                 <label class="small text-muted d-flex justify-content-between align-items-center">
-                    <span>Ban kinh (km)</span>
+                    <span>Bán kính (km)</span>
                     <span id="radiusValue">3 km</span>
                 </label>
                 <input id="radiusRange" type="range" min="0" max="10" step="0.5" value="3" class="form-range">
                 <div class="d-grid gap-2">
-                    <button id="btnRadiusSearch" class="btn btn-sm btn-outline-primary" type="button">Tim bai trong ban kinh</button>
-                    <button id="btnRadiusClear" class="btn btn-sm btn-outline-secondary" type="button">Huy loc ban kinh</button>
+                    <button id="btnRadiusSearch" class="btn btn-sm btn-outline-primary" type="button">Tìm bãi trong bán kính</button>
+                    <button id="btnRadiusClear" class="btn btn-sm btn-outline-secondary" type="button">Hủy lọc bán kính</button>
                 </div>
             </div>
         </details>
 
         <details class="route-box" open>
-            <summary class="ctl-title mb-2">Lop ban do</summary>
+            <summary class="ctl-title mb-2">Lớp bản đồ</summary>
             <div class="route-body">
                 <div class="layer-box">
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="baseLayer" id="baseOsm" value="OpenStreetMap" checked>
-                        <label class="form-check-label" for="baseOsm">OSM mac dinh</label>
+                        <label class="form-check-label" for="baseOsm">OSM mặc định</label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="baseLayer" id="baseGray" value="Gray">
-                        <label class="form-check-label" for="baseGray">Ban do xam (Gray)</label>
+                        <label class="form-check-label" for="baseGray">Bản đồ xám (Gray)</label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="baseLayer" id="baseEsri" value="Esri Imagery">
-                        <label class="form-check-label" for="baseEsri">Anh ve tinh</label>
+                        <label class="form-check-label" for="baseEsri">Ảnh vệ tinh</label>
                     </div>
                 </div>
                 <div class="layer-box">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="toggleAvailable" checked>
-                        <label class="form-check-label" for="toggleAvailable">Bai con cho</label>
+                        <label class="form-check-label" for="toggleAvailable">Bãi còn chỗ</label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="toggleFull" checked>
-                        <label class="form-check-label" for="toggleFull">Bai da day</label>
+                        <label class="form-check-label" for="toggleFull">Bãi đã đầy</label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="toggleRoute" checked>
-                        <label class="form-check-label" for="toggleRoute">Lo trinh / huong</label>
+                        <label class="form-check-label" for="toggleRoute">Lộ trình / hướng</label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="toggleDraw" checked>
-                        <label class="form-check-label" for="toggleDraw">Du lieu ve</label>
+                        <label class="form-check-label" for="toggleDraw">Dữ liệu vẽ</label>
                     </div>
                 </div>
             </div>
@@ -166,25 +166,25 @@
 
         
         <details class="route-box" open>
-            <summary class="ctl-title mb-2">Tim nhanh theo ten</summary>
+            <summary class="ctl-title mb-2">Tìm nhanh theo tên</summary>
             <div class="route-body">
-                <input id="parkingSearch" class="form-control form-control-sm" placeholder="Nhap ten bai..." list="parkingSuggestions">
+                <input id="parkingSearch" class="form-control form-control-sm" placeholder="Nhập tên bãi..." list="parkingSuggestions">
                 <datalist id="parkingSuggestions"></datalist>
-                <div class="small text-muted">Nhan Enter de den bai.</div>
+                <div class="small text-muted">Nhấn Enter để đến bãi.</div>
             </div>
         </details>
 
-        <div class="ctl-title">Danh sach bai do</div>
+        <div class="ctl-title">Danh sách bãi đỗ</div>
         <ul id="parkingList" class="parking-list"></ul>
     </aside>
 
     <section class="map-box">
         <div id="map"></div>
         <div id="mapContextMenu" class="context-menu">
-            <button type="button" data-action="add-marker">Them marker tai day</button>
-            <button type="button" data-action="copy-coords">Copy toa do</button>
-            <button type="button" data-action="center-here">Can giua tai day</button>
-            <button type="button" data-action="toggle-drag">Bat/tat keo marker</button>
+            <button type="button" data-action="add-marker">Thêm marker tại đây</button>
+            <button type="button" data-action="copy-coords">Copy tọa độ</button>
+            <button type="button" data-action="center-here">Canh giữa tại đây</button>
+            <button type="button" data-action="toggle-drag">Bật/tắt kéo marker</button>
         </div>
     </section>
 </div>
@@ -228,9 +228,9 @@
     const routeLayer = L.layerGroup().addTo(map);
 
     const overlayLayers = {
-        "Bai con cho": availableCluster,
-        "Bai da day": fullCluster,
-        "Lo trinh": routeLayer,
+        "Bãi còn chỗ": availableCluster,
+        "Bãi đã đầy": fullCluster,
+        "Lộ trình": routeLayer,
     };
     availableCluster.addTo(map);
     fullCluster.addTo(map);
@@ -253,8 +253,8 @@
     legend.onAdd = function () {
         const div = L.DomUtil.create('div', 'map-legend');
         div.innerHTML = `
-            <div><span class="dot" style="background:#16a34a"></span>Con cho</div>
-            <div><span class="dot" style="background:#dc2626"></span>Da day</div>
+            <div><span class="dot" style="background:#16a34a"></span>Còn chỗ</div>
+            <div><span class="dot" style="background:#dc2626"></span>Đã đầy</div>
         `;
         return div;
     };
@@ -264,7 +264,7 @@
     homeControl.onAdd = function () {
         const btn = L.DomUtil.create('button', 'map-btn');
         btn.type = 'button';
-        btn.title = 'Ve tam mac dinh';
+        btn.title = 'Về tâm mặc định';
         btn.innerHTML = '<i class="fas fa-house"></i>';
         L.DomEvent.disableClickPropagation(btn);
         L.DomEvent.on(btn, 'click', (e) => {
@@ -318,16 +318,16 @@
             if ((p.available_slots || 0) > 0) available += 1;
             else full += 1;
         });
-        markerCountBox.textContent = `Tong bai: ${total} • Con cho: ${available} • Da day: ${full}`;
+        markerCountBox.textContent = `Tổng bãi: ${total} • Còn chỗ: ${available} • Đã đầy: ${full}`;
     }
 
     function updateSelectedInfo(p) {
         if (!selectedInfo || !p) return;
-        const status = (p.available_slots || 0) > 0 ? 'Con cho' : 'Da day';
+        const status = (p.available_slots || 0) > 0 ? 'Còn chỗ' : 'Đã đầy';
         selectedInfo.innerHTML = `
             <div class="fw-bold">${p.name}</div>
             <div class="small text-muted">${p.address || ''}</div>
-            <div class="small">Trang thai: <strong>${status}</strong> • Suc chua: ${p.capacity}</div>
+            <div class="small">Trạng thái: <strong>${status}</strong> • Sức chứa: ${p.capacity}</div>
         `;
     }
     function updateMapInfo() {
@@ -336,7 +336,7 @@
         const infoEl = document.getElementById('mapInfoBox');
         if (!infoEl) return;
         infoEl.innerHTML = `
-            <strong>Thong tin khung nhin</strong>
+            <strong>Thông tin khung nhìn</strong>
             Center: ${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}<br>
             Bounds: ${bounds.getSouthWest().lat.toFixed(4)}, ${bounds.getSouthWest().lng.toFixed(4)} -> ${bounds.getNorthEast().lat.toFixed(4)}, ${bounds.getNorthEast().lng.toFixed(4)}<br>
             Zoom: ${map.getZoom()}
@@ -389,12 +389,12 @@ function updateRadiusLabel() {
 
     function filterParkingsByRadius() {
         if (!state.origin) {
-            setStatus('Hay chon vi tri (click hoac nhap dia chi) truoc.');
+            setStatus('Hãy chọn vị trí (click hoặc nhập địa chỉ) trước.');
             return;
         }
         const radiusKm = parseFloat(radiusRange ? radiusRange.value : '0');
         if (!Number.isFinite(radiusKm) || radiusKm <= 0) {
-            setStatus('Hay keo ban kinh > 0 km.');
+            setStatus('Hãy kéo bán kính > 0 km.');
             return;
         }
         const originLatLng = L.latLng(state.origin.lat, state.origin.lon);
@@ -410,9 +410,9 @@ function updateRadiusLabel() {
         if (within.length) {
             const bounds = L.latLngBounds(within.map(p => [p.lat, p.lng]).concat([originLatLng]));
             map.fitBounds(bounds, { padding: [30, 30] });
-            setStatus(`Tim thay ${within.length} bai trong ${radiusKm} km.`);
+            setStatus(`Tìm thấy ${within.length} bãi trong ${radiusKm} km.`);
         } else {
-            setStatus(`Khong co bai trong ${radiusKm} km.`);
+            setStatus(`Không có bãi trong ${radiusKm} km.`);
         }
     }
 
@@ -425,7 +425,7 @@ function updateRadiusLabel() {
             map.removeLayer(radiusCircle);
             radiusCircle = null;
         }
-        setStatus('Da huy loc ban kinh.');
+        setStatus('Đã hủy lọc bán kính.');
     }
     function bindOriginDrag(marker) {
         marker.on('dragend', async () => {
@@ -438,13 +438,13 @@ function updateRadiusLabel() {
                 map.removeLayer(state.nearestMarker);
                 state.nearestMarker = null;
             }
-            setStatus('Da cap nhat vi tri tu keo marker.');
+            setStatus('Đã cập nhật vị trí từ kéo marker.');
         });
     }
 
     function setOrigin(lat, lon, sourceText) {
         if (!validateCoordinate(lat, lon)) {
-            setStatus('Toa do khong hop le. Lat trong [-90..90], Lon trong [-180..180].');
+            setStatus('Tọa độ không hợp lệ. Lat trong [-90..90], Lon trong [-180..180].');
             return false;
         }
 
@@ -454,7 +454,7 @@ function updateRadiusLabel() {
         if (state.originMarker) {
             map.removeLayer(state.originMarker);
         }
-        state.originMarker = L.marker([lat, lon], { draggable: true }).addTo(map).bindPopup('Vi tri cua ban').openPopup();
+        state.originMarker = L.marker([lat, lon], { draggable: true }).addTo(map).bindPopup('Vị trí của bạn').openPopup();
         bindOriginDrag(state.originMarker);
 
         originLatEl.value = lat;
@@ -467,7 +467,7 @@ function updateRadiusLabel() {
         }
 
         map.setView([lat, lon], 15);
-        setStatus(`${sourceText}. Ban co the bam "Tim bai gan nhat".`);
+        setStatus(`${sourceText}. Bạn có thể bấm "Tìm bãi gần nhất".`);
         if (radiusFilterActive) {
             filterParkingsByRadius();
         }
@@ -487,18 +487,18 @@ function updateRadiusLabel() {
 
     async function geocodeAddress(query) {
         if (!query || query.length < 3) {
-            setStatus('Hay nhap dia chi day du.');
+            setStatus('Hãy nhập địa chỉ đầy đủ.');
             return null;
         }
         try {
             const data = await fetchJson(`{% url 'manager_geocode_forward' %}?q=${encodeURIComponent(query)}`);
             if (!data || !data.ok) {
-                setStatus((data && data.error) ? data.error : 'Khong tim thay dia chi.');
+                setStatus((data && data.error) ? data.error : 'Không tìm thấy địa chỉ.');
                 return null;
             }
             return data;
         } catch (e) {
-            setStatus('Khong the ket noi dich vu dinh vi.');
+            setStatus('Không thể kết nối dịch vụ định vị.');
             return null;
         }
     }
@@ -524,7 +524,7 @@ function updateRadiusLabel() {
             btn.addEventListener('click', () => {
                 originAddressEl.value = item.display_name;
                 addressSuggestionsEl.innerHTML = '';
-                setOrigin(parseFloat(item.lat), parseFloat(item.lon), 'Da cap nhat vi tri tu dia chi');
+                setOrigin(parseFloat(item.lat), parseFloat(item.lon), 'Đã cập nhật vị trí từ địa chỉ');
             });
             addressSuggestionsEl.appendChild(btn);
         });
@@ -538,8 +538,8 @@ function updateRadiusLabel() {
             li.innerHTML = `
                 <div class="fw-bold">${p.name}</div>
                 <div class="small text-muted mb-1">${p.district || ''}</div>
-                <div class="small">Trong: <b>${p.available_slots}</b> / ${p.capacity}</div>
-                <span class="${p.available_slots > 0 ? 'badge-ok' : 'badge-full'}">${p.available_slots > 0 ? 'Con cho' : 'Da day'}</span>
+                <div class="small">Trống: <b>${p.available_slots}</b> / ${p.capacity}</div>
+                <span class="${p.available_slots > 0 ? 'badge-ok' : 'badge-full'}">${p.available_slots > 0 ? 'Còn chỗ' : 'Đã đầy'}</span>
             `;
             li.addEventListener('click', () => {
                 const marker = state.markers.get(p.id);
@@ -549,7 +549,7 @@ function updateRadiusLabel() {
                 }
                 state.nearest = { lat: p.lat, lon: p.lng, name: p.name, distance_km: null };
                 updateSelectedInfo(p);
-                setStatus(`Da chon bai: ${p.name}. Bam "Chi duong den bai gan nhat" de ve duong tu vi tri cua ban.`);
+                setStatus(`Đã chọn bãi: ${p.name}. Bấm "Chỉ đường đến bãi gần nhất" để vẽ đường từ vị trí của bạn.`);
             });
             parkingListEl.appendChild(li);
         });
@@ -566,14 +566,14 @@ function updateRadiusLabel() {
             const marker = L.marker([p.lat, p.lng], { icon: iconByAvailability(p.available_slots) });
             marker.bindPopup(`
                 <b>${p.name}</b><br>
-                Khu vuc: ${p.district || 'Khong ro'}<br>
-                Dia chi: ${p.address || 'N/A'}<br>
-                Cho trong: ${p.available_slots}/${p.capacity}
+                Khu vực: ${p.district || 'Không rõ'}<br>
+                Địa chỉ: ${p.address || 'N/A'}<br>
+                Chỗ trống: ${p.available_slots}/${p.capacity}
             `);
             marker.on('click', () => {
                 state.nearest = { lat: p.lat, lon: p.lng, name: p.name, distance_km: null };
                 updateSelectedInfo(p);
-                setStatus(`Da chon bai: ${p.name}. Bam "Chi duong den bai gan nhat" de ve duong tu vi tri cua ban.`);
+                setStatus(`Đã chọn bãi: ${p.name}. Bấm "Chỉ đường đến bãi gần nhất" để vẽ đường từ vị trí của bạn.`);
             });
             if (p.available_slots > 0) {
                 availableCluster.addLayer(marker);
@@ -586,10 +586,10 @@ function updateRadiusLabel() {
     }
 
     async function loadParkings() {
-        setStatus('Dang tai du lieu bai do xe...');
+        setStatus('Đang tải dữ liệu bãi đỗ xe...');
         try {
             const res = await fetch("{% url 'parking_map_data' %}");
-            if (!res.ok) throw new Error('Khong tai duoc du lieu bai do');
+            if (!res.ok) throw new Error('Không tải được dữ liệu bãi đỗ');
             const data = await res.json();
 
             state.parkings = data;
@@ -601,16 +601,16 @@ function updateRadiusLabel() {
                 const bounds = L.latLngBounds(data.map(p => [p.lat, p.lng]));
                 map.fitBounds(bounds, { padding: [30, 30] });
             }
-            setStatus(`Da tai ${data.length} bai do xe.`);
+            setStatus(`Đã tải ${data.length} bãi đỗ xe.`);
         } catch (err) {
-            setStatus('Loi tai du lieu ban do: ' + err.message);
+            setStatus('Lỗi tải dữ liệu bản đồ: ' + err.message);
         }
     }
 
     function applyCoordinateInput() {
         const lat = parseFloat(originLatEl.value);
         const lon = parseFloat(originLonEl.value);
-        if (!setOrigin(lat, lon, 'Da cap nhat vi tri tu toa do nhap tay')) return;
+        if (!setOrigin(lat, lon, 'Đã cập nhật vị trí từ tọa độ nhập tay')) return;
     }
 
     async function applyAddressInput() {
@@ -620,40 +620,40 @@ function updateRadiusLabel() {
         originAddressEl.value = result.display_name || query;
         setOrigin(parseFloat(result.lat), parseFloat(result.lon), 'Da cap nhat vi tri tu dia chi');
         if (result.approximate) {
-            setStatus('Khong tim thay so nha, dang dinh vi gan dung theo ten duong.');
+            setStatus('Không tìm thấy số nhà, đang định vị gần đúng theo tên đường.');
         }
     }
 
     function locateUser() {
         if (!navigator.geolocation) {
-            setStatus('Trinh duyet khong ho tro dinh vi.');
+            setStatus('Trình duyệt không hỗ trợ định vị.');
             return;
         }
 
-        setStatus('Dang lay vi tri hien tai...');
+        setStatus('Đang lấy vị trí hiện tại...');
         navigator.geolocation.getCurrentPosition((pos) => {
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
-            setOrigin(lat, lon, 'Da cap nhat vi tri hien tai');
+            setOrigin(lat, lon, 'Đã cập nhật vị trí hiện tại');
         }, () => {
-            setStatus('Khong lay duoc vi tri hien tai. Ban co the nhap toa do thu cong.');
+            setStatus('Không lấy được vị trí hiện tại. Bạn có thể nhập tọa độ thủ công.');
         }, { enableHighAccuracy: true, timeout: 10000 });
     }
 
     async function findNearest() {
         if (!state.origin) {
-            setStatus('Hay nhap toa do va bam "Dong y toa do" truoc.');
+            setStatus('Hãy nhập tọa độ và bấm "Đồng ý tọa độ" trước.');
             return;
         }
 
-        setStatus('Dang tim bai do gan nhat con cho...');
+        setStatus('Đang tìm bãi đỗ gần nhất còn chỗ...');
         try {
             const url = `{% url 'api_find_nearest_parking' %}?lat=${state.origin.lat}&lon=${state.origin.lon}`;
             const res = await fetch(url);
             const data = await res.json();
 
             if (!res.ok || data.error || data.message || !data.lat || !data.lon) {
-                setStatus(data.error || data.message || 'Khong tim duoc bai do phu hop.');
+                setStatus(data.error || data.message || 'Không tìm được bãi đỗ phù hợp.');
                 return;
             }
 
@@ -666,29 +666,29 @@ function updateRadiusLabel() {
                 weight: 3,
                 fillColor: '#f59e0b',
                 fillOpacity: 0.3,
-            }).addTo(map).bindPopup(`<b>Gan nhat: ${data.name}</b><br>Khoang cach: ${data.distance_km} km`).openPopup();
+            }).addTo(map).bindPopup(`<b>Gần nhất: ${data.name}</b><br>Khoảng cách: ${data.distance_km} km`).openPopup();
 
             map.setView([data.lat, data.lon], 15);
             clearRoute();
-            setStatus(`Da tim thay bai gan nhat: ${data.name} (${data.distance_km} km). Bam "Chi duong den bai gan nhat" de ve lo trinh.`);
+            setStatus(`Đã tìm thấy bãi gần nhất: ${data.name} (${data.distance_km} km). Bấm "Chỉ đường đến bãi gần nhất" để vẽ lộ trình.`);
         } catch (err) {
-            setStatus('Loi tim bai gan nhat: ' + err.message);
+            setStatus('Lỗi tìm bãi gần nhất: ' + err.message);
         }
     }
 
     async function drawRouteToNearest() {
         if (!state.origin) {
-            setStatus('Hay nhap toa do diem di truoc.');
+            setStatus('Hãy nhập tọa độ điểm đi trước.');
             return;
         }
 
         if (!state.nearest) {
-            setStatus('Hay bam "Tim bai gan nhat" truoc khi chi duong.');
+            setStatus('Hãy bấm "Tìm bãi gần nhất" trước khi chỉ đường.');
             return;
         }
 
         clearRoute();
-        setStatus('Dang tinh lo trinh ngan nhat tren mang duong thuc te...');
+        setStatus('Đang tính lộ trình ngắn nhất trên mạng đường thực tế...');
 
         try {
             const url = `{% url 'api_route' %}?start_lat=${state.origin.lat}&start_lon=${state.origin.lon}&end_lat=${state.nearest.lat}&end_lon=${state.nearest.lon}`;
@@ -696,16 +696,16 @@ function updateRadiusLabel() {
             const data = await res.json();
 
             if (!res.ok || data.error || data.type !== 'LineString') {
-                setStatus(data.error || 'Khong ve duoc duong di.');
+                setStatus(data.error || 'Không vẽ được đường đi.');
                 return;
             }
 
             const routeCoords = data.coordinates.map((c) => [c[1], c[0]]);
             state.routeLine = L.polyline(routeCoords, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(routeLayer);
             map.fitBounds(state.routeLine.getBounds(), { padding: [35, 35] });
-            setStatus(`Da ve lo trinh ngan nhat den ${state.nearest.name}.`);
+            setStatus(`Đã vẽ lộ trình ngắn nhất đến ${state.nearest.name}.`);
         } catch (err) {
-            setStatus('Loi ve duong di: ' + err.message);
+            setStatus('Lỗi vẽ đường đi: ' + err.message);
         }
     }
 
@@ -729,7 +729,7 @@ function updateRadiusLabel() {
         addressSuggestionsEl.innerHTML = '';
 
         map.setView([defaultView.lat, defaultView.lng], defaultView.zoom);
-        setStatus('Da dat lai ban do.');
+        setStatus('Đã đặt lại bản đồ.');
     }
 
     document.getElementById('btnApplyCoord').addEventListener('click', applyCoordinateInput);
@@ -757,7 +757,7 @@ function updateRadiusLabel() {
     map.on('click', async (e) => {
         const lat = e.latlng.lat;
         const lon = e.latlng.lng;
-        setOrigin(lat, lon, 'Da cap nhat vi tri tu ban do');
+        setOrigin(lat, lon, 'Đã cập nhật vị trí từ bản đồ');
         try {
             const data = await fetchJson(`{% url 'manager_geocode_reverse' %}?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
             if (data && data.display_name) {

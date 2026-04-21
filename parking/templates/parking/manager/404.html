@@ -1,14 +1,163 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Không tìm thấy trang quản trị</title>
+    <title>404 - Không tìm thấy trang quản trị</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { background: #f8fafc; font-family: 'Manrope', sans-serif; color: #0f172a; }
+
+        .m404-layout {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+        .m404-box { width: min(780px, 100%); }
+
+        .m404-topbar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .m404-brand {
+            font-size: 18px; font-weight: 800; color: #0f172a;
+            text-decoration: none; display: flex; align-items: center; gap: 8px;
+        }
+        .m404-brand i { color: #2563eb; }
+        .m404-brand:hover { color: #2563eb; }
+
+        .m404-head { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 8px; }
+        .m404-code {
+            font-size: clamp(56px, 9vw, 90px);
+            font-weight: 900; line-height: 1; margin: 0;
+            background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .m404-badge {
+            background: #fee2e2; color: #b91c1c;
+            font-size: 12px; font-weight: 700;
+            padding: 3px 10px; border-radius: 999px; margin-bottom: 14px;
+        }
+        .m404-title { font-size: 22px; font-weight: 800; margin: 8px 0 6px; }
+        .m404-desc  { color: #64748b; font-size: 14px; margin: 0 0 22px; }
+
+        .m404-btn {
+            border-radius: 10px; font-weight: 700; padding: 10px 18px; font-size: 14px;
+            transition: transform .15s, box-shadow .15s;
+        }
+        .m404-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(13,110,253,.18); }
+
+        .m404-debug {
+            margin-top: 28px; background: #fff;
+            border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px 24px;
+            animation: slide .4s cubic-bezier(.22,.61,.36,1) both;
+        }
+        @keyframes slide {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .m404-debug-title {
+            font-size: 14px; font-weight: 800; margin: 0 0 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .m404-debug-title i { color: #2563eb; }
+        .m404-debug-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px; margin-bottom: 16px;
+        }
+        .m404-debug-item {
+            background: #f8fafc; border: 1px solid #e2e8f0;
+            border-radius: 10px; padding: 10px 14px;
+        }
+        .m404-debug-item .label {
+            font-size: 11px; font-weight: 700; color: #94a3b8;
+            text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px;
+        }
+        .m404-debug-item .value { font-size: 13px; font-weight: 600; color: #1e293b; word-break: break-all; }
+        .m404-debug-item .value.error { color: #dc2626; }
+        .m404-debug-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .m404-debug-btn {
+            font-size: 13px; font-weight: 700; border-radius: 8px;
+            padding: 7px 14px; transition: transform .12s;
+        }
+        .m404-debug-btn:hover { transform: translateY(-1px); }
+    </style>
 </head>
 <body>
-    <main>
-        <h1>404 - Không tìm thấy trang quản trị</h1>
-        <p>Đường dẫn quản trị không tồn tại hoặc đã bị thay đổi.</p>
-    </main>
+<div class="m404-layout">
+    <div class="m404-box">
+
+        <div class="m404-topbar">
+            <a href="/manager/" class="m404-brand">
+                <i class="fas fa-square-parking"></i> Parking Manager
+            </a>
+        </div>
+
+        <div class="m404-head">
+            <p class="m404-code" aria-hidden="true">404</p>
+            <span class="m404-badge">Not Found</span>
+        </div>
+
+        <h1 class="m404-title">Trang quản trị không tồn tại</h1>
+        <p class="m404-desc">Đường dẫn bạn truy cập không hợp lệ hoặc đã được thay đổi.</p>
+
+        <a class="btn btn-primary m404-btn" href="/manager/">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại khu quản trị
+        </a>
+
+        <div class="m404-debug">
+            <p class="m404-debug-title">
+                <i class="fas fa-shield-halved"></i> Thông tin cho Quản trị viên
+            </p>
+            <div class="m404-debug-grid">
+                <div class="m404-debug-item">
+                    <div class="label">URL không tồn tại</div>
+                    <div class="value" id="dbg-url">—</div>
+                </div>
+                <div class="m404-debug-item">
+                    <div class="label">Thời gian xảy ra lỗi</div>
+                    <div class="value" id="dbg-time">—</div>
+                </div>
+                <div class="m404-debug-item">
+                    <div class="label">Mã lỗi</div>
+                    <div class="value error">404 Not Found</div>
+                </div>
+                <div class="m404-debug-item">
+                    <div class="label">Người dùng</div>
+                    <div class="value">
+                        {% if request.user.is_authenticated %}{{ request.user.username }}{% else %}Chưa đăng nhập{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="m404-debug-actions">
+                <a href="/manager/logs/" class="btn btn-outline-secondary m404-debug-btn">
+                    <i class="fas fa-list-ul me-1"></i>Xem nhật ký
+                </a>
+                <a href="/manager/" class="btn btn-outline-primary m404-debug-btn">
+                    <i class="fas fa-chart-line me-1"></i>Về Dashboard
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    document.getElementById('dbg-url').textContent  = window.location.href;
+    document.getElementById('dbg-time').textContent = new Date().toLocaleString('vi-VN', {
+        dateStyle: 'short', timeStyle: 'medium'
+    });
+</script>
 </body>
 </html>

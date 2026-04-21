@@ -277,3 +277,23 @@ class ParkingPrice(models.Model):
     def __str__(self):
         return f"{self.parking_lot.name} - {self.get_vehicle_type_display()}"
 
+
+class OtpCode(models.Model):
+    email = models.EmailField("Email")
+    code = models.CharField("Mã OTP", max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField("Hết hạn lúc")
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Mã OTP"
+        verbose_name_plural = "Danh sách mã OTP"
+        indexes = [models.Index(fields=["email", "is_used"])]
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"{self.email} – {self.code}"
+
+

@@ -1,23 +1,23 @@
 {% extends 'parking/manager/base.html' %}
 
-{% block title %}Xoa {{ title }}{% endblock %}
-{% block page_title %}Xac nhan xoa{% endblock %}
+{% block title %}Xóa {{ title }}{% endblock %}
+{% block page_title %}Xác nhận xóa{% endblock %}
 
 {% block content %}
 <div class="panel form-panel">
     {% if trash_mode %}
-    <p>Ban co chac chan muon xoa vinh vien ban ghi nay?</p>
+    <p>Bạn có chắc chắn muốn xóa vĩnh viễn bản ghi này?</p>
     {% else %}
-    <p>Ban co chac chan muon chuyen ban ghi nay vao thung rac?</p>
+    <p>Bạn có chắc chắn muốn chuyển bản ghi này vào thùng rác?</p>
     {% endif %}
     <p><strong>{{ instance }}</strong></p>
 
     <form method="post" class="d-flex gap-2">
         {% csrf_token %}
         <button class="btn btn-danger" type="submit">
-            {% if trash_mode %}Xoa vinh vien{% else %}Chuyen vao thung rac{% endif %}
+            {% if trash_mode %}Xóa vĩnh viễn{% else %}Chuyển vào thùng rác{% endif %}
         </button>
-        <a class="btn btn-outline-secondary" href="{{ back_url|default:'javascript:history.back()' }}">Huy</a>
+        <a class="btn btn-outline-secondary" href="{{ back_url|default:'javascript:history.back()' }}">Hủy</a>
     </form>
 </div>
 {% endblock %}

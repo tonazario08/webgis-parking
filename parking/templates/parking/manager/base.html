@@ -61,9 +61,8 @@
             <a class="menu-link" href="{% url 'manager_list' 'parkings' %}"><i class="fas fa-warehouse"></i> Bãi đỗ xe</a>
             <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Người gửi xe</a>
             <a class="menu-link" href="{% url 'manager_list' 'prices' %}"><i class="fas fa-tags"></i> Bảng giá</a>
-            <a class="menu-link" href="{% url 'manager_revenue' %}"><i class="fas fa-chart-line"></i> Doanh thu</a>
-            <a class="menu-link" href="{% url 'manager_permissions' %}"><i class="fas fa-user-shield"></i> Phân quyền</a>
             <a class="menu-link" href="{% url 'manager_list' 'logs' %}"><i class="fas fa-clock-rotate-left"></i> Nhật ký</a>
+            <a class="menu-link" href="{% url 'manager_roles' %}"><i class="fas fa-user-shield"></i> Phân quyền</a>
             {% else %}
             <a class="menu-link" href="{% url 'manager_list' 'parkings' %}"><i class="fas fa-warehouse"></i> Bãi đỗ xe</a>
             <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Người gửi xe</a>
