@@ -522,3 +522,7 @@ def verify_parking_user_email(request, user_id, token):
 def custom_page_not_found(request, exception=None):
     template_name = "parking/manager/404.html" if request.path.startswith("/manager/") else "parking/404.html"
     return render(request, template_name, status=404)
+
+
+def about(request):
+    return render(request, "parking/about.html")

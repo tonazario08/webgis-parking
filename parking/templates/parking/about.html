@@ -1,0 +1,375 @@
+{% extends 'parking/base.html' %}
+
+{% block title %}Giới thiệu — Parking GIS{% endblock %}
+
+{% block extra_head %}
+<style>
+    .about-hero {
+        background: linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%);
+        border-radius: 20px;
+        padding: 64px 48px;
+        color: #fff;
+        margin-bottom: 48px;
+        position: relative;
+        overflow: hidden;
+    }
+    .about-hero::after {
+        content: '';
+        position: absolute;
+        right: -60px; top: -60px;
+        width: 320px; height: 320px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.06);
+        pointer-events: none;
+    }
+    .about-hero::before {
+        content: '';
+        position: absolute;
+        right: 80px; bottom: -80px;
+        width: 200px; height: 200px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.04);
+        pointer-events: none;
+    }
+
+    .feature-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(15,23,42,0.07);
+        transition: transform .2s, box-shadow .2s;
+        height: 100%;
+    }
+    .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(15,23,42,0.12);
+    }
+    .feature-icon {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px;
+        margin-bottom: 16px;
+        flex-shrink: 0;
+    }
+
+    .mission-block {
+        background: #eff6ff;
+        border-left: 4px solid #2563eb;
+        border-radius: 0 12px 12px 0;
+        padding: 24px 28px;
+    }
+
+    .team-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(15,23,42,0.07);
+        padding: 28px 20px;
+        text-align: center;
+        transition: transform .2s;
+    }
+    .team-card:hover { transform: translateY(-4px); }
+    .team-avatar {
+        width: 80px; height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 32px;
+        font-weight: 800;
+        color: #fff;
+    }
+
+    .contact-box {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(15,23,42,0.07);
+        padding: 32px 36px;
+    }
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .contact-item:last-child { border-bottom: none; }
+    .contact-item i {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .section-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 6px;
+    }
+    .section-sub {
+        color: #64748b;
+        font-size: 14px;
+        margin-bottom: 28px;
+    }
+
+    @media (max-width: 575px) {
+        .about-hero { padding: 40px 24px; }
+        .contact-box { padding: 24px 20px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="about-hero">
+    <div class="row align-items-center">
+        <div class="col-lg-7">
+            <span class="badge bg-white bg-opacity-25 text-white fw-semibold mb-3 px-3 py-2" style="font-size:13px;">
+                <i class="fas fa-map-marked-alt me-1"></i> WebGIS Parking
+            </span>
+            <h1 class="fw-bold mb-3" style="font-size: clamp(28px, 5vw, 42px); line-height:1.2;">
+                Giải pháp quản lý<br>bãi đỗ xe thông minh
+            </h1>
+            <p class="mb-4" style="color:rgba(255,255,255,0.85); font-size:16px; line-height:1.7; max-width:520px;">
+                Nền tảng GIS tích hợp giúp người dùng tìm kiếm bãi đỗ xe theo thời gian thực,
+                đồng thời hỗ trợ đội ngũ quản trị giám sát và vận hành hiệu quả toàn bộ hệ thống.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'map_view' %}" class="btn btn-white fw-bold px-4 py-2" style="background:#fff;color:#1d4ed8;border-radius:10px;">
+                    <i class="fas fa-map me-2"></i>Xem bản đồ
+                </a>
+                <a href="{% url 'parking_list' %}" class="btn fw-bold px-4 py-2" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:10px;">
+                    <i class="fas fa-list me-2"></i>Danh sách bãi đỗ
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-5 d-none d-lg-flex justify-content-end">
+            <!-- SVG minh họa bãi đỗ xe -->
+            <svg width="260" height="220" viewBox="0 0 260 220" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="20" y="60" width="220" height="130" rx="16" fill="rgba(255,255,255,0.12)"/>
+                <rect x="36" y="76" width="88" height="52" rx="8" fill="rgba(255,255,255,0.18)"/>
+                <rect x="136" y="76" width="88" height="52" rx="8" fill="rgba(255,255,255,0.18)"/>
+                <rect x="36" y="140" width="88" height="36" rx="8" fill="rgba(255,255,255,0.10)"/>
+                <rect x="136" y="140" width="88" height="36" rx="8" fill="rgba(255,255,255,0.10)"/>
+                <!-- Xe 1 -->
+                <rect x="46" y="86" width="68" height="32" rx="6" fill="#60a5fa"/>
+                <rect x="54" y="80" width="52" height="18" rx="4" fill="#93c5fd"/>
+                <circle cx="58" cy="120" r="7" fill="#1e293b"/><circle cx="58" cy="120" r="3" fill="#94a3b8"/>
+                <circle cx="102" cy="120" r="7" fill="#1e293b"/><circle cx="102" cy="120" r="3" fill="#94a3b8"/>
+                <!-- Xe 2 -->
+                <rect x="146" y="86" width="68" height="32" rx="6" fill="#34d399"/>
+                <rect x="154" y="80" width="52" height="18" rx="4" fill="#6ee7b7"/>
+                <circle cx="158" cy="120" r="7" fill="#1e293b"/><circle cx="158" cy="120" r="3" fill="#94a3b8"/>
+                <circle cx="202" cy="120" r="7" fill="#1e293b"/><circle cx="202" cy="120" r="3" fill="#94a3b8"/>
+                <!-- Pin map -->
+                <circle cx="130" cy="30" r="18" fill="#fbbf24"/>
+                <circle cx="130" cy="28" r="8" fill="#fff"/>
+                <path d="M130 38 L124 50 L130 46 L136 50 Z" fill="#fbbf24"/>
+                <!-- Chữ P -->
+                <text x="126" y="32" font-size="11" font-weight="900" fill="#1d4ed8" text-anchor="middle">P</text>
+            </svg>
+        </div>
+    </div>
+</div>
+
+<!-- Sứ mệnh -->
+<div class="row mb-5">
+    <div class="col-12">
+        <p class="section-title"><i class="fas fa-bullseye text-primary me-2"></i>Sứ mệnh</p>
+        <div class="mission-block">
+            <p class="mb-2 fw-semibold" style="color:#1e3a8a; font-size:16px;">
+                Chúng tôi hướng đến xây dựng một hệ sinh thái đỗ xe thông minh, minh bạch và dễ tiếp cận cho tất cả mọi người.
+            </p>
+            <p class="mb-0 text-secondary" style="font-size:14px; line-height:1.7;">
+                Bằng cách kết hợp công nghệ GIS, dữ liệu thời gian thực và giao diện thân thiện, Parking GIS giúp
+                người dân tìm được chỗ đỗ xe nhanh chóng, giảm ùn tắc giao thông và hỗ trợ đội ngũ quản lý
+                vận hành bãi đỗ hiệu quả hơn.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Tính năng chính -->
+<div class="mb-5">
+    <p class="section-title"><i class="fas fa-star text-warning me-2"></i>Tính năng chính</p>
+    <p class="section-sub">Những gì Parking GIS mang lại cho bạn</p>
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="card feature-card p-4 bg-white">
+                <div class="feature-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-map-marked-alt"></i>
+                </div>
+                <h6 class="fw-bold mb-2">Bản đồ GIS thời gian thực</h6>
+                <p class="text-muted mb-0" style="font-size:13px; line-height:1.6;">
+                    Xem toàn bộ bãi đỗ xe trên bản đồ số, cập nhật trạng thái chỗ trống tức thì.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card feature-card p-4 bg-white">
+                <div class="feature-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-search-location"></i>
+                </div>
+                <h6 class="fw-bold mb-2">Tìm bãi đỗ gần nhất</h6>
+                <p class="text-muted mb-0" style="font-size:13px; line-height:1.6;">
+                    Tự động gợi ý bãi đỗ gần vị trí hiện tại, tính khoảng cách và chỉ đường tới nơi.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card feature-card p-4 bg-white">
+                <div class="feature-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-file-signature"></i>
+                </div>
+                <h6 class="fw-bold mb-2">Đăng ký gửi xe online</h6>
+                <p class="text-muted mb-0" style="font-size:13px; line-height:1.6;">
+                    Người dùng có thể đăng ký một chỗ gửi xe cố định và theo dõi lịch sử đăng ký.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card feature-card p-4 bg-white">
+                <div class="feature-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h6 class="fw-bold mb-2">Quản trị & Báo cáo</h6>
+                <p class="text-muted mb-0" style="font-size:13px; line-height:1.6;">
+                    Bảng điều khiển quản lý đầy đủ: doanh thu, nhật ký hoạt động, phân quyền nhân viên.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Đối tượng người dùng -->
+<div class="mb-5">
+    <p class="section-title"><i class="fas fa-users text-info me-2"></i>Đối tượng sử dụng</p>
+    <p class="section-sub">Parking GIS phục vụ hai nhóm người dùng chính</p>
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card feature-card p-4 bg-white">
+                <div class="d-flex gap-3 align-items-start">
+                    <div class="feature-icon bg-primary bg-opacity-10 text-primary" style="width:48px;height:48px;font-size:18px;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-2">Người dân / Chủ xe</h6>
+                        <ul class="text-muted mb-0 ps-3" style="font-size:13px; line-height:1.9;">
+                            <li>Tra cứu bãi đỗ xe còn chỗ trống</li>
+                            <li>Đăng ký giữ chỗ gửi xe cố định</li>
+                            <li>Xem lịch sử và trạng thái đơn đăng ký</li>
+                            <li>Nhận email xác nhận tự động</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card feature-card p-4 bg-white">
+                <div class="d-flex gap-3 align-items-start">
+                    <div class="feature-icon bg-success bg-opacity-10 text-success" style="width:48px;height:48px;font-size:18px;">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-2">Quản trị viên / Nhân viên</h6>
+                        <ul class="text-muted mb-0 ps-3" style="font-size:13px; line-height:1.9;">
+                            <li>Quản lý bãi đỗ, khu vực, bảng giá</li>
+                            <li>Duyệt/từ chối đơn đăng ký gửi xe</li>
+                            <li>Theo dõi doanh thu và nhật ký hệ thống</li>
+                            <li>Import/Export dữ liệu qua Excel</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Đội ngũ -->
+<div class="mb-5">
+    <p class="section-title"><i class="fas fa-id-badge text-success me-2"></i>Đội ngũ phát triển</p>
+    <p class="section-sub">Những người đứng sau dự án</p>
+    <div class="row g-4">
+        <div class="col-6 col-md-3">
+            <div class="team-card bg-white">
+                <div class="team-avatar" style="background:linear-gradient(135deg,#2563eb,#06b6d4);">T</div>
+                <h6 class="fw-bold mb-1">Tô Quốc Toàn</h6>
+                <p class="text-muted mb-0" style="font-size:12px;">Full-stack Developer</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="team-card bg-white">
+                <div class="team-avatar" style="background:linear-gradient(135deg,#16a34a,#059669);">GIS</div>
+                <h6 class="fw-bold mb-1">GIS Engineer</h6>
+                <p class="text-muted mb-0" style="font-size:12px;">Bản đồ & Không gian</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="team-card bg-white">
+                <div class="team-avatar" style="background:linear-gradient(135deg,#d97706,#f59e0b);">UI</div>
+                <h6 class="fw-bold mb-1">UI/UX Designer</h6>
+                <p class="text-muted mb-0" style="font-size:12px;">Giao diện & Trải nghiệm</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="team-card bg-white">
+                <div class="team-avatar" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">BA</div>
+                <h6 class="fw-bold mb-1">Business Analyst</h6>
+                <p class="text-muted mb-0" style="font-size:12px;">Nghiệp vụ & Phân tích</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liên hệ -->
+<div class="mb-4">
+    <p class="section-title"><i class="fas fa-envelope text-danger me-2"></i>Liên hệ</p>
+    <p class="section-sub">Góp ý, hỗ trợ hoặc hợp tác — chúng tôi luôn sẵn lòng lắng nghe</p>
+    <div class="contact-box">
+        <div class="row g-0">
+            <div class="col-md-6">
+                <div class="contact-item">
+                    <div class="i bg-primary bg-opacity-10 text-primary" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Email</div>
+                        <div class="fw-semibold" style="font-size:14px;">contact@parkinggis.vn</div>
+                    </div>
+                </div>
+                <div class="contact-item">
+                    <div class="i bg-success bg-opacity-10 text-success" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Điện thoại</div>
+                        <div class="fw-semibold" style="font-size:14px;">0909 123 456</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="contact-item">
+                    <div class="i bg-info bg-opacity-10 text-info" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-map-pin"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Địa chỉ</div>
+                        <div class="fw-semibold" style="font-size:14px;">TP. Hồ Chí Minh, Việt Nam</div>
+                    </div>
+                </div>
+                <div class="contact-item">
+                    <div class="i bg-warning bg-opacity-10 text-warning" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Giờ hỗ trợ</div>
+                        <div class="fw-semibold" style="font-size:14px;">Thứ 2 – Thứ 6, 8:00 – 17:30</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
