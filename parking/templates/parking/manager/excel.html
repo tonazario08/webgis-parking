@@ -8,18 +8,12 @@
         <h1 class="h3 mb-0 fw-bold">Import / Export Excel</h1>
     </div>
 
-    {% if messages %}
-    {% for msg in messages %}
-    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
-        {{ msg }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
-    {% endif %}
-
     {% if import_errors %}
     <div class="alert alert-danger mb-4">
-        <h6 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Import thất bại — không có dữ liệu nào được lưu</h6>
+        <h6 class="fw-bold mb-2">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Import {% if import_entity == 'parkinglots' %}Bãi đỗ xe{% elif import_entity == 'parkingusers' %}Xe đang gửi{% else %}dữ liệu{% endif %} thất bại — không có dữ liệu nào được lưu
+        </h6>
         <ul class="mb-0 ps-3">
             {% for err in import_errors %}
             <li>{{ err }}</li>
@@ -40,7 +34,7 @@
                     <!-- ParkingLot import -->
                     <div class="mb-4">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="fw-semibold">Bãi đỗ xe</span>
+                            <label for="import-parkinglots" class="fw-semibold">Bãi đỗ xe</label>
                             <a href="{% url 'manager_excel_template' 'parkinglots' %}"
                                class="btn btn-sm btn-outline-secondary">
                                 <i class="fas fa-download me-1"></i>Tải mẫu
@@ -49,7 +43,7 @@
                         <form method="post" action="{% url 'manager_excel_import' 'parkinglots' %}"
                               enctype="multipart/form-data" class="d-flex gap-2">
                             {% csrf_token %}
-                            <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required>
+                            <input id="import-parkinglots" type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required>
                             <button type="submit" class="btn btn-sm btn-primary text-nowrap">
                                 <i class="fas fa-upload me-1"></i>Import
                             </button>
@@ -61,7 +55,7 @@
                     <!-- ParkingUser import -->
                     <div class="mb-2">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="fw-semibold">Xe đang gửi</span>
+                            <label for="import-parkingusers" class="fw-semibold">Xe đang gửi</label>
                             <a href="{% url 'manager_excel_template' 'parkingusers' %}"
                                class="btn btn-sm btn-outline-secondary">
                                 <i class="fas fa-download me-1"></i>Tải mẫu
@@ -70,7 +64,7 @@
                         <form method="post" action="{% url 'manager_excel_import' 'parkingusers' %}"
                               enctype="multipart/form-data" class="d-flex gap-2">
                             {% csrf_token %}
-                            <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required>
+                            <input id="import-parkingusers" type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required>
                             <button type="submit" class="btn btn-sm btn-primary text-nowrap">
                                 <i class="fas fa-upload me-1"></i>Import
                             </button>
