@@ -63,6 +63,11 @@ class ExcelExportTest(TestCase):
         self.assertIn("Họ tên", headers)
         self.assertIn("Biển số xe", headers)
 
+    def test_export_parkingusers_has_data_row(self):
+        wb = self._load_wb(export_parkingusers_xlsx())
+        ws = wb.active
+        self.assertEqual(ws.max_row, 2)  # header + 1 user
+
     def test_export_revenue_returns_bytes(self):
         result = export_revenue_xlsx()
         self.assertIsInstance(result, bytes)
@@ -73,6 +78,11 @@ class ExcelExportTest(TestCase):
         headers = [cell.value for cell in ws[1]]
         self.assertIn("Tên bãi", headers)
         self.assertIn("Doanh thu ước tính (VNĐ/giờ)", headers)
+
+    def test_export_revenue_has_data_row(self):
+        wb = self._load_wb(export_revenue_xlsx())
+        ws = wb.active
+        self.assertEqual(ws.max_row, 2)  # header + 1 lot
 
     def test_export_registrations_returns_bytes(self):
         result = export_registrations_xlsx()

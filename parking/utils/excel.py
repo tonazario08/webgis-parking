@@ -4,7 +4,9 @@ from datetime import date
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 
-from parking.models import Area, ParkingLot, ParkingPrice, ParkingRegistrationRequest, ParkingUser
+from django.db.models import Prefetch
+
+from parking.models import ParkingLot, ParkingPrice, ParkingRegistrationRequest, ParkingUser
 
 _HEADER_FONT = Font(bold=True, color="FFFFFF")
 _HEADER_FILL = PatternFill(fill_type="solid", fgColor="2563EB")
@@ -77,12 +79,25 @@ def export_revenue_xlsx() -> bytes:
                "Doanh thu ước tính (VNĐ/giờ)", "Ngày xuất báo cáo"]
     wb, ws = _make_wb_with_header(headers)
     today = date.today().strftime("%d/%m/%Y")
-    for row, lot in enumerate(ParkingLot.objects.filter(is_deleted=False).select_related("area"), start=2):
-        active_count = ParkingUser.objects.filter(parking_lot=lot, is_active=True, is_deleted=False).count()
-        revenue = sum(
-            p.price_per_hour
-            for p in ParkingPrice.objects.filter(parking_lot=lot)
+    lots = (
+        ParkingLot.objects
+        .filter(is_deleted=False)
+        .select_related("area")
+        .prefetch_related(
+            Prefetch(
+                "prices",
+                queryset=ParkingPrice.objects.all(),
+            ),
+            Prefetch(
+                "parkinguser_set",
+                queryset=ParkingUser.objects.filter(is_active=True, is_deleted=False),
+                to_attr="active_users",
+            ),
         )
+    )
+    for row, lot in enumerate(lots, start=2):
+        active_count = len(lot.active_users)
+        revenue = sum(p.price_per_hour for p in lot.prices.all())
         ws.cell(row=row, column=1, value=lot.name)
         ws.cell(row=row, column=2, value=lot.area.name if lot.area else "")
         ws.cell(row=row, column=3, value=active_count)
