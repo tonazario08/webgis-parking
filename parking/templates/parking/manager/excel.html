@@ -1,0 +1,107 @@
+{% extends "parking/manager/base.html" %}
+
+{% block title %}Import / Export Excel{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <h1 class="h3 mb-0 fw-bold">Import / Export Excel</h1>
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if import_errors %}
+    <div class="alert alert-danger mb-4">
+        <h6 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Import thất bại — không có dữ liệu nào được lưu</h6>
+        <ul class="mb-0 ps-3">
+            {% for err in import_errors %}
+            <li>{{ err }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- IMPORT -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom fw-bold py-3">
+                    <i class="fas fa-file-import me-2 text-primary"></i>Import từ Excel
+                </div>
+                <div class="card-body">
+
+                    <!-- ParkingLot import -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-semibold">Bãi đỗ xe</span>
+                            <a href="{% url 'manager_excel_template' 'parkinglots' %}"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-download me-1"></i>Tải mẫu
+                            </a>
+                        </div>
+                        <form method="post" action="{% url 'manager_excel_import' 'parkinglots' %}"
+                              enctype="multipart/form-data" class="d-flex gap-2">
+                            {% csrf_token %}
+                            <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required>
+                            <button type="submit" class="btn btn-sm btn-primary text-nowrap">
+                                <i class="fas fa-upload me-1"></i>Import
+                            </button>
+                        </form>
+                    </div>
+
+                    <hr>
+
+                    <!-- ParkingUser import -->
+                    <div class="mb-2">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-semibold">Xe đang gửi</span>
+                            <a href="{% url 'manager_excel_template' 'parkingusers' %}"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-download me-1"></i>Tải mẫu
+                            </a>
+                        </div>
+                        <form method="post" action="{% url 'manager_excel_import' 'parkingusers' %}"
+                              enctype="multipart/form-data" class="d-flex gap-2">
+                            {% csrf_token %}
+                            <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required>
+                            <button type="submit" class="btn btn-sm btn-primary text-nowrap">
+                                <i class="fas fa-upload me-1"></i>Import
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- EXPORT -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom fw-bold py-3">
+                    <i class="fas fa-file-export me-2 text-success"></i>Xuất ra Excel
+                </div>
+                <div class="card-body">
+
+                    {% for entity, label, icon in export_items %}
+                    <div class="d-flex align-items-center justify-content-between py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                        <span class="fw-semibold"><i class="{{ icon }} me-2 text-muted"></i>{{ label }}</span>
+                        <a href="{% url 'manager_excel_export' entity %}"
+                           class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-download me-1"></i>Xuất
+                        </a>
+                    </div>
+                    {% endfor %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
