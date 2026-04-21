@@ -27,4 +27,5 @@ urlpatterns = [
     path("<str:entity>/create/", manager_views.manager_create, name="manager_create"),
     path("<str:entity>/<int:pk>/edit/", manager_views.manager_edit, name="manager_edit"),
     path("<str:entity>/<int:pk>/delete/", manager_views.manager_delete, name="manager_delete"),
+    
 ]

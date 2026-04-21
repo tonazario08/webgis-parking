@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET
 import random
 import requests
 
+
 from .auth_utils import is_manager_user
 from .forms import ParkingRegistrationRequestForm, PublicLoginForm, PublicRegisterForm
 from .models import ActivityLog, Area, OtpCode, ParkingLot, ParkingPrice, ParkingRegistrationRequest, ParkingUser
