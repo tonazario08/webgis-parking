@@ -23,6 +23,7 @@ urlpatterns = [
     path("excel/template/<str:entity>/", manager_views.manager_excel_template, name="manager_excel_template"),
     path("excel/import/<str:entity>/", manager_views.manager_excel_import, name="manager_excel_import"),
     path("excel/export/<str:entity>/", manager_views.manager_excel_export, name="manager_excel_export"),
+    path("revenue/", manager_views.manager_revenue, name="manager_revenue"),
     path("roles/", manager_views.manager_roles, name="manager_roles"),
     path("roles/<int:user_id>/assign/", manager_views.manager_assign_role, name="manager_assign_role"),
     path("<str:entity>/", manager_views.manager_list, name="manager_list"),

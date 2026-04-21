@@ -535,7 +535,7 @@ def _geocode_address_full(address):
     }
 
 
-class MultipleImageInput(forms.ClearableFileInput):
+class MultipleImageInput(forms.FileInput):
     allow_multiple_selected = True
 
 
@@ -556,11 +556,11 @@ class ParkingLotManagerForm(forms.ModelForm):
     geo_lon = forms.FloatField(required=False, widget=forms.HiddenInput())
     polygon_geojson = forms.CharField(required=False, widget=forms.HiddenInput())
     area_sq_m = forms.FloatField(required=False, widget=forms.HiddenInput())
-    new_images = MultipleImageField(required=False, label="Hinh anh bai xe")
+    new_images = MultipleImageField(required=False, label="Hình ảnh bãi xe")
     remove_images = forms.ModelMultipleChoiceField(
         queryset=ParkingLotImage.objects.none(),
         required=False,
-        label="Xoa hinh dang co",
+        label="Xóa hình đang có",
         widget=forms.CheckboxSelectMultiple,
     )
 
@@ -608,8 +608,9 @@ class ParkingLotManagerForm(forms.ModelForm):
         self.fields["new_images"].widget.attrs.update({
             "accept": "image/*",
             "multiple": True,
+            "id": "id_new_images",
         })
-        self.fields["new_images"].help_text = "Co the chon nhieu hinh cung luc."
+        self.fields["new_images"].help_text = "Có thể chọn nhiều hình cùng lúc. Tối đa 8MB mỗi hình."
         self.fields["remove_images"].queryset = ParkingLotImage.objects.none()
         if self.instance and self.instance.pk and self.instance.address:
             self.fields["address_input"].initial = self.instance.address
