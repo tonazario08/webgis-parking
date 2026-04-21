@@ -6,8 +6,6 @@ from parking.utils.excel import (
     export_parkingusers_xlsx,
     export_revenue_xlsx,
     export_registrations_xlsx,
-)
-from parking.utils.excel import (
     get_parkinglots_template_xlsx,
     get_parkingusers_template_xlsx,
     import_parkinglots_xlsx,

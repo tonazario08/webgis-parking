@@ -4,6 +4,7 @@ from datetime import date
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 
+from django.db import transaction
 from django.db.models import Prefetch
 
 from parking.models import Area, ParkingLot, ParkingPrice, ParkingRegistrationRequest, ParkingUser
@@ -147,7 +148,15 @@ def get_parkingusers_template_xlsx() -> bytes:
 
 _PARKINGLOT_REQUIRED = {"Tên bãi", "Địa chỉ", "Khu vực", "Sức chứa"}
 _PARKINGUSER_REQUIRED = {"Họ tên", "Số điện thoại", "Biển số xe", "Loại xe", "Bãi đỗ"}
-_VALID_VEHICLE_TYPES = {"car", "motorbike", "bike"}
+
+_VEHICLE_TYPE_ALIASES = {
+    "ô tô": "car",
+    "xe máy": "motorbike",
+    "xe đạp": "bike",
+    "car": "car",
+    "motorbike": "motorbike",
+    "bike": "bike",
+}
 
 
 def _parse_sheet(ws) -> tuple:
@@ -166,8 +175,6 @@ def import_parkinglots_xlsx(file_bytes: bytes) -> list:
     Parse and import ParkingLot rows from Excel bytes.
     Returns list of error strings. Empty list means success (data was saved).
     """
-    from django.db import transaction
-
     wb = openpyxl.load_workbook(BytesIO(file_bytes))
     ws = wb.active
     headers, rows = _parse_sheet(ws)
@@ -201,8 +208,13 @@ def import_parkinglots_xlsx(file_bytes: bytes) -> list:
         except (ValueError, TypeError):
             is_active = True
 
+        name = str(r.get("Tên bãi") or "").strip()
+        if not name:
+            errors.append(f"Dòng {row_num}: Tên bãi không được để trống.")
+            continue
+
         objects.append(ParkingLot(
-            name=str(r.get("Tên bãi") or "").strip(),
+            name=name,
             address=str(r.get("Địa chỉ") or "").strip(),
             area=area_map[area_name],
             district=str(r.get("Quận/Huyện") or "").strip(),
@@ -226,8 +238,6 @@ def import_parkingusers_xlsx(file_bytes: bytes) -> list:
     Parse and import ParkingUser rows from Excel bytes.
     Returns list of error strings. Empty list means success (data was saved).
     """
-    from django.db import transaction
-
     wb = openpyxl.load_workbook(BytesIO(file_bytes))
     ws = wb.active
     headers, rows = _parse_sheet(ws)
@@ -237,8 +247,8 @@ def import_parkingusers_xlsx(file_bytes: bytes) -> list:
         return [f"File thiếu cột bắt buộc: {', '.join(missing)}"]
 
     lot_map = {l.name: l for l in ParkingLot.objects.filter(is_deleted=False)}
-    existing_phones = set(ParkingUser.objects.filter(is_deleted=False).values_list("phone", flat=True))
-    existing_plates = set(ParkingUser.objects.filter(is_deleted=False).values_list("license_plate", flat=True))
+    existing_phones = set(ParkingUser.objects.values_list("phone", flat=True))
+    existing_plates = set(ParkingUser.objects.values_list("license_plate", flat=True))
 
     errors = []
     objects = []
@@ -247,7 +257,7 @@ def import_parkingusers_xlsx(file_bytes: bytes) -> list:
         row_num = r["_row"]
         phone = str(r.get("Số điện thoại") or "").strip()
         plate = str(r.get("Biển số xe") or "").strip()
-        vehicle_type = str(r.get("Loại xe") or "").strip().lower()
+        vehicle_type = _VEHICLE_TYPE_ALIASES.get(str(r.get("Loại xe") or "").strip().lower(), "")
         lot_name = str(r.get("Bãi đỗ") or "").strip()
 
         if phone in existing_phones:
@@ -256,17 +266,22 @@ def import_parkingusers_xlsx(file_bytes: bytes) -> list:
         if plate in existing_plates:
             errors.append(f"Dòng {row_num}: Biển số xe \"{plate}\" đã tồn tại trong hệ thống.")
             continue
-        if vehicle_type not in _VALID_VEHICLE_TYPES:
-            errors.append(f"Dòng {row_num}: Loại xe \"{vehicle_type}\" không hợp lệ. Chỉ chấp nhận: car, motorbike, bike.")
+        if not vehicle_type:
+            errors.append(f"Dòng {row_num}: Loại xe \"{r.get('Loại xe')}\" không hợp lệ. Chỉ chấp nhận: car (Ô tô), motorbike (Xe máy), bike (Xe đạp).")
             continue
         if lot_name not in lot_map:
             errors.append(f"Dòng {row_num}: Bãi đỗ \"{lot_name}\" không tìm thấy trong hệ thống.")
             continue
 
+        full_name = str(r.get("Họ tên") or "").strip()
+        if not full_name:
+            errors.append(f"Dòng {row_num}: Họ tên không được để trống.")
+            continue
+
         existing_phones.add(phone)
         existing_plates.add(plate)
         objects.append(ParkingUser(
-            full_name=str(r.get("Họ tên") or "").strip(),
+            full_name=full_name,
             phone=phone,
             email=str(r.get("Email") or "").strip() or "",
             address=str(r.get("Địa chỉ") or "").strip() or "",
