@@ -6,7 +6,7 @@ from django.contrib.auth.forms import (
     UserCreationForm,
 )
 from django.contrib.auth.models import User
-
+from .models import IntroductionPage
 from .models import ParkingLot, ParkingRegistrationRequest, ParkingUser
 
 
@@ -179,3 +179,8 @@ class ParkingRegistrationRequestForm(forms.ModelForm):
         ).exists():
             raise forms.ValidationError("Biển số xe này đang có đơn chờ duyệt.")
         return license_plate
+
+class IntroductionPageForm(forms.ModelForm):
+    class Meta:
+        model = IntroductionPage
+        fields = '__all__'

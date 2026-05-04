@@ -26,6 +26,11 @@ urlpatterns = [
     path("revenue/", manager_views.manager_revenue, name="manager_revenue"),
     path("roles/", manager_views.manager_roles, name="manager_roles"),
     path("roles/<int:user_id>/assign/", manager_views.manager_assign_role, name="manager_assign_role"),
+    path(
+    "gioi-thieu/",
+    manager_views.manager_intro_edit,
+    name="manager_intro_edit"
+    ),
     path("<str:entity>/", manager_views.manager_list, name="manager_list"),
     path("trash/<str:entity>/", manager_views.manager_trash_list, name="manager_trash"),
     path("trash/<str:entity>/<int:pk>/restore/", manager_views.manager_restore, name="manager_restore"),

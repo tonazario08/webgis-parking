@@ -65,10 +65,12 @@
             <a class="menu-link {% if request.resolver_match.url_name == 'manager_revenue' %}active{% endif %}" href="{% url 'manager_revenue' %}"><i class="fas fa-chart-bar"></i> Doanh thu</a>
             <a class="menu-link" href="{% url 'manager_roles' %}"><i class="fas fa-user-shield"></i> Phân quyền</a>
             <a class="menu-link {% if request.resolver_match.url_name == 'manager_excel' %}active{% endif %}" href="{% url 'manager_excel' %}"><i class="fas fa-file-excel"></i> Import / Export</a>
+            <a class="menu-link" href="{% url 'manager_intro_edit' %}"><i class="fas fa-file-alt"></i> Quản lý giới thiệu</a>
             {% else %}
             <a class="menu-link" href="{% url 'manager_list' 'parkings' %}"><i class="fas fa-warehouse"></i> Bãi đỗ xe</a>
             <a class="menu-link" href="{% url 'manager_list' 'users' %}"><i class="fas fa-users"></i> Người gửi xe</a>
             <a class="menu-link" href="{% url 'manager_list' 'prices' %}"><i class="fas fa-tags"></i> Bảng giá</a>
+            <a class="menu-link" href="{% url 'manager_intro_edit' %}"><i class="fas fa-file-alt"></i> Quản lý giới thiệu</a>
             {% endif %}
 
             <div class="sidebar-foot">

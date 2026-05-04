@@ -296,4 +296,20 @@ class OtpCode(models.Model):
     def __str__(self):
         return f"{self.email} – {self.code}"
 
+class IntroductionPage(models.Model):
+    hero_title = models.CharField(max_length=255)
+    hero_description = models.TextField()
+
+    mission_title = models.CharField(max_length=255)
+    mission_description = models.TextField()
+
+    about_title = models.CharField(max_length=255, blank=True)
+    about_description = models.TextField(blank=True)
+
+    hero_image = models.ImageField(upload_to='intro/', blank=True, null=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "Trang giới thiệu"
 

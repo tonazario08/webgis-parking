@@ -1,5 +1,5 @@
 from django.contrib import admin
-
+from .models import IntroductionPage
 from .models import Area, ParkingLot, ParkingLotImage, ParkingPrice, ParkingRegistrationRequest, ParkingUser
 
 
@@ -19,3 +19,4 @@ admin.site.register(Area)
 admin.site.register(ParkingUser)
 admin.site.register(ParkingPrice)
 admin.site.register(ParkingRegistrationRequest)
+admin.site.register(IntroductionPage)

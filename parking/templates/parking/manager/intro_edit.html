@@ -1,0 +1,44 @@
+{% extends 'parking/manager/base.html' %}
+
+{% block title %}Quản lý giới thiệu{% endblock %}
+
+{% block content %}
+
+<div class="manager-card">
+    <h2 class="mb-4">Quản lý trang giới thiệu</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label>Tiêu đề Hero</label>
+            {{ form.hero_title }}
+        </div>
+
+        <div class="mb-3">
+            <label>Mô tả Hero</label>
+            {{ form.hero_description }}
+        </div>
+
+        <div class="mb-3">
+            <label>Tiêu đề sứ mệnh</label>
+            {{ form.mission_title }}
+        </div>
+
+        <div class="mb-3">
+            <label>Mô tả sứ mệnh</label>
+            {{ form.mission_description }}
+        </div>
+
+        <div class="mb-3">
+            <label>Ảnh Hero</label>
+            {{ form.hero_image }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            Lưu thay đổi
+        </button>
+    </form>
+</div>
+
+{% endblock %}

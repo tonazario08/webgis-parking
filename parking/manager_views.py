@@ -9,6 +9,8 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.forms import modelform_factory
 from datetime import date
+from .models import IntroductionPage
+from .forms import IntroductionPageForm
 from django.http import Http404, HttpResponse, JsonResponse
 from parking.utils.excel import (
     export_parkinglots_xlsx,
@@ -1636,7 +1638,30 @@ def manager_excel_export(request, entity):
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
+@login_required
+def manager_intro_edit(request):
 
+    intro, created = IntroductionPage.objects.get_or_create(id=1)
+
+    if request.method == 'POST':
+        form = IntroductionPageForm(
+            request.POST,
+            request.FILES,
+            instance=intro
+        )
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Cập nhật trang giới thiệu thành công")
+
+            return redirect('manager_intro_edit')
+
+    else:
+        form = IntroductionPageForm(instance=intro)
+
+    return render(request, 'parking/manager/intro_edit.html', {
+        'form': form
+    })
 
 
 

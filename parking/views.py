@@ -9,6 +9,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET
+from .models import IntroductionPage
+
 import random
 import requests
 
@@ -527,3 +529,13 @@ def custom_page_not_found(request, exception=None):
 
 def about(request):
     return render(request, "parking/about.html")
+
+from .models import IntroductionPage
+
+def gioi_thieu(request):
+
+    intro = IntroductionPage.objects.first()
+
+    return render(request, 'parking/about.html', {
+        'intro': intro
+    })
